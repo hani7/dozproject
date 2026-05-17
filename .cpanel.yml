@@ -1,0 +1,14 @@
+---
+deployment:
+  tasks:
+    # 1. Copy the built frontend (Next.js static export) to public_html
+    - /bin/cp -R frontend/out/. /home/baitulte/public_html/
+
+    # 2. Install/update backend Python dependencies
+    - source /home/baitulte/forcli/bin/activate && pip install -r requirements.txt --quiet
+
+    # 3. Apply any new database migrations
+    - source /home/baitulte/forcli/bin/activate && python manage.py migrate --noinput
+
+    # 4. Collect static files
+    - source /home/baitulte/forcli/bin/activate && python manage.py collectstatic --noinput --clear
