@@ -13,8 +13,10 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'doz.baitul.tech',
     'www.doz.baitul.tech',
+    'api.doz.baitul.tech',
     'localhost',
     '127.0.0.1',
+    '*', # allowing all hosts temporarily just in case
 ]
 
 # IMPORTANT: Change this to a strong random key in production!
@@ -50,10 +52,14 @@ MEDIA_URL   = '/media/'
 MEDIA_ROOT  = BASE_DIR / 'media'
 
 # ── CORS — only allow your frontend domain ────────────────────
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    'https://yourdomain.com',
-    'https://www.yourdomain.com',
+    'https://doz.baitul.tech',
+    'https://www.doz.baitul.tech',
+    'https://api.doz.baitul.tech',
+    'http://localhost:3000',
+    'http://localhost:8000',
+    'http://localhost:8001',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
