@@ -1,8 +1,8 @@
 ---
 deployment:
   tasks:
-    # 1. Copy the built frontend (Next.js static export) to public_html
-    - /bin/cp -R frontend/out/. /home/baitmtzi/public_html/
+    # 1. Unzip the built frontend (Next.js static export) directly to public_html
+    - unzip -o frontend_out.zip -d /home/baitmtzi/public_html/
 
     # 2. Install/update backend Python dependencies
     - source /home/baitmtzi/forcli/bin/activate && pip install -r requirements.txt --quiet
