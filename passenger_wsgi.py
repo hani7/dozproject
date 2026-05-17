@@ -1,18 +1,12 @@
 import sys
 import os
 
-# Tell Python where your project lives
+# 1. Ajouter le dossier de votre projet au PATH de Python
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Point to production settings
-os.environ['DJANGO_SETTINGS_MODULE'] = 'for.settings_production'
+# 2. Indiquer à Django d'utiliser les settings de production
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'for.settings_production')
 
-# Activate virtualenv (cPanel creates this automatically when you set up Python App)
-# Path example: /home/cpanelusername/virtualenv/forcli/3.11/bin/activate_this.py
-VENV_PATH = '/home/YOUR_CPANEL_USERNAME/virtualenv/forcli/3.11/bin/activate_this.py'
-if os.path.exists(VENV_PATH):
-    with open(VENV_PATH) as f:
-        exec(f.read(), {'__file__': VENV_PATH})
-
+# 3. Lancer l'application Django
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()

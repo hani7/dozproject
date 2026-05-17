@@ -10,11 +10,11 @@ import os
 # ── Security ──────────────────────────────────────────────────
 DEBUG = False
 
-# Replace with your actual cPanel domain
 ALLOWED_HOSTS = [
-    'yourdomain.com',
-    'www.yourdomain.com',
-    'api.yourdomain.com',  # if using subdomain for API
+    'doz.baitul.tech',
+    'www.doz.baitul.tech',
+    'localhost',
+    '127.0.0.1',
 ]
 
 # IMPORTANT: Change this to a strong random key in production!
