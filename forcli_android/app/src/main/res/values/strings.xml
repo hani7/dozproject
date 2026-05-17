@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ForCli</string>
+    <string name="offline_title">Pas de connexion</string>
+    <string name="offline_message">Vérifiez votre connexion internet et réessayez.</string>
+    <string name="retry">Réessayer</string>
+    <string name="app_subtitle">Distribution Pro</string>
+    <string name="app_domain">doz.baitul.tech</string>
+</resources>
