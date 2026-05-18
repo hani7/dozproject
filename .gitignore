@@ -35,6 +35,10 @@ frontend_out.zip
 *.zip
 staticfiles/
 
+# Server-specific files (edited directly on cPanel — never overwrite via git)
+passenger_wsgi.py
+.env
+
 # OS
 .DS_Store
 Thumbs.db
