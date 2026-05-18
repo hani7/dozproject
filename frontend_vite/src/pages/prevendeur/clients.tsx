@@ -324,7 +324,7 @@ export default function PrevendeurClientsPage() {
             </div>
 
             {/* Footer Fixed */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: 'var(--bg-elevated)', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: 'var(--bg-elevated)', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', flexShrink: 0 }}>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saving ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /></> : <><CheckCircle size={14} /> {fr ? 'Enregistrer client' : 'حفظ العميل'}</>}
