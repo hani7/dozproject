@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import BonAchat, LigneAchat
 
 
+# ── Read serializer (for responses) ────────────────────────────
 class LigneAchatSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
 
@@ -11,10 +12,17 @@ class LigneAchatSerializer(serializers.ModelSerializer):
         read_only_fields = ['sous_total', 'bon_achat']
 
 
+# ── Input serializer (for writes — no bon_achat, no sous_total) ─
+class LigneAchatInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LigneAchat
+        fields = ['produit', 'quantite', 'prix_unitaire']
+
+
 class BonAchatSerializer(serializers.ModelSerializer):
-    lignes = LigneAchatSerializer(many=True, read_only=True)
+    lignes         = LigneAchatSerializer(many=True, read_only=True)
     fournisseur_nom = serializers.CharField(source='fournisseur.nom', read_only=True)
-    reste_a_payer = serializers.ReadOnlyField()
+    reste_a_payer  = serializers.ReadOnlyField()
 
     class Meta:
         model = BonAchat
@@ -23,7 +31,8 @@ class BonAchatSerializer(serializers.ModelSerializer):
 
 
 class BonAchatCreateSerializer(serializers.ModelSerializer):
-    lignes = LigneAchatSerializer(many=True)
+    # Use the clean input serializer — avoids the silent bon_achat drop bug
+    lignes = LigneAchatInputSerializer(many=True)
 
     class Meta:
         model = BonAchat

@@ -1,13 +1,35 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
+# Load .env file automatically (works locally and on cPanel if .env is present)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed — env vars must be set manually
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-detergpro-h-nl9yh551#fpfjex%ki1u82!2%%1eefn4n8o^e51(5!i546-m'
+# ── Security ───────────────────────────────────────────────────────────────────
+# NEVER hard-code the SECRET_KEY. Set DJANGO_SECRET_KEY in your .env file.
+# For local dev only, a fallback is tolerated — production will raise an error.
+_SECRET_KEY_ENV = os.environ.get('DJANGO_SECRET_KEY', '')
+if not _SECRET_KEY_ENV:
+    # Allow dev to run without an env file, but warn loudly
+    import warnings
+    warnings.warn(
+        'DJANGO_SECRET_KEY is not set. Using an insecure development key. '
+        'NEVER run this in production without setting DJANGO_SECRET_KEY.',
+        stacklevel=2,
+    )
+    _SECRET_KEY_ENV = 'django-insecure-dev-only-do-not-use-in-production-!!!'
+
+SECRET_KEY = _SECRET_KEY_ENV
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -39,7 +61,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',   # Serve static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -86,13 +108,17 @@ TIME_ZONE = 'Africa/Algiers'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+# Static files
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'      # Required for collectstatic
+
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS
+# CORS — allow all origins in local dev only
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 

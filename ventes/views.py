@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
+from django.db.models import F
 from .models import Vente, LigneVente
 from .serializers import VenteSerializer, VenteCreateSerializer
 from stock.models import MouvementStock
@@ -10,17 +11,20 @@ from products.models import Produit
 
 
 class VenteViewSet(viewsets.ModelViewSet):
-    queryset = Vente.objects.select_related('client', 'cree_par', 'livreur').prefetch_related('lignes__produit').all()
+    queryset = Vente.objects.select_related(
+        'client', 'cree_par', 'livreur'
+    ).prefetch_related('lignes__produit').all()
+
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
-        'type_vente': ['exact'], 
-        'statut': ['exact'], 
-        'client': ['exact'], 
+        'type_vente':    ['exact'],
+        'statut':        ['exact'],
+        'client':        ['exact'],
         'mode_paiement': ['exact'],
-        'date': ['gte', 'lte', 'exact'],
-        'created_at': ['gte', 'lte']
+        'date':          ['gte', 'lte', 'exact'],
+        'created_at':    ['gte', 'lte'],
     }
-    search_fields = ['reference', 'client__nom']
+    search_fields  = ['reference', 'client__nom']
     ordering_fields = ['date', 'created_at', 'montant_total']
 
     def get_serializer_class(self):
@@ -31,19 +35,22 @@ class VenteViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         with transaction.atomic():
             vente = serializer.save(cree_par=self.request.user)
-            # Decrease stock for each line
+            # Use F() expressions for race-condition-safe stock update
             for ligne in vente.lignes.all():
-                produit = ligne.produit
-                stock_avant = produit.stock_actuel
-                stock_apres = stock_avant - ligne.quantite
-                Produit.objects.filter(pk=produit.pk).update(stock_actuel=stock_apres)
+                Produit.objects.filter(pk=ligne.produit_id).update(
+                    stock_actuel=F('stock_actuel') - ligne.quantite
+                )
+                # Read fresh stock values for the movement log
+                produit = Produit.objects.only(
+                    'stock_actuel'
+                ).get(pk=ligne.produit_id)
                 MouvementStock.objects.create(
-                    produit=produit,
+                    produit_id=ligne.produit_id,
                     type_mouvement='sortie',
                     motif='vente',
                     quantite=ligne.quantite,
-                    stock_avant=stock_avant,
-                    stock_apres=stock_apres,
+                    stock_avant=produit.stock_actuel + ligne.quantite,
+                    stock_apres=produit.stock_actuel,
                     reference=vente.reference,
                     cree_par=self.request.user,
                 )
@@ -53,7 +60,6 @@ class VenteViewSet(viewsets.ModelViewSet):
         """Process a product return: restore stock, update sale total."""
         vente = self.get_object()
         lignes_retour = request.data.get('lignes', [])
-        # lignes_retour: [{produit_id, quantite_retournee}]
         if not lignes_retour:
             return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
 
@@ -66,36 +72,42 @@ class VenteViewSet(viewsets.ModelViewSet):
                 try:
                     ligne = vente.lignes.get(produit_id=item['produit_id'])
                 except LigneVente.DoesNotExist:
-                    return Response({'error': f"Produit {item['produit_id']} introuvable dans cette vente."}, status=400)
+                    return Response(
+                        {'error': f"Produit {item['produit_id']} introuvable dans cette vente."},
+                        status=400,
+                    )
 
                 if qte > ligne.quantite:
-                    return Response({'error': f"Quantité retournée ({qte}) > quantité vendue ({ligne.quantite}) pour {ligne.produit.nom}."}, status=400)
+                    return Response(
+                        {'error': f"Quantité retournée ({qte}) > quantité vendue ({ligne.quantite}) pour {ligne.produit.nom}."},
+                        status=400,
+                    )
 
-                produit = ligne.produit
-                stock_avant = produit.stock_actuel
-                stock_apres = stock_avant + qte
-                Produit.objects.filter(pk=produit.pk).update(stock_actuel=stock_apres)
+                # Race-condition-safe update
+                Produit.objects.filter(pk=ligne.produit_id).update(
+                    stock_actuel=F('stock_actuel') + qte
+                )
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
 
                 valeur_retour = qte * float(ligne.prix_unitaire)
                 valeur_retour_totale += valeur_retour
 
                 MouvementStock.objects.create(
-                    produit=produit,
+                    produit_id=ligne.produit_id,
                     type_mouvement='entree',
                     motif='retour',
                     quantite=qte,
-                    stock_avant=stock_avant,
-                    stock_apres=stock_apres,
+                    stock_avant=produit.stock_actuel - qte,
+                    stock_apres=produit.stock_actuel,
                     reference=vente.reference,
                     notes=f"Retour de {qte} carton(s) — Vente {vente.reference}",
                     cree_par=request.user,
                 )
 
-            # Deduct returned value from the vente
             nouveau_total = float(vente.montant_total) - valeur_retour_totale
-            nouveau_paye = max(0, float(vente.montant_paye) - valeur_retour_totale)
+            nouveau_paye  = max(0, float(vente.montant_paye) - valeur_retour_totale)
             vente.montant_total = max(0, nouveau_total)
-            vente.montant_paye = nouveau_paye
-            vente.save()
+            vente.montant_paye  = nouveau_paye
+            vente.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 
         return Response(VenteSerializer(vente).data)

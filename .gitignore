@@ -29,6 +29,12 @@ frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
 
+# Deployment artifacts
+tmp/
+frontend_out.zip
+*.zip
+staticfiles/
+
 # OS
 .DS_Store
 Thumbs.db

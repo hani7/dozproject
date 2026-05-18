@@ -9,16 +9,18 @@ from .serializers import CommandeSerializer, CommandeCreateSerializer
 
 
 class CommandeViewSet(viewsets.ModelViewSet):
+    # Use the fully-optimized base queryset everywhere (including custom actions)
     queryset = Commande.objects.select_related(
         'client', 'prevendeur', 'livreur'
     ).prefetch_related('lignes__produit').all()
+
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
         'statut': ['exact'],
         'type_commande': ['exact'],
         'prevendeur': ['exact'],
         'livreur': ['exact'],
-        'created_at': ['gte', 'lte']
+        'created_at': ['gte', 'lte'],
     }
     search_fields = ['reference', 'client__nom']
     ordering_fields = ['created_at', 'montant_total']
@@ -44,7 +46,6 @@ class CommandeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        # Validate prevendeur specialite matches commande type
         type_commande = serializer.validated_data.get('type_commande')
         if user.role == 'prevendeur' and user.specialite != 'les_deux':
             if user.specialite != type_commande:
@@ -59,7 +60,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
         commande = self.get_object()
         commande.statut = 'confirmee'
         commande.confirmed_at = timezone.now()
-        commande.save()
+        commande.save(update_fields=['statut', 'confirmed_at', 'updated_at'])
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
@@ -74,7 +75,6 @@ class CommandeViewSet(viewsets.ModelViewSet):
         except CustomUser.DoesNotExist:
             return Response({'error': 'Livreur introuvable'}, status=400)
 
-        # Check specialite compatibility
         if livreur.specialite != 'les_deux' and livreur.specialite != commande.type_commande:
             return Response({
                 'error': f'Ce livreur est spécialisé "{livreur.specialite}" et ne peut pas livrer une commande "{commande.type_commande}".'
@@ -82,7 +82,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
 
         commande.livreur = livreur
         commande.statut = 'en_livraison'
-        commande.save()
+        commande.save(update_fields=['livreur', 'statut', 'updated_at'])
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
@@ -90,13 +90,11 @@ class CommandeViewSet(viewsets.ModelViewSet):
         commande = self.get_object()
         commande.statut = 'livree'
         commande.delivered_at = timezone.now()
-        commande.save()
+        commande.save(update_fields=['statut', 'delivered_at', 'updated_at'])
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=False, methods=['get'])
     def en_attente(self, request):
-        """For polling — returns pending orders"""
-        qs = Commande.objects.filter(statut='en_attente').select_related(
-            'client', 'prevendeur'
-        ).prefetch_related('lignes__produit').order_by('-created_at')
+        """For polling — returns pending orders using the optimized base queryset."""
+        qs = self.get_queryset().filter(statut='en_attente').order_by('-created_at')
         return Response(CommandeSerializer(qs, many=True).data)
