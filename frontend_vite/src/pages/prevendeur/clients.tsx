@@ -138,9 +138,11 @@ export default function PrevendeurClientsPage() {
       setModal(false); setForm({ ...EMPTY, type_client: clientType }); setMapMode(false);
       loadClients();
     } catch (e: any) {
-      const err = e?.response?.data;
-      toast.error(typeof err === 'object' ? Object.values(err).flat().join(', ') : 'Erreur');
-    } finally { setSaving(false); }
+      const errorMsg = e?.response?.data ? JSON.stringify(e.response.data) : (e.message || 'Erreur inconnue');
+      toast.error(`Erreur: ${errorMsg}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filtered = clients.filter(c => {
