@@ -25,9 +25,14 @@ class Commande(models.Model):
     livreur              = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='commandes_livrees', db_index=True
     )
-    statut               = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente', db_index=True)
+    statut               = models.CharField(max_length=15, choices=STATUS_CHOICES, default='en_attente', db_index=True)
     montant_total        = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    notes                = models.TextField(blank=True)
+    montant_paye         = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    notes                = models.TextField(blank=True, null=True)
+
+    @property
+    def reste_a_payer(self):
+        return max(0, float(self.montant_total) - float(self.montant_paye))
     date_livraison_souhaitee = models.DateField(null=True, blank=True)
     confirmed_at         = models.DateTimeField(null=True, blank=True)
     delivered_at         = models.DateTimeField(null=True, blank=True)
