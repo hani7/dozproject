@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -224,9 +225,12 @@ export default function PrevendeurClientsPage() {
       )}
 
       {/* Add Client Modal */}
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+      {modal && createPortal(
+        <div className="modal-overlay" onClick={() => setModal(false)} style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', background: 'var(--bg-card)', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             
             {/* Header Fixed */}
             <div style={{ padding: '20px 20px 10px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -331,7 +335,8 @@ export default function PrevendeurClientsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* FAB */}
       <button className="fab" onClick={() => { setForm({ ...EMPTY, type_client: clientType }); setMapMode(false); setModal(true); }}>
