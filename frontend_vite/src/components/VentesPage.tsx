@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
@@ -38,7 +38,9 @@ function VentesPageContent({ type }: Props) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const load = async () => {
+  const prevCountRef = useRef(0);
+
+  const load = useCallback(async () => {
     try {
       const dateParams: any = {};
       if (dateFrom) dateParams['date__gte'] = dateFrom;
@@ -61,7 +63,7 @@ function VentesPageContent({ type }: Props) {
         _source: 'commande',
         type_vente: c.type_commande,
         date: c.created_at?.split('T')[0],
-        mode_paiement: '—',
+        mode_paiement: '\u2014',
         montant_paye: 0,
         reste_a_payer: c.montant_total,
         remise: 0,
@@ -70,13 +72,25 @@ function VentesPageContent({ type }: Props) {
       const merged = [...vts, ...cmds].sort(
         (a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime()
       );
+
+      // Notify if new items appeared
+      if (merged.length > prevCountRef.current && prevCountRef.current > 0) {
+        const diff = merged.length - prevCountRef.current;
+        toast.success(`🔔 ${diff} nouvelle(s) entrée(s) !`, { duration: 4000 });
+      }
+      prevCountRef.current = merged.length;
       setVentes(merged);
     } catch (e) {
       console.error('load error', e);
     }
-  };
+  }, [type, dateFrom, dateTo]);
 
-  useEffect(() => { load(); }, [type, dateFrom, dateTo]);
+  // Initial load + auto-refresh every 20s
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const iv = setInterval(load, 20000);
+    return () => clearInterval(iv);
+  }, [load]);
   useEffect(() => {
     // Load clients filtered by type. If it fails, load all as fallback.
     api.get('/clients/', { params: { type_client: type, page_size: 1000 } })
