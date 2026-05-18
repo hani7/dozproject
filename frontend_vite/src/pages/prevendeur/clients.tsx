@@ -40,18 +40,23 @@ export default function PrevendeurClientsPage() {
   // Init Leaflet map when modal opens in map mode
   useEffect(() => {
     if (!modal || !mapMode) return;
-    const timeout = setTimeout(() => {
-      if (!mapRef.current || mapInstanceRef.current) return;
-      // @ts-ignore
+
+    // Wait for Leaflet to be ready (it's loaded via index.html)
+    let attempts = 0;
+    const tryInit = () => {
       const L = (window as any).L;
-      if (!L) return;
+      if (!L) {
+        if (attempts++ < 20) setTimeout(tryInit, 200);
+        return;
+      }
+      if (!mapRef.current || mapInstanceRef.current) return;
 
       const lat = form.latitude ? Number(form.latitude) : 36.7372;
       const lng = form.longitude ? Number(form.longitude) : 3.0865;
 
       const map = L.map(mapRef.current).setView([lat, lng], 13);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
+        attribution: '\u00a9 OpenStreetMap',
       }).addTo(map);
 
       const icon = L.divIcon({
@@ -84,7 +89,10 @@ export default function PrevendeurClientsPage() {
       });
 
       mapInstanceRef.current = map;
-    }, 200);
+      // Force Leaflet to recalculate tile positions after container is visible
+      setTimeout(() => map.invalidateSize(), 300);
+    };
+    const timeout = setTimeout(tryInit, 300);
     return () => clearTimeout(timeout);
   }, [modal, mapMode]);
 
@@ -152,10 +160,6 @@ export default function PrevendeurClientsPage() {
 
   return (
     <AppLayout allowedRoles={['prevendeur']}>
-      {/* Load Leaflet CSS + JS */}
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" async />
-
       <div className="page-header">
         <div>
           <h1>{isGros ? '🏭' : '📦'} {fr ? 'Mes Clients' : 'عملائي'}
