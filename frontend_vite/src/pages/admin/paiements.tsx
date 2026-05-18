@@ -59,6 +59,8 @@ export default function PaiementsPage() {
   const [selectedFournisseurId, setSelectedFournisseurId] = useState('');
   const [pForm, setPForm] = useState({ ...EMPTY_P });
   const [vForm, setVForm] = useState({ ...EMPTY_V });
+  const [multiVirements, setMultiVirements] = useState([{ montant: '', date: today }]);
+  const [montantGlobalFourn, setMontantGlobalFourn] = useState('');
 
   const loadData = () => {
     api.get('/paiements/paiements/').then(r => setPaiements(r.data.results || r.data));
@@ -111,6 +113,31 @@ export default function PaiementsPage() {
   };
 
   const savePaiement = async () => {
+    // Cas spécial: Paiement fournisseur (achat) en virement multiple
+    if (pForm.type_paiement === 'achat') {
+      const vValid = multiVirements.filter(v => Number(v.montant) > 0);
+      if (vValid.length === 0) { toast.error('Veuillez ajouter au moins un virement valide'); return; }
+      
+      const totalMulti = vValid.reduce((s, v) => s + Number(v.montant), 0);
+      if (resteP > 0 && totalMulti > resteP) { toast.error(`Total des virements dépasse la dette (${resteP.toLocaleString()} DA)`); return; }
+
+      try {
+        await Promise.all(vValid.map(v => 
+          api.post('/paiements/paiements/', {
+            ...pForm,
+            montant: Number(v.montant),
+            date: v.date,
+            mode: 'virement' // On force le virement
+          })
+        ));
+        toast.success(`${vValid.length} paiement(s) enregistré(s) ✓`);
+        setModal(false); setPForm({ ...EMPTY_P }); setSelectedFournisseurId('');
+        setMultiVirements([{ montant: '', date: today }]); setMontantGlobalFourn('');
+        loadData();
+      } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur lors de l\'enregistrement')); }
+      return;
+    }
+
     if (!pForm.montant || Number(pForm.montant) <= 0) { toast.error('Montant invalide'); return; }
     if (resteP > 0 && Number(pForm.montant) > resteP) { toast.error(`Max: ${resteP.toLocaleString()} DA`); return; }
     try {
@@ -205,20 +232,35 @@ export default function PaiementsPage() {
                   <div className="form-group">
                     <label className="form-label">{fr ? 'Type' : 'النوع'}</label>
                     <select className="form-control" value={pForm.type_paiement}
-                      onChange={e => { setPForm(f => ({ ...EMPTY_P, type_paiement: e.target.value, date: f.date, mode: f.mode })); setSelectedClientId(''); setSelectedFournisseurId(''); setPMode('versement'); }}>
+                      onChange={e => { 
+                        const isAchat = e.target.value === 'achat';
+                        setPForm(f => ({ ...EMPTY_P, type_paiement: e.target.value, date: f.date, mode: isAchat ? 'virement' : f.mode })); 
+                        setSelectedClientId(''); 
+                        if (isAchat) {
+                          // Auto-select the first (or SARL VERY NET)
+                          const sarl = fournisseurs.find(f => f.nom.toUpperCase().includes('SARL VERY NET'));
+                          if (sarl) setSelectedFournisseurId(String(sarl.id));
+                          else if (fournisseurs.length > 0) setSelectedFournisseurId(String(fournisseurs[0].id));
+                        } else {
+                          setSelectedFournisseurId(''); 
+                        }
+                        setPMode('versement'); 
+                      }}>
                       <option value="vente">{fr ? 'Règlement client' : 'تسوية عميل'}</option>
-                      <option value="achat">{fr ? 'Paiement fournisseur' : 'دفع للمورد'}</option>
+                      <option value="achat">{fr ? 'Paiement fournisseur (SARL VERY NET)' : 'دفع للمورد'}</option>
                       <option value="autre">Autre</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Mode' : 'الطريقة'}</label>
-                    <select className="form-control" value={pForm.mode} onChange={e => setPForm(f => ({ ...f, mode: e.target.value }))}>
-                      <option value="especes">{fr ? 'Espèces' : 'نقداً'}</option>
-                      <option value="virement">{fr ? 'Virement' : 'تحويل'}</option>
-                      <option value="cheque">{fr ? 'Chèque' : 'شيك'}</option>
-                    </select>
-                  </div>
+                  {pForm.type_paiement !== 'achat' && (
+                    <div className="form-group">
+                      <label className="form-label">{fr ? 'Mode' : 'الطريقة'}</label>
+                      <select className="form-control" value={pForm.mode} onChange={e => setPForm(f => ({ ...f, mode: e.target.value }))}>
+                        <option value="especes">{fr ? 'Espèces' : 'نقداً'}</option>
+                        <option value="virement">{fr ? 'Virement' : 'تحويل'}</option>
+                        <option value="cheque">{fr ? 'Chèque' : 'شيك'}</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Client or Fournisseur selector */}
@@ -257,36 +299,89 @@ export default function PaiementsPage() {
                   ]} />
                 )}
 
-                {/* Versement toggle */}
-                {resteP > 0 && (
+                {/* Versement toggle (Client only) */}
+                {pForm.type_paiement === 'vente' && resteP > 0 && (
                   <VersementToggle mode={pMode} onSelect={handlePModeToggle}
                     resteLabel={fr ? `Tout régler · ${resteP.toLocaleString()} DA` : `تسوية كاملة · ${resteP.toLocaleString()} DA`} />
                 )}
-                {resteP === 0 && (selClient || selFourn) && (
+                {pForm.type_paiement === 'vente' && resteP === 0 && selClient && (
                   <div className="alert alert-success">✅ {fr ? 'Aucune dette — solde à jour.' : 'لا يوجد دين — الرصيد محدّث.'}</div>
                 )}
+                {pForm.type_paiement === 'achat' && resteP === 0 && selFourn && (
+                  <div className="alert alert-success" style={{ marginBottom: '16px' }}>✅ {fr ? 'Aucune dette — solde fournisseur à jour.' : 'لا يوجد دين — الرصيد محدّث.'}</div>
+                )}
 
-                <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">
-                      {fr ? 'Montant (DA)' : 'المبلغ (DA)'}
-                      {resteP > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px', textTransform: 'none' }}>max {resteP.toLocaleString()} DA</span>}
-                    </label>
-                    <input className="form-control" type="number" min="0" value={pForm.montant}
-                      onChange={e => { setPMode('versement'); setPForm(f => ({ ...f, montant: e.target.value })); }}
-                      style={{ fontWeight: 700, fontSize: '16px' }} placeholder="0" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Date' : 'التاريخ'}</label>
-                    <input className="form-control" type="date" value={pForm.date} onChange={e => setPForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  {pForm.type_paiement === 'autre' && (
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">{fr ? 'Nom client/fourn.' : 'اسم العميل/المورد'}</label>
-                      <input className="form-control" value={pForm.client_nom} onChange={e => setPForm(f => ({ ...f, client_nom: e.target.value }))} />
+                {/* Form fields */}
+                {pForm.type_paiement === 'achat' ? (
+                  // ACHAT : DYNAMIC VIREMENTS
+                  <div style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                    <div style={{ marginBottom: '16px', display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                      <div className="form-group" style={{ flex: 1, margin: 0 }}>
+                        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{fr ? 'Montant Global Estimé' : 'المبلغ الإجمالي'}</span>
+                          <span style={{ color: 'var(--brand-primary)', fontWeight: 800 }}>
+                            {multiVirements.reduce((s, v) => s + Number(v.montant), 0).toLocaleString()} DA
+                          </span>
+                        </label>
+                        <input className="form-control" type="number" min="0" value={montantGlobalFourn}
+                          onChange={e => setMontantGlobalFourn(e.target.value)}
+                          placeholder="Ex: 500000" style={{ fontWeight: 700, fontSize: '16px' }} />
+                      </div>
                     </div>
-                  )}
-                </div>
+                    
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {fr ? 'Détails des virements' : 'تفاصيل التحويلات'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {multiVirements.map((v, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input className="form-control" type="number" min="0" placeholder="Montant"
+                            value={v.montant} onChange={e => {
+                              const newV = [...multiVirements]; newV[i].montant = e.target.value; setMultiVirements(newV);
+                            }}
+                            style={{ flex: 1, fontWeight: 600 }} />
+                          <input className="form-control" type="date" value={v.date}
+                            onChange={e => {
+                              const newV = [...multiVirements]; newV[i].date = e.target.value; setMultiVirements(newV);
+                            }}
+                            style={{ width: '140px' }} />
+                          <button className="btn btn-danger" style={{ padding: '8px' }} 
+                            onClick={() => setMultiVirements(multiVirements.filter((_, idx) => idx !== i))}
+                            disabled={multiVirements.length === 1}>
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <button className="btn btn-secondary" style={{ width: 'fit-content', padding: '6px 12px', fontSize: '12px' }}
+                        onClick={() => setMultiVirements([...multiVirements, { montant: '', date: today }])}>
+                        <Plus size={14} /> {fr ? 'Ajouter un virement' : 'إضافة تحويل'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // VENTE / AUTRE : SINGLE PAYMENT
+                  <div className="grid-2">
+                    <div className="form-group">
+                      <label className="form-label">
+                        {fr ? 'Montant (DA)' : 'المبلغ (DA)'}
+                        {resteP > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px', textTransform: 'none' }}>max {resteP.toLocaleString()} DA</span>}
+                      </label>
+                      <input className="form-control" type="number" min="0" value={pForm.montant}
+                        onChange={e => { setPMode('versement'); setPForm(f => ({ ...f, montant: e.target.value })); }}
+                        style={{ fontWeight: 700, fontSize: '16px' }} placeholder="0" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">{fr ? 'Date' : 'التاريخ'}</label>
+                      <input className="form-control" type="date" value={pForm.date} onChange={e => setPForm(f => ({ ...f, date: e.target.value }))} />
+                    </div>
+                    {pForm.type_paiement === 'autre' && (
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        <label className="form-label">{fr ? 'Nom client/fourn.' : 'اسم العميل/المورد'}</label>
+                        <input className="form-control" value={pForm.client_nom} onChange={e => setPForm(f => ({ ...f, client_nom: e.target.value }))} />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button className="btn btn-secondary" onClick={() => setModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
