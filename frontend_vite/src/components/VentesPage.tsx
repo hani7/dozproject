@@ -38,11 +38,42 @@ function VentesPageContent({ type }: Props) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const load = () => {
-    const params: any = { type_vente: type };
-    if (dateFrom) params['date__gte'] = dateFrom;
-    if (dateTo) params['date__lte'] = dateTo;
-    api.get('/ventes/', { params }).then(r => setVentes(r.data.results || r.data));
+  const load = async () => {
+    try {
+      const dateParams: any = {};
+      if (dateFrom) dateParams['date__gte'] = dateFrom;
+      if (dateTo) dateParams['date__lte'] = dateTo;
+
+      const [resVente, resCmd] = await Promise.all([
+        api.get('/ventes/', { params: { type_vente: type, ...dateParams, page_size: 500 } }),
+        api.get('/commandes/', { params: { type_commande: type, page_size: 500 } }),
+      ]);
+
+      const vts = (resVente.data.results || resVente.data).map((v: any) => ({
+        ...v,
+        _source: 'vente',
+        client_nom: v.client_nom,
+      }));
+
+      // Normalize commandes to match vente shape
+      const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({
+        ...c,
+        _source: 'commande',
+        type_vente: c.type_commande,
+        date: c.created_at?.split('T')[0],
+        mode_paiement: '—',
+        montant_paye: 0,
+        reste_a_payer: c.montant_total,
+        remise: 0,
+      }));
+
+      const merged = [...vts, ...cmds].sort(
+        (a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime()
+      );
+      setVentes(merged);
+    } catch (e) {
+      console.error('load error', e);
+    }
   };
 
   useEffect(() => { load(); }, [type, dateFrom, dateTo]);
@@ -163,20 +194,33 @@ function VentesPageContent({ type }: Props) {
           </thead>
           <tbody>
             {ventes.map(v => (
-              <tr key={v.id}>
-                <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{v.reference}</td>
-                <td>{v.client_nom}</td>
+              <tr key={`${v._source}-${v.id}`} style={v._source === 'commande' ? { background: 'rgba(99,102,241,0.03)', borderLeft: '3px solid rgba(99,102,241,0.3)' } : {}}>
+                <td>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '13px' }}>{v.reference}</div>
+                  <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: v._source === 'commande' ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)', color: v._source === 'commande' ? '#6366f1' : '#059669', fontWeight: 700 }}>
+                    {v._source === 'commande' ? '📋 Commande' : '🏪 Vente'}
+                  </span>
+                </td>
+                <td>
+                  <div>{v.client_nom}</div>
+                  {v._source === 'commande' && v.prevendeur_nom && (
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>👤 {v.prevendeur_nom}</div>
+                  )}
+                </td>
                 <td style={{ fontSize: '12px' }}>{v.date}</td>
-                <td style={{ fontWeight: 600 }}>{v.montant_total?.toLocaleString()} DA</td>
-                <td style={{ color: 'var(--text-muted)' }}>{v.montant_paye?.toLocaleString()} DA</td>
-                <td style={{ fontWeight: 600, color: v.reste_a_payer > 0 ? '#ef4444' : '#10b981' }}>{v.reste_a_payer?.toLocaleString()} DA</td>
+                <td style={{ fontWeight: 600 }}>{Number(v.montant_total || 0).toLocaleString()} DA</td>
+                <td style={{ color: 'var(--text-muted)' }}>{Number(v.montant_paye || 0).toLocaleString()} DA</td>
+                <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
                 <td><span className={`badge ${STATUS_COLORS[v.statut]}`}>{statusLabels[v.statut]?.[lang]}</span></td>
                 <td>
                   <div style={{ display: 'flex', gap: '5px' }}>
                     <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
-                    <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
+                    {v._source === 'vente' && (
+                      <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
+                    )}
                   </div>
                 </td>
+
               </tr>
             ))}
           </tbody>
