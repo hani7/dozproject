@@ -47,8 +47,21 @@ function VentesPageContent({ type }: Props) {
 
   useEffect(() => { load(); }, [type, dateFrom, dateTo]);
   useEffect(() => {
-    api.get('/clients/', { params: { type_client: type } }).then(r => setClients(r.data.results || r.data));
-    api.get('/products/', { params: { actif: true } }).then(r => setProducts(r.data.results || r.data));
+    // Load clients filtered by type. If it fails, load all as fallback.
+    api.get('/clients/', { params: { type_client: type, page_size: 1000 } })
+      .then(r => {
+        const list = r.data.results || r.data;
+        setClients(list);
+      })
+      .catch(() => {
+        // Fallback: load all clients and filter client-side
+        api.get('/clients/', { params: { page_size: 1000 } })
+          .then(r => {
+            const all = r.data.results || r.data;
+            setClients(all.filter((c: any) => c.type_client === type));
+          });
+      });
+    api.get('/products/', { params: { actif: true, page_size: 1000 } }).then(r => setProducts(r.data.results || r.data));
   }, [type]);
 
   // Close modals on Escape
