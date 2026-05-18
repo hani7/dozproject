@@ -143,7 +143,7 @@ export function CommandeForm({ type }: Props) {
         </div>
       )}
 
-      <div className="commande-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '20px', alignItems: 'start' }}>
+      <div className="commande-layout">
         {/* LEFT: Product catalog */}
         <div>
           {/* Client selector */}

@@ -615,8 +615,18 @@ tbody tr:last-child td { border-bottom: none; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 
+.commande-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: start;
+}
+
 @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 1024px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1024px) { 
+  .grid-3 { grid-template-columns: 1fr 1fr; } 
+  .commande-layout { grid-template-columns: 1fr; }
+}
 @media (max-width: 640px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .main-content { margin-left: 0 !important; }
