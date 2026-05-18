@@ -1,0 +1,76 @@
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 200;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+  padding: 6px 6px 8px; /* Safe area space */
+  justify-content: space-around;
+  align-items: stretch;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  flex: 1;
+  border-radius: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.mobile-nav-item.active {
+  color: var(--brand-primary);
+  background: rgba(0,96,69,0.08);
+  transform: translateY(-2px);
+}
+.mobile-nav-item.active svg {
+  filter: drop-shadow(0 2px 4px rgba(0,96,69,0.3));
+}
+
+/* FAB */
+.fab {
+  position: fixed;
+  bottom: 80px; /* above bottom nav */
+  right: 20px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(0,96,69,0.4);
+  cursor: pointer;
+  z-index: 150;
+  border: none;
+  transition: transform 0.2s;
+}
+.fab:active { transform: scale(0.92); }
+
+/* App Cards */
+.app-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.app-card-row { display: flex; justify-content: space-between; align-items: center; }
+.app-card-title { font-weight: 800; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.app-card-sub { font-size: 12px; color: var(--text-muted); }
+.app-card-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+/* Utility */
+.text-brand { color: var(--brand-primary); font-weight: 800; }
+.text-danger { color: var(--danger); font-weight: 800; }

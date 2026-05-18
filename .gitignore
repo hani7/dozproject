@@ -36,7 +36,6 @@ frontend_out.zip
 staticfiles/
 
 # Server-specific files (edited directly on cPanel — never overwrite via git)
-passenger_wsgi.py
 .env
 
 # OS
