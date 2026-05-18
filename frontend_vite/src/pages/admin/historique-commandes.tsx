@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
-import { CheckCircle, XCircle, Truck, Search, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Truck, Search, Filter, FileText, PackageCheck, Eye } from 'lucide-react';
 import type { Order } from '@/lib/types';
+import { printFacture, printBonLivraison } from '@/lib/printDocs';
 
 const STATUS_COLORS: Record<string, string> = {
   livree: 'badge-success',
@@ -104,6 +105,7 @@ export default function HistoriqueCommandesPage() {
                 <th>{fr ? 'Livreur' : 'الموزع'}</th>
                 <th>{fr ? 'Total' : 'المجموع'}</th>
                 <th>{fr ? 'Statut' : 'الحالة'}</th>
+                <th>{fr ? 'Actions' : 'الإجراءات'}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,6 +142,16 @@ export default function HistoriqueCommandesPage() {
                       {o.statut === 'livree' ? <CheckCircle size={10} /> : <XCircle size={10} />}
                       {' '}{STATUS_LABELS[o.statut]?.[lang as 'fr' | 'ar']}
                     </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button className="btn btn-secondary btn-icon" title={fr ? 'Imprimer Facture' : 'طباعة الفاتورة'} onClick={() => printFacture(o)} style={{ color: '#059669' }}>
+                        <FileText size={12} />
+                      </button>
+                      <button className="btn btn-secondary btn-icon" title={fr ? 'Bon de Livraison' : 'وصل التسليم'} onClick={() => printBonLivraison(o)} style={{ color: '#0284c7' }}>
+                        <PackageCheck size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

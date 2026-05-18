@@ -19,7 +19,7 @@ export default function PrevendeurClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ ...EMPTY });
+  const [form, setForm] = useState({ ...EMPTY, type_client: clientType });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [mapMode, setMapMode] = useState(false);
@@ -118,7 +118,11 @@ export default function PrevendeurClientsPage() {
         setLocating(false);
         toast.success(fr ? 'Position détectée ✓' : 'تم تحديد الموقع ✓');
       },
-      () => { setLocating(false); toast.error(fr ? 'Impossible de localiser' : 'تعذّر تحديد الموقع'); }
+      (err) => { 
+        setLocating(false); 
+        toast.error(fr ? `GPS: ${err.message}` : `GPS: ${err.message}`); 
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -131,7 +135,7 @@ export default function PrevendeurClientsPage() {
       else { payload.latitude = Number(payload.latitude); payload.longitude = Number(payload.longitude); }
       await api.post('/clients/', payload);
       toast.success(fr ? 'Client ajouté ✓' : 'تم إضافة العميل ✓');
-      setModal(false); setForm({ ...EMPTY }); setMapMode(false);
+      setModal(false); setForm({ ...EMPTY, type_client: clientType }); setMapMode(false);
       loadClients();
     } catch (e: any) {
       const err = e?.response?.data;
@@ -216,38 +220,44 @@ export default function PrevendeurClientsPage() {
       {/* Add Client Modal */}
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '92vh', overflowY: 'auto' }}>
-            <div className="modal-title">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Building2 size={18} /> {fr ? 'Nouveau client' : 'عميل جديد'}
-              </span>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+            
+            {/* Header Fixed */}
+            <div style={{ padding: '20px 20px 10px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div className="modal-title" style={{ margin: 0 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={18} /> {fr ? 'Nouveau client' : 'عميل جديد'}
+                </span>
+              </div>
             </div>
 
-            <div className="grid-2">
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label">⭐ {fr ? 'Nom du magasin / client' : 'اسم المحل / العميل'}</label>
-                <input className="form-control" value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} placeholder={fr ? 'Ex: Épicerie El Amine' : 'مثال: بقالة الأمين'} style={{ fontSize: '15px', fontWeight: 600 }} />
+            {/* Scrollable Body */}
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+              <div className="grid-2">
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">⭐ {fr ? 'Nom du magasin / client' : 'اسم المحل / العميل'}</label>
+                  <input className="form-control" value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} placeholder={fr ? 'Ex: Épicerie El Amine' : 'مثال: بقالة الأمين'} style={{ fontSize: '15px', fontWeight: 600 }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{fr ? 'Type client' : 'نوع العميل'}</label>
+                  <select className="form-control" value={form.type_client} disabled={true}>
+                    <option value="detail">📦 {fr ? 'Détaillant (Carton)' : 'تجزئة (كرتون)'}</option>
+                    <option value="gros">🏭 {fr ? 'Grossiste (Palette)' : 'جملة (مستودع)'}</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label"><Phone size={12} /> {fr ? 'Téléphone' : 'الهاتف'}</label>
+                  <input className="form-control" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0X XX XX XX XX" />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">{fr ? 'Adresse' : 'العنوان'}</label>
+                  <input className="form-control" value={form.adresse} onChange={e => setForm(f => ({ ...f, adresse: e.target.value }))} placeholder={fr ? 'Rue, quartier...' : 'الشارع، الحي...'} />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">{fr ? 'Notes' : 'ملاحظات'}</label>
+                  <input className="form-control" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={fr ? 'Info supplémentaire...' : 'معلومات إضافية...'} />
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">{fr ? 'Type client' : 'نوع العميل'}</label>
-                <select className="form-control" value={form.type_client} onChange={e => setForm(f => ({ ...f, type_client: e.target.value }))}>
-                  <option value="detail">📦 {fr ? 'Détaillant (Carton)' : 'تجزئة (كرتون)'}</option>
-                  <option value="gros">🏭 {fr ? 'Grossiste (Palette)' : 'جملة (مستودع)'}</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label"><Phone size={12} /> {fr ? 'Téléphone' : 'الهاتف'}</label>
-                <input className="form-control" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0X XX XX XX XX" />
-              </div>
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label">{fr ? 'Adresse' : 'العنوان'}</label>
-                <input className="form-control" value={form.adresse} onChange={e => setForm(f => ({ ...f, adresse: e.target.value }))} placeholder={fr ? 'Rue, quartier...' : 'الشارع، الحي...'} />
-              </div>
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label">{fr ? 'Notes' : 'ملاحظات'}</label>
-                <input className="form-control" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={fr ? 'Info supplémentaire...' : 'معلومات إضافية...'} />
-              </div>
-            </div>
 
             {/* Map Section */}
             <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
@@ -305,8 +315,10 @@ export default function PrevendeurClientsPage() {
                 </>
               )}
             </div>
+            </div>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            {/* Footer Fixed */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: 'var(--bg-elevated)', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saving ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /></> : <><CheckCircle size={14} /> {fr ? 'Enregistrer client' : 'حفظ العميل'}</>}
@@ -316,7 +328,7 @@ export default function PrevendeurClientsPage() {
         </div>
       )}
       {/* FAB */}
-      <button className="fab" onClick={() => { setForm({ ...EMPTY }); setMapMode(false); setModal(true); }}>
+      <button className="fab" onClick={() => { setForm({ ...EMPTY, type_client: clientType }); setMapMode(false); setModal(true); }}>
         <Plus size={24} />
       </button>
 
