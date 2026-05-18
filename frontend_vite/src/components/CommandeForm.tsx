@@ -288,16 +288,16 @@ export function CommandeForm({ type }: Props) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      <button className="btn btn-secondary btn-icon" style={{ width: 24, height: 24 }} onClick={() => updateQty(item.product.id, item.qty - 1)}><Minus size={10} /></button>
+                      <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty - 1)}><Minus size={16} /></button>
                       <input
                         type="number"
                         min={1}
                         value={item.qty}
                         onChange={e => updateQty(item.product.id, Number(e.target.value))}
-                        style={{ width: '36px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700, padding: '2px' }}
+                        style={{ width: '40px', height: '32px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700, padding: '2px' }}
                       />
-                      <button className="btn btn-secondary btn-icon" style={{ width: 24, height: 24 }} onClick={() => updateQty(item.product.id, item.qty + 1)}><Plus size={10} /></button>
-                      <button className="btn btn-danger btn-icon" style={{ width: 24, height: 24 }} onClick={() => removeFromCart(item.product.id)}><Trash2 size={10} /></button>
+                      <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty + 1)}><Plus size={16} /></button>
+                      <button className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={() => removeFromCart(item.product.id)}><Trash2 size={16} /></button>
                     </div>
                   </div>
                 ))}
