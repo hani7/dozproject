@@ -211,7 +211,7 @@ export function CommandeForm({ type }: Props) {
                     {/* Product image */}
                     {p.image && (
                       <img
-                        src={`${MEDIA_BASE}${p.image}`}
+                        src={p.image.startsWith('http') ? p.image : `${MEDIA_BASE}${p.image}`}
                         alt={p.nom}
                         style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border)' }}
                         onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
