@@ -14,11 +14,19 @@ export default function LivraisonsPage() {
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const fr = lang === 'fr';
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    api.get('/commandes/', { params: { statut: filter } })
-      .then(r => { setOrders(r.data.results || r.data); setLoading(false); })
-      .catch(() => setLoading(false));
+    try {
+      const [resCmd, resVente] = await Promise.all([
+        api.get('/commandes/', { params: { statut: filter } }),
+        api.get('/ventes/', { params: { statut: filter } })
+      ]);
+      const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
+      const vts = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
+      const data = [...cmds, ...vts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setOrders(data as Order[]);
+    } catch { }
+    setLoading(false);
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
@@ -30,10 +38,11 @@ export default function LivraisonsPage() {
     return () => clearInterval(iv);
   }, [filter, load]);
 
-  const deliver = async (id: number) => {
-    setConfirmingId(id);
+  const deliver = async (order: any) => {
+    setConfirmingId(order.id);
     try {
-      await api.post(`/commandes/${id}/livrer/`);
+      const endpoint = order.is_vente ? `/ventes/${order.id}/livrer/` : `/commandes/${order.id}/livrer/`;
+      await api.post(endpoint);
       toast.success(fr ? '✅ Livraison confirmée!' : '✅ تم تأكيد التوصيل!');
       load();
     } catch (e: any) {
@@ -101,8 +110,8 @@ export default function LivraisonsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '15px' }}>{o.reference}</span>
-                  <span className={`badge ${o.type_commande === 'gros' ? 'badge-purple' : 'badge-info'}`}>
-                    {o.type_commande === 'gros' ? '🏭 Gros' : '📦 Détail'}
+                  <span className={`badge ${(o.type_commande || (o as any).type_vente) === 'gros' ? 'badge-purple' : 'badge-info'}`}>
+                    {(o.type_commande || (o as any).type_vente) === 'gros' ? '🏭 Gros' : '📦 Détail'}
                   </span>
                 </div>
                 {filter === 'livree' && (
@@ -188,7 +197,7 @@ export default function LivraisonsPage() {
 
                 {filter === 'en_livraison' && (
                   <button
-                    onClick={() => deliver(o.id)}
+                    onClick={() => deliver(o)}
                     disabled={confirmingId === o.id}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '8px',

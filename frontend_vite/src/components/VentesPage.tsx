@@ -6,10 +6,19 @@ import toast from 'react-hot-toast';
 import { Plus, Eye, RotateCcw } from 'lucide-react';
 
 interface Props { type: 'detail' | 'gros'; }
-const STATUS_COLORS: Record<string, string> = { brouillon: 'badge-gray', confirmee: 'badge-info', livree: 'badge-success', annulee: 'badge-danger' };
+const STATUS_COLORS: Record<string, string> = { 
+  en_attente: 'badge-warning', 
+  brouillon: 'badge-gray', 
+  confirmee: 'badge-info', 
+  en_livraison: 'badge-purple',
+  livree: 'badge-success', 
+  annulee: 'badge-danger' 
+};
 const statusLabels: Record<string, Record<string, string>> = {
+  en_attente: { fr: 'En attente', ar: 'في الانتظار' },
   brouillon: { fr: 'Brouillon', ar: 'مسودة' },
   confirmee: { fr: 'Confirmée', ar: 'مؤكدة' },
+  en_livraison: { fr: 'En livraison', ar: 'قيد التوصيل' },
   livree: { fr: 'Livrée', ar: 'مُسلَّمة' },
   annulee: { fr: 'Annulée', ar: 'ملغاة' },
 };

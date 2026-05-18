@@ -111,3 +111,34 @@ class VenteViewSet(viewsets.ModelViewSet):
             vente.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 
         return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def confirmer(self, request, pk=None):
+        vente = self.get_object()
+        vente.statut = 'confirmee'
+        vente.save(update_fields=['statut', 'updated_at'])
+        return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def assigner_livreur(self, request, pk=None):
+        from accounts.models import CustomUser
+        vente = self.get_object()
+        livreur_id = request.data.get('livreur_id')
+        if not livreur_id:
+            return Response({'error': 'livreur_id requis'}, status=400)
+        try:
+            livreur = CustomUser.objects.get(pk=livreur_id, role='livreur')
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Livreur introuvable'}, status=400)
+
+        vente.livreur = livreur
+        vente.statut = 'en_livraison'
+        vente.save(update_fields=['livreur', 'statut', 'updated_at'])
+        return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def livrer(self, request, pk=None):
+        vente = self.get_object()
+        vente.statut = 'livree'
+        vente.save(update_fields=['statut', 'updated_at'])
+        return Response(VenteSerializer(vente).data)

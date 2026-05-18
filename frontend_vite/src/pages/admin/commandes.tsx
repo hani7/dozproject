@@ -36,17 +36,24 @@ export default function CommandesLivePage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/commandes/', { params: { ordering: '-created_at', page_size: 100 } });
-      const data: Order[] = res.data.results || res.data;
+      const [resCmd, resVente] = await Promise.all([
+        api.get('/commandes/', { params: { ordering: '-created_at', page_size: 100 } }),
+        api.get('/ventes/', { params: { ordering: '-created_at', page_size: 100 } })
+      ]);
+      const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
+      const vts = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
+      
+      const data = [...cmds, ...vts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
       const pending = data.filter(o => o.statut === 'en_attente').length;
       if (pending > prevCountRef.current && prevCountRef.current > 0) {
-        toast.success(fr ? `🔔 ${pending - prevCountRef.current} nouvelle(s) commande(s)!` : `🔔 ${pending - prevCountRef.current} طلب جديد!`, { duration: 5000 });
+        toast.success(fr ? `🔔 ${pending - prevCountRef.current} nouvelle(s) demande(s)!` : `🔔 ${pending - prevCountRef.current} طلب جديد!`, { duration: 5000 });
       }
       prevCountRef.current = pending;
-      setOrders(data);
+      setOrders(data as Order[]);
       setLoading(false);
     } catch { setLoading(false); }
-  }, [lang]);
+  }, [lang, fr]);
 
   useEffect(() => {
     api.get('/auth/users/', { params: { role: 'livreur' } })
@@ -68,10 +75,11 @@ export default function CommandesLivePage() {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
-  const confirm = async (id: number) => {
+  const confirm = async (order: any) => {
     try {
-      await api.post(`/commandes/${id}/confirmer/`);
-      toast.success(fr ? 'Commande confirmée ✓' : 'تم تأكيد الطلب ✓');
+      const endpoint = order.is_vente ? `/ventes/${order.id}/confirmer/` : `/commandes/${order.id}/confirmer/`;
+      await api.post(endpoint);
+      toast.success(fr ? 'Confirmé ✓' : 'تم التأكيد ✓');
       load();
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
   };
@@ -84,18 +92,20 @@ export default function CommandesLivePage() {
   const doAssign = async () => {
     if (!assignOrder || !selectedLivreur) return;
     try {
-      await api.post(`/commandes/${assignOrder.id}/assigner_livreur/`, { livreur_id: selectedLivreur });
+      const endpoint = (assignOrder as any).is_vente ? `/ventes/${assignOrder.id}/assigner_livreur/` : `/commandes/${assignOrder.id}/assigner_livreur/`;
+      await api.post(endpoint, { livreur_id: selectedLivreur });
       toast.success(fr ? 'Livreur assigné ✓' : 'تم تعيين الموزع ✓');
       setAssignOrder(null);
       load();
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
   };
 
-  const cancel = async (id: number) => {
-    if (!window.confirm(`${fr ? 'Annuler cette commande?' : 'إلغاء هذا الطلب؟'}`)) return;
+  const cancel = async (order: any) => {
+    if (!window.confirm(`${fr ? 'Annuler cette demande?' : 'إلغاء هذا الطلب؟'}`)) return;
     try {
-      await api.patch(`/commandes/${id}/`, { statut: 'annulee' });
-      toast.success(fr ? 'Commande annulée' : 'تم الإلغاء');
+      const endpoint = order.is_vente ? `/ventes/${order.id}/` : `/commandes/${order.id}/`;
+      await api.patch(endpoint, { statut: 'annulee' });
+      toast.success(fr ? 'Annulé' : 'تم الإلغاء');
       load();
     } catch { }
   };
@@ -171,8 +181,8 @@ export default function CommandesLivePage() {
                   </td>
                   <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{o.prevendeur_nom}</td>
                   <td>
-                    <span className={`badge ${o.type_commande === 'gros' ? 'badge-purple' : 'badge-info'}`}>
-                      {o.type_commande === 'gros' ? '🏭 Palette' : '📦 Carton'}
+                    <span className={`badge ${(o.type_commande || (o as any).type_vente) === 'gros' ? 'badge-purple' : 'badge-info'}`}>
+                      {(o.type_commande || (o as any).type_vente) === 'gros' ? '🏭 Palette' : '📦 Carton'}
                     </span>
                   </td>
                   <td style={{ fontSize: '12px' }}>
@@ -206,7 +216,7 @@ export default function CommandesLivePage() {
                         <Eye size={12} />
                       </button>
                       {o.statut === 'en_attente' && (
-                        <button className="btn btn-success btn-sm" title={fr ? 'Confirmer' : 'تأكيد'} onClick={() => confirm(o.id)}>
+                        <button className="btn btn-success btn-sm" title={fr ? 'Confirmer' : 'تأكيد'} onClick={() => confirm(o)}>
                           <CheckCircle size={12} /> {fr ? 'Confirmer' : 'تأكيد'}
                         </button>
                       )}
@@ -222,7 +232,7 @@ export default function CommandesLivePage() {
                         <PackageCheck size={12} />
                       </button>
                       {!['livree', 'annulee'].includes(o.statut) && (
-                        <button className="btn btn-danger btn-icon" title={fr ? 'Annuler' : 'إلغاء'} onClick={() => cancel(o.id)}>
+                        <button className="btn btn-danger btn-icon" title={fr ? 'Annuler' : 'إلغاء'} onClick={() => cancel(o)}>
                           <XCircle size={12} />
                         </button>
                       )}

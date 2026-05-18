@@ -10,8 +10,10 @@ class Vente(models.Model):
         ('gros', 'Vente Gros'),
     ]
     STATUS_CHOICES = [
+        ('en_attente', 'En attente'),
         ('brouillon', 'Brouillon'),
         ('confirmee', 'Confirmée'),
+        ('en_livraison', 'En livraison'),
         ('livree', 'Livrée'),
         ('annulee', 'Annulée'),
     ]
@@ -25,7 +27,7 @@ class Vente(models.Model):
     type_vente     = models.CharField(max_length=10, choices=TYPE_CHOICES, db_index=True)
     client         = models.ForeignKey(Client, on_delete=models.PROTECT, related_name='ventes', db_index=True)
     date           = models.DateField(db_index=True)
-    statut         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmee', db_index=True)
+    statut         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='en_attente', db_index=True)
     mode_paiement  = models.CharField(max_length=20, choices=PAIEMENT_CHOICES, default='especes')
     montant_total  = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     montant_paye   = models.DecimalField(max_digits=12, decimal_places=2, default=0)
