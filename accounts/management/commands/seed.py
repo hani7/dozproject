@@ -100,41 +100,39 @@ class Command(BaseCommand):
 
         # --- Clients ---
         clients_data = [
-            ('Épicerie El Amine', 'detail', '0661000001', 'Rue Didouche Mourad, Alger', 'Alger'),
-            ('Supermarché Al Baraka', 'gros', '0661000002', 'Cité 500 logts, Oran', 'Oran'),
-            ('Commerce Ben Ali', 'detail', '0661000003', 'Marché Central, Constantine', 'Constantine'),
-            ('Grossiste Maghreb', 'gros', '0661000004', 'Zone Industrielle, Sétif', 'Sétif'),
-            ('Épicerie Safia', 'detail', '0661000005', 'Avenue Ben Boulaïd, Batna', 'Batna'),
-            ('Distribution Ouest', 'gros', '0661000006', 'Route Nationale, Tlemcen', 'Tlemcen'),
-            ('Mini Marché Karima', 'detail', '0661000007', 'Cité Benyahia, Blida', 'Blida'),
-            ('Commerce Youcef', 'detail', '0661000008', 'Centre-ville, Annaba', 'Annaba'),
+            ('Épicerie El Amine', 'detail', '0661000001', 'Rue Didouche Mourad, Alger'),
+            ('Supermarché Al Baraka', 'gros', '0661000002', 'Cité 500 logts, Oran'),
+            ('Commerce Ben Ali', 'detail', '0661000003', 'Marché Central, Constantine'),
+            ('Grossiste Maghreb', 'gros', '0661000004', 'Zone Industrielle, Sétif'),
+            ('Épicerie Safia', 'detail', '0661000005', 'Avenue Ben Boulaïd, Batna'),
+            ('Distribution Ouest', 'gros', '0661000006', 'Route Nationale, Tlemcen'),
+            ('Mini Marché Karima', 'detail', '0661000007', 'Cité Benyahia, Blida'),
+            ('Commerce Youcef', 'detail', '0661000008', 'Centre-ville, Annaba'),
         ]
-        for nom, type_c, phone, adresse, wilaya in clients_data:
+        for nom, type_c, phone, adresse in clients_data:
             Client.objects.get_or_create(
                 nom=nom,
                 defaults={
                     'type_client': type_c,
                     'phone': phone,
                     'adresse': adresse,
-                    'wilaya': wilaya,
                 }
             )
         self.stdout.write(f'[OK] {len(clients_data)} clients crees')
 
         # --- Fournisseurs ---
         fournisseurs_data = [
-            ('SARL Detergex Algérie', '0770000001', 'Zone Industrielle Rouiba, Alger', 'Alger', 'M. Benali'),
-            ('Import Export Maghreb', '0770000002', 'Port d\'Oran', 'Oran', 'Mme. Fatima'),
-            ('SPA ProClean', '0770000003', 'Rue Arbaoui, Constantine', 'Constantine', 'M. Hamza'),
-            ('Détergents du Nord', '0770000004', 'Avenue de la Paix, Annaba', 'Annaba', 'M. Tarek'),
+            ('SARL Detergex Algérie', '0770000001', 'Zone Industrielle Rouiba, Alger', 'M. Benali'),
+            ('Import Export Maghreb', '0770000002', 'Port d\'Oran', 'Mme. Fatima'),
+            ('SPA ProClean', '0770000003', 'Rue Arbaoui, Constantine', 'M. Hamza'),
+            ('Détergents du Nord', '0770000004', 'Avenue de la Paix, Annaba', 'M. Tarek'),
         ]
-        for nom, phone, adresse, wilaya, contact in fournisseurs_data:
+        for nom, phone, adresse, contact in fournisseurs_data:
             Fournisseur.objects.get_or_create(
                 nom=nom,
                 defaults={
                     'phone': phone,
                     'adresse': adresse,
-                    'wilaya': wilaya,
                     'contact_nom': contact,
                 }
             )

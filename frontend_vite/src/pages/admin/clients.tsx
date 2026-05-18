@@ -8,7 +8,7 @@ import type { Client } from '@/lib/types';
 
 const EMPTY = {
   nom: '', type_client: 'detail' as 'detail' | 'gros',
-  phone: '', adresse: '', wilaya: '', email: '',
+  phone: '', adresse: '', email: '',
   rc: '', nif: '', n_article: '', nis: '', notes: '',
 };
 
@@ -38,7 +38,7 @@ export default function ClientsPage() {
     setForm({
       nom: c.nom, type_client: c.type_client,
       phone: c.phone || '', adresse: c.adresse || '',
-      wilaya: c.wilaya || '', email: c.email || '',
+      email: c.email || '',
       rc: (c as any).rc || '', nif: (c as any).nif || '',
       n_article: (c as any).n_article || '', nis: (c as any).nis || '',
       notes: c.notes || '',
@@ -103,7 +103,6 @@ export default function ClientsPage() {
               <th>{fr ? 'Type' : 'النوع'}</th>
               <th>RC / NIF</th>
               <th>{fr ? 'Téléphone' : 'الهاتف'}</th>
-              <th>{fr ? 'Wilaya' : 'الولاية'}</th>
               <th>{fr ? 'Solde' : 'الرصيد'}</th>
               <th>{fr ? 'Actions' : 'الإجراءات'}</th>
             </tr>
@@ -123,7 +122,6 @@ export default function ClientsPage() {
                   {!(c as any).rc && !(c as any).nif && '-'}
                 </td>
                 <td style={{ fontSize: '13px' }}>{c.phone || '-'}</td>
-                <td style={{ fontSize: '13px' }}>{c.wilaya || '-'}</td>
                 <td style={{ fontWeight: 600, color: c.solde < 0 ? '#ef4444' : c.solde > 0 ? '#10b981' : 'var(--text-muted)' }}>
                   {c.solde?.toLocaleString()} DA
                 </td>
@@ -178,10 +176,6 @@ export default function ClientsPage() {
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input className="form-control" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">{fr ? 'Wilaya' : 'الولاية'}</label>
-                <input className="form-control" value={form.wilaya} onChange={e => setForm(f => ({ ...f, wilaya: e.target.value }))} />
               </div>
             </div>
 

@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
+import API_URL from '@/lib/config';
 import toast from 'react-hot-toast';
-import { CheckCircle, MapPin, Phone, Package, Navigation, Truck, Clock, RefreshCw } from 'lucide-react';
+import { CheckCircle, MapPin, Phone, Package, Navigation, Truck, RefreshCw } from 'lucide-react';
 import type { Order } from '@/lib/types';
+
+const MEDIA_BASE = API_URL.replace('/api', '');
 
 export default function LivraisonsPage() {
   const { lang } = useLang();
@@ -170,11 +173,23 @@ export default function LivraisonsPage() {
                 {o.lignes?.map((l: any, i: number) => (
                   <div key={l.id || i} style={{
                     display: 'flex', justifyContent: 'space-between', fontSize: '13px',
-                    color: 'var(--text-secondary)', padding: '4px 0',
                     borderBottom: i < (o.lignes?.length || 0) - 1 ? '1px solid var(--border)' : 'none',
+                    alignItems: 'center',
                   }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Package size={11} /> {l.produit_nom}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {l.produit_image ? (
+                        <img 
+                          src={`${MEDIA_BASE}${l.produit_image}`} 
+                          alt={l.produit_nom} 
+                          style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)' }}
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: 'rgba(0,96,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Package size={14} color="var(--brand-primary)" />
+                        </div>
+                      )}
+                      {l.produit_nom}
                     </span>
                     <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>× {l.quantite}</span>
                   </div>

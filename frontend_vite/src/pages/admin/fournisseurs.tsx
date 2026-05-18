@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import type { Fournisseur } from '@/lib/types';
 
 const EMPTY = {
-  nom: '', phone: '', email: '', adresse: '', wilaya: '',
+  nom: '', phone: '', email: '', adresse: '',
   contact_nom: '', rc: '', nif: '', n_article: '', nis: '', notes: '',
 };
 
@@ -34,7 +34,7 @@ export default function FournisseursPage() {
     setEditing(f);
     setForm({
       nom: f.nom || '', phone: f.phone || '', email: f.email || '',
-      adresse: f.adresse || '', wilaya: f.wilaya || '',
+      adresse: f.adresse || '',
       contact_nom: f.contact_nom || '',
       rc: (f as any).rc || '', nif: (f as any).nif || '',
       n_article: (f as any).n_article || '', nis: (f as any).nis || '',
@@ -91,7 +91,6 @@ export default function FournisseursPage() {
               <th>RC / NIF</th>
               <th>{fr ? 'Contact' : 'جهة الاتصال'}</th>
               <th>{fr ? 'Téléphone' : 'الهاتف'}</th>
-              <th>{fr ? 'Wilaya' : 'الولاية'}</th>
               <th>{fr ? 'Solde' : 'الرصيد'}</th>
               <th>{fr ? 'Actions' : 'الإجراءات'}</th>
             </tr>
@@ -109,9 +108,7 @@ export default function FournisseursPage() {
                   {(f as any).n_article && <div><span style={{ color: 'var(--text-muted)' }}>Art:</span> {(f as any).n_article}</div>}
                   {!(f as any).rc && !(f as any).nif && '-'}
                 </td>
-                <td style={{ fontSize: '13px' }}>{f.contact_nom || '-'}</td>
                 <td style={{ fontSize: '13px' }}>{f.phone || '-'}</td>
-                <td>{f.wilaya || '-'}</td>
                 <td style={{ fontWeight: 600, color: f.solde < 0 ? '#ef4444' : 'var(--text-muted)' }}>{f.solde?.toLocaleString()} DA</td>
                 <td>
                   <div style={{ display: 'flex', gap: '6px' }}>
@@ -161,10 +158,6 @@ export default function FournisseursPage() {
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input className="form-control" type="email" value={f('email')} onChange={e => set('email', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">{fr ? 'Wilaya' : 'الولاية'}</label>
-                <input className="form-control" value={f('wilaya')} onChange={e => set('wilaya', e.target.value)} />
               </div>
             </div>
 

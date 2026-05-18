@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
+import API_URL from '@/lib/config';
 import { Search, Package, AlertTriangle } from 'lucide-react';
+
+const MEDIA_BASE = API_URL.replace('/api', '');
 
 export default function PrevendeurStockPage() {
   const { lang } = useLang();
+  const { user } = useAuth();
+  const isGros = user?.specialite === 'gros';
   const [produits, setProduits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -68,9 +74,18 @@ export default function PrevendeurStockPage() {
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '10px', background: isLow ? 'rgba(239,68,68,0.1)' : 'rgba(0,96,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Package size={18} color={isLow ? '#ef4444' : 'var(--brand-primary)'} />
-                  </div>
+                  {p.image ? (
+                    <img
+                      src={`${MEDIA_BASE}${p.image}`}
+                      alt={p.nom}
+                      style={{ width: 44, height: 44, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }}
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: '10px', background: isLow ? 'rgba(239,68,68,0.1)' : 'rgba(0,96,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Package size={20} color={isLow ? '#ef4444' : 'var(--brand-primary)'} />
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nom}</div>
                   </div>
@@ -92,14 +107,16 @@ export default function PrevendeurStockPage() {
                   </div>
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>📦 {fr ? 'Prix Détail/ctn' : 'سعر تجزئة/كرتون'}</div>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#06b6d4' }}>{Number(p.prix_detail || 0).toLocaleString()} DA</div>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                    {isGros ? (
+                      <>🏪 {fr ? 'Prix Gros/ctn' : 'سعر جملة/كرتون'}</>
+                    ) : (
+                      <>📦 {fr ? 'Prix Détail/ctn' : 'سعر تجزئة/كرتون'}</>
+                    )}
                   </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>🏪 {fr ? 'Prix Gros/ctn' : 'سعر جملة/كرتون'}</div>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#6366f1' }}>{Number(p.prix_gros || 0).toLocaleString()} DA</div>
+                  <div style={{ fontWeight: 700, fontSize: '15px', color: isGros ? '#6366f1' : '#06b6d4' }}>
+                    {Number(isGros ? (p.prix_gros || 0) : (p.prix_detail || 0)).toLocaleString()} DA
                   </div>
                 </div>
               </div>

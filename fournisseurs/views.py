@@ -8,6 +8,6 @@ class FournisseurViewSet(viewsets.ModelViewSet):
     queryset = Fournisseur.objects.all()
     serializer_class = FournisseurSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['wilaya']
+    filterset_fields = []
     search_fields = ['nom', 'phone', 'contact_nom']
     ordering_fields = ['nom', 'created_at']

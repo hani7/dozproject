@@ -6,7 +6,6 @@ class Fournisseur(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     adresse = models.TextField(blank=True)
-    wilaya = models.CharField(max_length=100, blank=True)
     contact_nom = models.CharField(max_length=100, blank=True)
     # Algerian business registration
     rc = models.CharField(max_length=50, blank=True, verbose_name='RC (Registre de commerce)')

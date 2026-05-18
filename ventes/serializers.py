@@ -5,12 +5,17 @@ from .models import Vente, LigneVente
 # ── Read serializer (for responses) ────────────────────────────
 class LigneVenteSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
+    produit_image = serializers.SerializerMethodField()
 
     class Meta:
         model = LigneVente
-        fields = '__all__'
+        fields = ['id', 'vente', 'produit', 'produit_nom', 'produit_image', 'quantite', 'prix_unitaire', 'sous_total']
         read_only_fields = ['sous_total']
 
+    def get_produit_image(self, obj):
+        if obj.produit and obj.produit.image:
+            return obj.produit.image.url
+        return None
 
 class VenteSerializer(serializers.ModelSerializer):
     lignes         = LigneVenteSerializer(many=True, read_only=True)

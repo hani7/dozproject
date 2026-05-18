@@ -37,7 +37,6 @@ export interface Client {
   type_client: 'detail' | 'gros';
   phone: string;
   adresse: string;
-  wilaya: string;
   email: string;
   solde: number;
   notes: string;
@@ -51,7 +50,6 @@ export interface Fournisseur {
   phone: string;
   email: string;
   adresse: string;
-  wilaya: string;
   contact_nom: string;
   solde: number;
   notes: string;
@@ -61,6 +59,7 @@ export interface OrderItem {
   id?: number;
   produit: number;
   produit_nom?: string;
+  produit_image?: string;
   quantite: number;
   prix_unitaire: number;
   sous_total: number;

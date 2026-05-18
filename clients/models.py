@@ -10,7 +10,6 @@ class Client(models.Model):
     type_client = models.CharField(max_length=10, choices=TYPE_CHOICES, default='detail')
     phone = models.CharField(max_length=20, blank=True)
     adresse = models.TextField(blank=True)
-    wilaya = models.CharField(max_length=100, blank=True)
     email = models.EmailField(blank=True)
     # Algerian business registration
     rc = models.CharField(max_length=50, blank=True, verbose_name='RC (Registre de commerce)')

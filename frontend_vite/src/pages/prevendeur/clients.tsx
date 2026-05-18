@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, MapPin, Search, Phone, Building2, CheckCircle, Navigation } from 'lucide-react';
 
 const EMPTY = {
-  nom: '', type_client: 'detail', phone: '', adresse: '', wilaya: '',
+  nom: '', type_client: 'detail', phone: '', adresse: '',
   email: '', notes: '', latitude: '', longitude: '',
 };
 
 export default function PrevendeurClientsPage() {
   const { lang } = useLang();
+  const { user } = useAuth();
+  const isGros = user?.specialite === 'gros';
+  const clientType = isGros ? 'gros' : 'detail';
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -26,7 +30,7 @@ export default function PrevendeurClientsPage() {
   const fr = lang === 'fr';
 
   const loadClients = () => {
-    api.get('/clients/', { params: { page_size: 200 } })
+    api.get('/clients/', { params: { page_size: 200, type_client: clientType } })
       .then(r => { setClients(r.data.results || r.data); setLoading(false); })
       .catch(() => setLoading(false));
   };
@@ -137,7 +141,7 @@ export default function PrevendeurClientsPage() {
 
   const filtered = clients.filter(c => {
     const q = search.toLowerCase();
-    return !q || c.nom?.toLowerCase().includes(q) || c.phone?.includes(q) || c.wilaya?.toLowerCase().includes(q);
+    return !q || c.nom?.toLowerCase().includes(q) || c.phone?.includes(q) || c.adresse?.toLowerCase().includes(q);
   });
 
   return (
@@ -148,7 +152,11 @@ export default function PrevendeurClientsPage() {
 
       <div className="page-header">
         <div>
-          <h1>👥 {fr ? 'Mes Clients' : 'عملائي'}</h1>
+          <h1>{isGros ? '🏭' : '📦'} {fr ? 'Mes Clients' : 'عملائي'}
+            <span style={{ fontSize: '13px', fontWeight: 400, marginLeft: 10, color: isGros ? '#8b5cf6' : '#06b6d4' }}>
+              ({isGros ? (fr ? 'Grossistes' : 'جملة') : (fr ? 'Détaillants' : 'تجزئة')})
+            </span>
+          </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
             {filtered.length} {fr ? 'clients' : 'عميل'}
           </p>
@@ -158,7 +166,7 @@ export default function PrevendeurClientsPage() {
       <div className="search-bar" style={{ marginBottom: '18px' }}>
         <div className="search-input-wrap">
           <Search />
-          <input className="form-control" placeholder={fr ? 'Nom, téléphone, wilaya...' : 'الاسم، الهاتف، الولاية...'} value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="form-control" placeholder={fr ? 'Nom, téléphone...' : 'الاسم، الهاتف...'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -180,7 +188,7 @@ export default function PrevendeurClientsPage() {
                 </div>
               </div>
               <div className="app-card-sub" style={{ marginTop: '4px' }}>
-                {c.wilaya && c.adresse ? `${c.adresse}, ${c.wilaya}` : c.wilaya || c.adresse || '-'}
+                {c.adresse || '-'}
               </div>
               <div className="app-card-actions" style={{ marginTop: '12px' }}>
                 {c.phone && (
@@ -230,10 +238,6 @@ export default function PrevendeurClientsPage() {
               <div className="form-group">
                 <label className="form-label"><Phone size={12} /> {fr ? 'Téléphone' : 'الهاتف'}</label>
                 <input className="form-control" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0X XX XX XX XX" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">{fr ? 'Wilaya' : 'الولاية'}</label>
-                <input className="form-control" value={form.wilaya} onChange={e => setForm(f => ({ ...f, wilaya: e.target.value }))} placeholder={fr ? 'Ex: Alger' : 'مثال: الجزائر'} />
               </div>
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">{fr ? 'Adresse' : 'العنوان'}</label>

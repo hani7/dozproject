@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
+import API_URL from '@/lib/config';
 import type { Order } from '@/lib/types';
+import { Package } from 'lucide-react';
+
+const MEDIA_BASE = API_URL.replace('/api', '');
 
 const STATUS_COLORS: Record<string, string> = {
   en_attente: 'badge-warning', confirmee: 'badge-info',
@@ -58,6 +62,34 @@ export default function MesCommandesPage() {
               <div className="app-card-sub" style={{ marginTop: '8px', fontSize: '11px' }}>
                 {new Date(o.created_at).toLocaleString(lang === 'fr' ? 'fr-FR' : 'ar-DZ')}
               </div>
+              {/* Product items */}
+              {o.lignes && o.lignes.length > 0 && (
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                  {o.lignes.map((l: any, i: number) => (
+                    <div key={l.id || i} style={{
+                      display: 'flex', justifyContent: 'space-between', fontSize: '12px',
+                      color: 'var(--text-secondary)', padding: '4px 0', alignItems: 'center'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {l.produit_image ? (
+                          <img 
+                            src={`${MEDIA_BASE}${l.produit_image}`} 
+                            alt={l.produit_nom} 
+                            style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border)' }}
+                            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div style={{ width: 24, height: 24, borderRadius: 4, background: 'rgba(0,96,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Package size={12} color="var(--brand-primary)" />
+                          </div>
+                        )}
+                        {l.produit_nom}
+                      </span>
+                      <span style={{ fontWeight: 700 }}>× {l.quantite}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

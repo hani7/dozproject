@@ -2,9 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
+import API_URL from '@/lib/config';
 import toast from 'react-hot-toast';
 import { Search, Plus, Minus, Trash2, ShoppingCart, Send, Package, AlertTriangle } from 'lucide-react';
 import type { Product, Client } from '@/lib/types';
+
+const MEDIA_BASE = API_URL.replace('/api', '');
 
 interface CartItem { product: Product; qty: number; }
 
@@ -143,7 +146,7 @@ export function CommandeForm({ type }: Props) {
                 </option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.nom} — {c.wilaya || c.phone || ''}
+                   {c.nom} — {c.phone || c.adresse || ''}
                   </option>
                 ))}
               </select>
@@ -188,6 +191,15 @@ export function CommandeForm({ type }: Props) {
                     }}
                     onClick={() => addToCart(p)}
                   >
+                    {/* Product image */}
+                    {p.image && (
+                      <img
+                        src={`${MEDIA_BASE}${p.image}`}
+                        alt={p.nom}
+                        style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border)' }}
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
                     <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.3 }}>
                       {p.nom}
                     </div>
