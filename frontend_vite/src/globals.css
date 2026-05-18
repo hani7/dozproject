@@ -33,9 +33,9 @@
    DARK MODE
 ══════════════════════════════════════════ */
 [data-theme="dark"] {
-  --brand-primary: #6366f1;
-  --brand-secondary: #8b5cf6;
-  --brand-accent: #06b6d4;
+  --brand-primary: #10b981;
+  --brand-secondary: #059669;
+  --brand-accent: #34d399;
   --bg-base: #0a0a0f;
   --bg-surface: #13131f;
   --bg-card: #1a1a2e;
@@ -343,11 +343,11 @@ body {
 }
 
 [data-theme="dark"] .btn-primary {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16,185,129,0.35);
 }
 
-[data-theme="dark"] .btn-primary:hover { box-shadow: 0 6px 18px rgba(99,102,241,0.5); }
+[data-theme="dark"] .btn-primary:hover { box-shadow: 0 6px 18px rgba(16,185,129,0.5); }
 
 .btn-secondary {
   background: var(--bg-elevated);
@@ -418,7 +418,7 @@ body {
   background: var(--bg-card) !important;
 }
 
-[data-theme="dark"] .form-control:focus { box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important; }
+[data-theme="dark"] .form-control:focus { box-shadow: 0 0 0 3px rgba(16,185,129,0.2) !important; }
 
 .form-control::placeholder { color: var(--text-muted); }
 select.form-control option { background: var(--bg-card); }
