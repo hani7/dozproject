@@ -20,6 +20,7 @@ class Commande(models.Model):
     reference            = models.CharField(max_length=50, unique=True, blank=True)
     type_commande        = models.CharField(max_length=10, choices=TYPE_CHOICES, db_index=True)
     client               = models.ForeignKey(Client, on_delete=models.PROTECT, related_name='commandes')
+    photo                = models.ImageField(upload_to='commandes_photos/', null=True, blank=True)
     prevendeur           = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='commandes_creees', db_index=True
     )

@@ -28,7 +28,7 @@ const pageTitles: Record<string, { fr: string; ar: string }> = {
 
 export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
   const { pathname } = useLocation();
-  const { lang } = useLang();
+  const { lang, setLang } = useLang();
   const { theme, toggleTheme } = useTheme();
   const title = pageTitles[pathname]?.[lang] || 'DetergPro';
 
@@ -37,10 +37,22 @@ export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
       <h2 className="topbar-title" style={isMobileRole ? { color: 'white', flex: 1, textAlign: 'center', fontSize: '16px', letterSpacing: '0.5px' } : {}}>{title}</h2>
       
       {!isMobileRole && (
-        <div className="topbar-right">
+        <div className="topbar-right" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '4px 10px', background: 'var(--bg-elevated)', borderRadius: '6px', border: '1px solid var(--border)' }}>
             {new Date().toLocaleDateString(lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
+          <button
+            onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
+            title={lang === 'fr' ? 'Passer en Arabe' : 'Passer en Français'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: '8px', border: '1px solid var(--border)',
+              background: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 800, fontSize: '14px'
+            }}
+          >
+            {lang === 'fr' ? 'AR' : 'FR'}
+          </button>
           <button
             onClick={toggleTheme}
             title={theme === 'light' ? 'Mode sombre' : 'Mode clair'}
@@ -57,12 +69,20 @@ export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
       )}
 
       {isMobileRole && (
-        <button
-          onClick={toggleTheme}
-          style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-        </button>
+        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px' }}
+          >
+            {lang === 'fr' ? 'AR' : 'FR'}
+          </button>
+          <button
+            onClick={toggleTheme}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+          </button>
+        </div>
       )}
     </header>
   );

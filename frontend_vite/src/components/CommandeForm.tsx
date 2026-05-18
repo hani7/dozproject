@@ -4,7 +4,7 @@ import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import API_URL from '@/lib/config';
 import toast from 'react-hot-toast';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Send, Package, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Send, Package, AlertTriangle, Camera } from 'lucide-react';
 import type { Product, Client } from '@/lib/types';
 
 const MEDIA_BASE = API_URL.replace('/api', '');
@@ -23,6 +23,7 @@ export function CommandeForm({ type }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientId, setClientId] = useState('');
   const [notes, setNotes] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -81,6 +82,21 @@ export function CommandeForm({ type }: Props) {
         }))
       });
       const ref = res.data.reference;
+      
+      // Upload photo if present
+      if (photo) {
+        const formData = new FormData();
+        formData.append('photo', photo);
+        try {
+          await api.patch(`/commandes/${res.data.id}/`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } catch (photoErr) {
+          console.error("Photo upload failed:", photoErr);
+          toast.error(lang === 'fr' ? "La commande est créée mais l'upload de la photo a échoué" : "تم إنشاء الطلب ولكن فشل رفع الصورة");
+        }
+      }
+
       toast.success(
         lang === 'fr' ? `Commande ${ref} envoyée à l'admin!` : `تم إرسال الطلب ${ref} للمدير!`,
         { duration: 5000 }
@@ -89,6 +105,7 @@ export function CommandeForm({ type }: Props) {
       setCart([]);
       setClientId('');
       setNotes('');
+      setPhoto(null);
     } catch (e: any) {
       const err = e?.response?.data;
       toast.error(typeof err === 'string' ? err : JSON.stringify(err) || 'Erreur lors de l\'envoi');
@@ -298,7 +315,7 @@ export function CommandeForm({ type }: Props) {
               </div>
 
               {/* Notes */}
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '10px' }}>
                 <label className="form-label">{lang === 'fr' ? 'Notes / instructions' : 'ملاحظات'}</label>
                 <textarea
                   className="form-control"
@@ -307,6 +324,30 @@ export function CommandeForm({ type }: Props) {
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                 />
+              </div>
+
+              {/* Photo Upload */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Camera size={14} /> {lang === 'fr' ? 'Photo (optionnel)' : 'صورة (اختياري)'}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="form-control"
+                  style={{ fontSize: '13px', padding: '8px' }}
+                  onChange={e => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setPhoto(e.target.files[0]);
+                    }
+                  }}
+                />
+                {photo && (
+                  <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>
+                    {lang === 'fr' ? '✅ Image sélectionnée' : '✅ تم تحديد الصورة'}
+                  </div>
+                )}
               </div>
 
               {/* Submit */}
