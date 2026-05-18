@@ -5,7 +5,7 @@ import { useLang } from '@/contexts/LangContext';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, MapPin, Search, Phone, Building2, CheckCircle, Navigation } from 'lucide-react';
+import { Plus, MapPin, Search, Phone, Building2, CheckCircle, Navigation, Edit2, Trash2 } from 'lucide-react';
 
 const EMPTY = {
   nom: '', type_client: 'detail', phone: '', adresse: '',
@@ -142,8 +142,14 @@ export default function PrevendeurClientsPage() {
       const payload: any = { ...form };
       if (!payload.latitude) { delete payload.latitude; delete payload.longitude; }
       else { payload.latitude = Number(payload.latitude); payload.longitude = Number(payload.longitude); }
-      await api.post('/clients/', payload);
-      toast.success(fr ? 'Client ajouté ✓' : 'تم إضافة العميل ✓');
+      
+      if ((form as any).id) {
+        await api.patch(`/clients/${(form as any).id}/`, payload);
+        toast.success(fr ? 'Client modifié ✓' : 'تم تعديل العميل ✓');
+      } else {
+        await api.post('/clients/', payload);
+        toast.success(fr ? 'Client ajouté ✓' : 'تم إضافة العميل ✓');
+      }
       setModal(false); setForm({ ...EMPTY, type_client: clientType }); setMapMode(false);
       loadClients();
     } catch (e: any) {
@@ -158,6 +164,29 @@ export default function PrevendeurClientsPage() {
     const q = search.toLowerCase();
     return !q || c.nom?.toLowerCase().includes(q) || c.phone?.includes(q) || c.adresse?.toLowerCase().includes(q);
   });
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm(fr ? 'Voulez-vous vraiment supprimer ce client ?' : 'هل تريد حقًا حذف هذا العميل؟')) return;
+    try {
+      await api.delete(`/clients/${id}/`);
+      toast.success(fr ? 'Client supprimé' : 'تم حذف العميل');
+      loadClients();
+    } catch (e: any) {
+      toast.error(fr ? 'Erreur lors de la suppression' : 'خطأ أثناء الحذف');
+    }
+  };
+
+  const openEdit = (client: any) => {
+    setForm({
+      ...EMPTY,
+      ...client,
+      type_client: client.type_client || clientType,
+      latitude: client.latitude || '',
+      longitude: client.longitude || ''
+    });
+    setMapMode(false);
+    setModal(true);
+  };
 
   return (
     <AppLayout allowedRoles={['prevendeur']}>
@@ -212,6 +241,12 @@ export default function PrevendeurClientsPage() {
                     <Navigation size={14} /> GPS
                   </button>
                 )}
+                <button onClick={() => openEdit(c)} style={{ width: 36, padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Edit2 size={16} />
+                </button>
+                <button onClick={() => handleDelete(c.id)} style={{ width: 36, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
           ))}
@@ -236,7 +271,7 @@ export default function PrevendeurClientsPage() {
             <div style={{ padding: '20px 20px 10px 20px', borderBottom: '1px solid var(--border)' }}>
               <div className="modal-title" style={{ margin: 0 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Building2 size={18} /> {fr ? 'Nouveau client' : 'عميل جديد'}
+                  <Building2 size={18} /> {(form as any).id ? (fr ? 'Modifier client' : 'تعديل العميل') : (fr ? 'Nouveau client' : 'عميل جديد')}
                 </span>
               </div>
             </div>
