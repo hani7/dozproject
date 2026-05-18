@@ -8,7 +8,7 @@ import Topbar from '@/components/Topbar';
 import type { UserRole } from '@/lib/types';
 import {
   Package, Users, ShoppingBag, ShoppingCart, ClipboardList,
-  Truck, Clock
+  Truck, Clock, Home, User
 } from 'lucide-react';
 
 interface Props {
@@ -62,8 +62,9 @@ export default function AppLayout({ children, allowedRoles }: Props) {
     }
     if (user.role === 'livreur') {
       return [
-        { href: '/livreur/livraisons', icon: Truck, label: t('nav.deliveries') },
+        { href: '/livreur/livraisons', icon: Home, label: t('nav.home') },
         { href: '/livreur/historique', icon: Clock, label: t('nav.history') },
+        { href: '#', icon: User, label: t('nav.account') },
       ];
     }
     return [];
@@ -84,17 +85,19 @@ export default function AppLayout({ children, allowedRoles }: Props) {
           {children}
         </main>
         {/* Footer */}
-        <footer style={{
-          padding: '16px 24px',
-          textAlign: 'center',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          borderTop: '1px solid var(--border)',
-          background: 'var(--bg-surface)',
-          marginTop: 'auto'
-        }}>
-          © 2025 ForCli · Powered by <a href="https://www.baitul.tech/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
-        </footer>
+        {!isMobileRole && (
+          <footer style={{
+            padding: '16px 24px',
+            textAlign: 'center',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--bg-surface)',
+            marginTop: 'auto'
+          }}>
+            © 2025 ForCli · Powered by <a href="https://www.baitul.tech/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
+          </footer>
+        )}
       </div>
 
       {/* Bottom tab navigation for mobile */}
@@ -108,6 +111,13 @@ export default function AppLayout({ children, allowedRoles }: Props) {
                 key={item.href}
                 to={item.href}
                 className={`mobile-nav-item ${active ? 'active' : ''}`}
+                onClick={(e) => {
+                  if (item.href === '#') {
+                    e.preventDefault();
+                    // Open topbar mobile menu or trigger logout logic for now
+                    alert("Menu compte");
+                  }
+                }}
               >
                 <Icon size={20} />
                 <span>{item.label}</span>

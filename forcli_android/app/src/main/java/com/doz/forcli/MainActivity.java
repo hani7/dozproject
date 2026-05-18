@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout offlineLayout;
     private LinearLayout splashLayout;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private static final String APP_URL = "https://doz.baitul.tech";
+    private static final String APP_URL = "https://doz.baitul.tech/login";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -113,8 +113,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Toolbar refresh button
-        findViewById(R.id.toolbar_refresh).setOnClickListener(v -> webView.reload());
+
 
         // Load URL
         if (isConnected()) {

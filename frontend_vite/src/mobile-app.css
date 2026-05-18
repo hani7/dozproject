@@ -1,14 +1,14 @@
 .mobile-bottom-nav {
-  display: none;
+  display: flex;
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 200;
   background: var(--bg-surface);
   border-top: 1px solid var(--border);
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
-  padding: 6px 6px 8px; /* Safe area space */
+  box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+  padding: 10px 10px 16px; /* Fat safe area */
   justify-content: space-around;
-  align-items: stretch;
+  align-items: center;
 }
 
 .mobile-nav-item {
@@ -16,27 +16,35 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 4px;
-  flex: 1;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 16px;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: center;
-  line-height: 1.2;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.mobile-nav-item svg {
+  width: 26px; /* Fatter icons */
+  height: 26px;
+  stroke-width: 2.2px;
 }
 
 .mobile-nav-item.active {
   color: var(--brand-primary);
-  background: rgba(0,96,69,0.08);
-  transform: translateY(-2px);
+  background: rgba(0,96,69,0.1);
+  transform: translateY(-4px);
 }
 .mobile-nav-item.active svg {
-  filter: drop-shadow(0 2px 4px rgba(0,96,69,0.3));
+  filter: drop-shadow(0 4px 8px rgba(0,96,69,0.3));
 }
+
+.mobile-hide-sidebar { display: none !important; }
+.mobile-main { margin-left: 0 !important; margin-right: 0 !important; }
+.mobile-page-content { padding-bottom: 100px !important; } /* Space for bottom nav */
 
 /* FAB */
 .fab {
