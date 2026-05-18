@@ -88,8 +88,7 @@ export function printFacture(order: Order) {
       </div>
     </div>
     <div class="doc-info">
-      <div class="doc-title">Facture</div>
-      <div class="doc-ref">N° ${order.reference}</div>
+      <div class="doc-title">Facture Proforma</div>
       <div class="doc-date">Date : ${fmtDate(order.created_at)}</div>
       ${order.type_commande === 'gros' ? '<div class="doc-date" style="color:#7c3aed;font-weight:700">🏭 Commande Palette (Gros)</div>' : '<div class="doc-date" style="color:#0284c7;font-weight:700">📦 Commande Carton (Détail)</div>'}
     </div>
