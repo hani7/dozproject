@@ -17,6 +17,16 @@ if os.path.exists(e):
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'for.settings_production')
 
+# ── Auto-migrate on startup (no SSH needed on cPanel) ─────────────────────────
+try:
+    import django
+    django.setup()
+    from django.core.management import call_command
+    call_command('migrate', '--noinput', verbosity=0)
+except Exception:
+    pass  # Don't block app startup if migrate fails
+# ──────────────────────────────────────────────────────────────────────────────
+
 try:
     from django.core.wsgi import get_wsgi_application
     application = get_wsgi_application()
