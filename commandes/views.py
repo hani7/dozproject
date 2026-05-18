@@ -93,6 +93,161 @@ class CommandeViewSet(viewsets.ModelViewSet):
         commande.save(update_fields=['statut', 'delivered_at', 'updated_at'])
         return Response(CommandeSerializer(commande).data)
 
+    @action(detail=True, methods=['post'])
+    def approuver(self, request, pk=None):
+        from django.db import transaction
+        from stock.models import MouvementStock
+        from django.db.models import F
+        from products.models import Produit
+        
+        commande = self.get_object()
+        if commande.statut == 'cloturee':
+            return Response({'error': 'Commande déjà clôturée'}, status=400)
+
+        with transaction.atomic():
+            commande.statut = 'cloturee'
+            commande.save(update_fields=['statut', 'updated_at'])
+            
+            # Déduire définitivement les quantités du stock
+            for ligne in commande.lignes.all():
+                Produit.objects.filter(pk=ligne.produit_id).update(
+                    stock_actuel=F('stock_actuel') - ligne.quantite
+                )
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+                MouvementStock.objects.create(
+                    produit_id=ligne.produit_id,
+                    type_mouvement='sortie',
+                    motif='vente',
+                    quantite=ligne.quantite,
+                    stock_avant=produit.stock_actuel + ligne.quantite,
+                    stock_apres=produit.stock_actuel,
+                    reference=commande.reference,
+                    cree_par=request.user,
+                )
+        return Response(CommandeSerializer(commande).data)
+
+    @action(detail=True, methods=['post'])
+    def retour(self, request, pk=None):
+        from django.db import transaction
+        from .models import LigneCommande
+        
+        commande = self.get_object()
+        lignes_retour = request.data.get('lignes', [])
+        if not lignes_retour:
+            return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
+
+        with transaction.atomic():
+            valeur_retour_totale = 0
+            for item in lignes_retour:
+                qte = int(item.get('quantite', 0))
+                if qte <= 0:
+                    continue
+                try:
+                    ligne = commande.lignes.get(produit_id=item['produit_id'])
+                except LigneCommande.DoesNotExist:
+                    return Response({'error': f"Produit {item['produit_id']} introuvable."}, status=400)
+                
+                if qte > ligne.quantite:
+                    return Response({'error': f"Quantité ({qte}) > commandée ({ligne.quantite})."}, status=400)
+
+                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour_totale += valeur_retour
+                
+                ligne.quantite -= qte
+                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+                ligne.save(update_fields=['quantite', 'sous_total'])
+
+            # Commande : Le retour ne touche pas au stock, il diminue juste le total
+            nouveau_total = float(commande.montant_total) - valeur_retour_totale
+            nouveau_paye  = max(0, float(commande.montant_paye) - valeur_retour_totale)
+            commande.montant_total = max(0, nouveau_total)
+            commande.montant_paye  = nouveau_paye
+            commande.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
+
+        return Response(CommandeSerializer(commande).data)
+
+    @action(detail=True, methods=['post'])
+    def non_conforme(self, request, pk=None):
+        from django.db import transaction
+        from stock.models import MouvementStock
+        from django.db.models import F
+        from products.models import Produit
+        from .models import LigneCommande
+        
+        commande = self.get_object()
+        lignes_retour = request.data.get('lignes', [])
+        if not lignes_retour:
+            return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
+
+        with transaction.atomic():
+            valeur_retour_totale = 0
+            for item in lignes_retour:
+                qte = int(item.get('quantite', 0))
+                if qte <= 0:
+                    continue
+                try:
+                    ligne = commande.lignes.get(produit_id=item['produit_id'])
+                except LigneCommande.DoesNotExist:
+                    return Response({'error': f"Produit {item['produit_id']} introuvable."}, status=400)
+                
+                if qte > ligne.quantite:
+                    return Response({'error': f"Quantité ({qte}) > commandée ({ligne.quantite})."}, status=400)
+
+                # Sortie de stock immédiate pour produit cassé (perte)
+                Produit.objects.filter(pk=ligne.produit_id).update(
+                    stock_actuel=F('stock_actuel') - qte
+                )
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+                MouvementStock.objects.create(
+                    produit_id=ligne.produit_id,
+                    type_mouvement='sortie',
+                    motif='perte',
+                    quantite=qte,
+                    stock_avant=produit.stock_actuel + qte,
+                    stock_apres=produit.stock_actuel,
+                    reference=commande.reference,
+                    notes=f"Produit non conforme — Commande {commande.reference}",
+                    cree_par=request.user,
+                )
+
+                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour_totale += valeur_retour
+                
+                ligne.quantite -= qte
+                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+                ligne.save(update_fields=['quantite', 'sous_total'])
+
+            nouveau_total = float(commande.montant_total) - valeur_retour_totale
+            nouveau_paye  = max(0, float(commande.montant_paye) - valeur_retour_totale)
+            commande.montant_total = max(0, nouveau_total)
+            commande.montant_paye  = nouveau_paye
+            commande.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
+
+        return Response(CommandeSerializer(commande).data)
+
+    @action(detail=True, methods=['post'])
+    def payer(self, request, pk=None):
+        from paiements.models import Paiement
+        commande = self.get_object()
+        montant = float(request.data.get('montant', 0))
+        if montant <= 0:
+            return Response({'error': 'Montant invalide.'}, status=400)
+
+        with transaction.atomic():
+            commande.montant_paye = float(commande.montant_paye) + montant
+            commande.save(update_fields=['montant_paye', 'updated_at'])
+
+            Paiement.objects.create(
+                commande=commande,
+                client=commande.client,
+                montant=montant,
+                mode_paiement=request.data.get('mode_paiement', 'especes'),
+                enregistre_par=request.user,
+                notes=request.data.get('notes', '')
+            )
+            
+        return Response(CommandeSerializer(commande).data)
+
     @action(detail=False, methods=['get'])
     def en_attente(self, request):
         """For polling — returns pending orders using the optimized base queryset."""

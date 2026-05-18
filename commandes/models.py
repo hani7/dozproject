@@ -14,6 +14,7 @@ class Commande(models.Model):
         ('confirmee', 'Confirmée'),
         ('en_livraison', 'En livraison'),
         ('livree', 'Livrée'),
+        ('cloturee', 'Clôturée'),
         ('annulee', 'Annulée'),
     ]
     reference            = models.CharField(max_length=50, unique=True, blank=True)

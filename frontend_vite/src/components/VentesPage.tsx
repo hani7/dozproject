@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Eye, RotateCcw } from 'lucide-react';
+import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign } from 'lucide-react';
 
 interface Props { type: 'detail' | 'gros'; }
 const STATUS_COLORS: Record<string, string> = { 
@@ -12,6 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   confirmee: 'badge-info', 
   en_livraison: 'badge-purple',
   livree: 'badge-success', 
+  cloturee: 'badge-success',
   annulee: 'badge-danger' 
 };
 const statusLabels: Record<string, Record<string, string>> = {
@@ -20,6 +21,7 @@ const statusLabels: Record<string, Record<string, string>> = {
   confirmee: { fr: 'Confirmée', ar: 'مؤكدة' },
   en_livraison: { fr: 'En livraison', ar: 'قيد التوصيل' },
   livree: { fr: 'Livrée', ar: 'مُسلَّمة' },
+  cloturee: { fr: 'Clôturée', ar: 'مغلقة' },
   annulee: { fr: 'Annulée', ar: 'ملغاة' },
 };
 
@@ -32,6 +34,9 @@ function VentesPageContent({ type }: Props) {
   const [modal, setModal] = useState(false);
   const [viewModal, setViewModal] = useState<any | null>(null);
   const [retourModal, setRetourModal] = useState<any | null>(null);
+  const [isNonConforme, setIsNonConforme] = useState(false);
+  const [paiementModal, setPaiementModal] = useState<any | null>(null);
+  const [paiementAmount, setPaiementAmount] = useState('');
   const [retourQty, setRetourQty] = useState<Record<number, string>>({});
   const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
   const [form, setForm] = useState({ reference: '', client: '', date: '', mode_paiement: 'especes', remise: '0', notes: '' });
@@ -111,7 +116,7 @@ function VentesPageContent({ type }: Props) {
 
   // Close modals on Escape
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { setModal(false); setViewModal(null); setRetourModal(null); } };
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { setModal(false); setViewModal(null); setRetourModal(null); setPaiementModal(null); } };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, []);
@@ -135,11 +140,17 @@ function VentesPageContent({ type }: Props) {
     } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur')); }
   };
 
-  const openRetour = (v: any) => {
+  const openRetour = (v: any, nonConforme: boolean = false) => {
     const init: Record<number, string> = {};
     v.lignes?.forEach((l: any) => { init[l.produit] = '0'; });
     setRetourQty(init);
+    setIsNonConforme(nonConforme);
     setRetourModal(v);
+  };
+
+  const openPaiement = (v: any) => {
+    setPaiementAmount('');
+    setPaiementModal(v);
   };
 
   const doRetour = async () => {
@@ -149,9 +160,33 @@ function VentesPageContent({ type }: Props) {
       .map(([produit_id, quantite]) => ({ produit_id: Number(produit_id), quantite: Number(quantite) }));
     if (lignesRetour.length === 0) { toast.error(fr ? 'Entrez au moins une quantité.' : 'أدخل كمية واحدة على الأقل.'); return; }
     try {
-      await api.post(`/ventes/${retourModal.id}/retour/`, { lignes: lignesRetour });
-      toast.success(fr ? 'Retour effectué ✓' : 'تم الإرجاع ✓');
+      const endpoint = retourModal._source === 'commande' ? `/commandes/${retourModal.id}` : `/ventes/${retourModal.id}`;
+      const action = isNonConforme ? 'non_conforme' : 'retour';
+      await api.post(`${endpoint}/${action}/`, { lignes: lignesRetour });
+      toast.success(fr ? 'Opération effectuée ✓' : 'تمت العملية ✓');
       setRetourModal(null); load();
+    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
+  };
+
+  const approuver = async (v: any) => {
+    if (!confirm(fr ? 'Voulez-vous vraiment clôturer cette livraison ?' : 'هل تريد حقًا إغلاق هذا التسليم؟')) return;
+    try {
+      const endpoint = v._source === 'commande' ? `/commandes/${v.id}` : `/ventes/${v.id}`;
+      await api.post(`${endpoint}/approuver/`);
+      toast.success(fr ? 'Livraison clôturée ✓' : 'تم إغلاق التسليم ✓');
+      load();
+    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
+  };
+
+  const doPaiement = async () => {
+    if (!paiementModal) return;
+    const m = Number(paiementAmount);
+    if (m <= 0) { toast.error('Montant invalide'); return; }
+    try {
+      const endpoint = paiementModal._source === 'commande' ? `/commandes/${paiementModal.id}` : `/ventes/${paiementModal.id}`;
+      await api.post(`${endpoint}/payer/`, { montant: m, mode_paiement: 'especes' });
+      toast.success(fr ? 'Paiement enregistré ✓' : 'تم تسجيل الدفع ✓');
+      setPaiementModal(null); load();
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
   };
 
@@ -229,8 +264,13 @@ function VentesPageContent({ type }: Props) {
                 <td>
                   <div style={{ display: 'flex', gap: '5px' }}>
                     <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
-                    {v._source === 'vente' && (
-                      <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
+                    <button className="btn btn-secondary btn-icon" title={fr ? 'Paiement' : 'دفع'} onClick={() => openPaiement(v)} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}><DollarSign size={12} /></button>
+                    {v.statut === 'livree' && (
+                      <>
+                        <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v, false)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
+                        <button className="btn btn-danger btn-icon" title={fr ? 'Non Conforme' : 'غير مطابق'} onClick={() => openRetour(v, true)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}><AlertTriangle size={12} /></button>
+                        <button className="btn btn-primary btn-icon" title={fr ? 'Approuver' : 'موافقة'} onClick={() => approuver(v)}><CheckCircle size={12} /></button>
+                      </>
                     )}
                   </div>
                 </td>
@@ -392,14 +432,19 @@ function VentesPageContent({ type }: Props) {
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
-                <div className="modal-title" style={{ margin: 0 }}>↩ {fr ? 'Retour produit' : 'إرجاع المنتج'}</div>
+                <div className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isNonConforme ? <AlertTriangle size={20} color="#ef4444" /> : <RotateCcw size={20} color="#f59e0b" />}
+                  {isNonConforme ? (fr ? 'Produit Non Conforme' : 'منتج غير مطابق') : (fr ? 'Retour produit' : 'إرجاع المنتج')}
+                </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{retourModal.reference} · {retourModal.client_nom}</div>
               </div>
               <CloseBtn onClick={() => setRetourModal(null)} />
             </div>
 
             <div style={{ marginBottom: '6px', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              {fr ? 'Entrez la quantité (en cartons) à retourner pour chaque produit :' : 'أدخل كمية الكرتون المُرتجع لكل منتج :'}
+              {isNonConforme 
+                ? (fr ? 'Entrez la quantité (en cartons) non conforme (perdue) pour chaque produit :' : 'أدخل الكمية غير المطابقة (المفقودة) لكل منتج :')
+                : (fr ? 'Entrez la quantité (en cartons) à retourner pour chaque produit :' : 'أدخل كمية الكرتون المُرتجع لكل منتج :')}
             </div>
 
             <div style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: '20px' }}>
@@ -431,14 +476,77 @@ function VentesPageContent({ type }: Props) {
               </table>
             </div>
 
-            <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '12px', marginBottom: '20px', fontSize: '12px', color: '#f59e0b' }}>
-              ⚠️ {fr ? 'Le stock sera réintégré et le montant total de la vente sera réduit automatiquement.' : 'سيتم إعادة المخزون وتخفيض إجمالي البيع تلقائياً.'}
+            <div style={{ 
+                background: isNonConforme ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)', 
+                border: `1px solid ${isNonConforme ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`, 
+                borderRadius: '10px', padding: '12px', marginBottom: '20px', fontSize: '12px', 
+                color: isNonConforme ? '#ef4444' : '#f59e0b' 
+              }}>
+              ⚠️ {isNonConforme 
+                    ? (fr ? 'La quantité sera déduite du total mais NE SERA PAS remise en stock (Produit perdu).' : 'سيتم خصم الكمية من الإجمالي ولكن لن يتم إعادتها إلى المخزون (منتج مفقود).')
+                    : (fr ? 'Le stock sera réintégré et le montant total de la vente sera réduit automatiquement.' : 'سيتم إعادة المخزون وتخفيض إجمالي البيع تلقائياً.')}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={() => setRetourModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-              <button className="btn btn-primary" onClick={doRetour} style={{ background: '#f59e0b', border: 'none' }}>
-                <RotateCcw size={13} /> {fr ? 'Confirmer le retour' : 'تأكيد الإرجاع'}
+              <button className="btn btn-primary" onClick={doRetour} style={{ background: isNonConforme ? '#ef4444' : '#f59e0b', border: 'none' }}>
+                {fr ? 'Confirmer' : 'تأكيد'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Paiement Modal ── */}
+      {paiementModal && (
+        <div className="modal-overlay" onClick={() => setPaiementModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <div className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <DollarSign size={20} color="#10b981" />
+                  {fr ? 'Paiement' : 'دفع'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{paiementModal.reference} · {paiementModal.client_nom}</div>
+              </div>
+              <CloseBtn onClick={() => setPaiementModal(null)} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', background: 'var(--bg-elevated)', padding: '10px', borderRadius: '8px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Montant Total' : 'المبلغ الإجمالي'} :</span>
+                <span style={{ fontWeight: 600 }}>{Number(paiementModal.montant_total).toLocaleString()} DA</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', background: 'rgba(16,185,129,0.05)', padding: '10px', borderRadius: '8px' }}>
+                <span style={{ color: '#10b981' }}>{fr ? 'Déjà Versé' : 'المدفوع'} :</span>
+                <span style={{ fontWeight: 600, color: '#10b981' }}>{Number(paiementModal.montant_paye).toLocaleString()} DA</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', background: 'rgba(239,68,68,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.1)' }}>
+                <span style={{ color: '#ef4444', fontWeight: 600 }}>{fr ? 'Reste à Payer' : 'المتبقي'} :</span>
+                <span style={{ fontWeight: 800, color: '#ef4444' }}>{Number(paiementModal.reste_a_payer).toLocaleString()} DA</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>{fr ? 'Nouveau Versement (DA)' : 'دفعة جديدة (دج)'}</label>
+              <input
+                type="number" className="form-control"
+                placeholder={fr ? 'Saisir le montant...' : 'أدخل المبلغ...'}
+                value={paiementAmount}
+                onChange={e => setPaiementAmount(e.target.value)}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setPaiementAmount(String(paiementModal.reste_a_payer))}>
+                {fr ? 'Montant Complet' : 'المبلغ كاملاً'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setPaiementModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+              <button className="btn btn-primary" onClick={doPaiement} style={{ background: '#10b981', border: 'none' }}>
+                {fr ? 'Valider le paiement' : 'تأكيد الدفع'}
               </button>
             </div>
           </div>

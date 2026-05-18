@@ -142,3 +142,70 @@ class VenteViewSet(viewsets.ModelViewSet):
         vente.statut = 'livree'
         vente.save(update_fields=['statut', 'updated_at'])
         return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def approuver(self, request, pk=None):
+        vente = self.get_object()
+        vente.statut = 'cloturee'
+        vente.save(update_fields=['statut', 'updated_at'])
+        return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def non_conforme(self, request, pk=None):
+        vente = self.get_object()
+        lignes_retour = request.data.get('lignes', [])
+        if not lignes_retour:
+            return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
+
+        with transaction.atomic():
+            valeur_retour_totale = 0
+            for item in lignes_retour:
+                qte = int(item.get('quantite', 0))
+                if qte <= 0:
+                    continue
+                try:
+                    ligne = vente.lignes.get(produit_id=item['produit_id'])
+                except LigneVente.DoesNotExist:
+                    return Response({'error': f"Produit {item['produit_id']} introuvable."}, status=400)
+                
+                if qte > ligne.quantite:
+                    return Response({'error': f"Quantité ({qte}) > vendue ({ligne.quantite})."}, status=400)
+
+                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour_totale += valeur_retour
+                
+                # Diminue la quantité de la ligne pour que le total corresponde aux articles acceptés
+                ligne.quantite -= qte
+                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+                ligne.save(update_fields=['quantite', 'sous_total'])
+
+            nouveau_total = float(vente.montant_total) - valeur_retour_totale
+            nouveau_paye  = max(0, float(vente.montant_paye) - valeur_retour_totale)
+            vente.montant_total = max(0, nouveau_total)
+            vente.montant_paye  = nouveau_paye
+            vente.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
+
+        return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def payer(self, request, pk=None):
+        from paiements.models import Paiement
+        vente = self.get_object()
+        montant = float(request.data.get('montant', 0))
+        if montant <= 0:
+            return Response({'error': 'Montant invalide.'}, status=400)
+
+        with transaction.atomic():
+            vente.montant_paye = float(vente.montant_paye) + montant
+            vente.save(update_fields=['montant_paye', 'updated_at'])
+
+            Paiement.objects.create(
+                vente=vente,
+                client=vente.client,
+                montant=montant,
+                mode_paiement=request.data.get('mode_paiement', 'especes'),
+                enregistre_par=request.user,
+                notes=request.data.get('notes', '')
+            )
+            
+        return Response(VenteSerializer(vente).data)

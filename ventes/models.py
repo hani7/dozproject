@@ -15,6 +15,7 @@ class Vente(models.Model):
         ('confirmee', 'Confirmée'),
         ('en_livraison', 'En livraison'),
         ('livree', 'Livrée'),
+        ('cloturee', 'Clôturée'),
         ('annulee', 'Annulée'),
     ]
     PAIEMENT_CHOICES = [
