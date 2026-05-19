@@ -4,7 +4,7 @@ import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import API_URL from '@/lib/config';
 import toast from 'react-hot-toast';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Send, Package, AlertTriangle, Camera } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Send, Package, AlertTriangle, Camera, CheckCircle2 } from 'lucide-react';
 import type { Product, Client } from '@/lib/types';
 
 const MEDIA_BASE = API_URL.replace('/api', '');
@@ -19,7 +19,6 @@ export function CommandeForm({ type }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientId, setClientId] = useState('');
   const [notes, setNotes] = useState('');
@@ -27,14 +26,13 @@ export function CommandeForm({ type }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [addedId, setAddedId] = useState<number | null>(null);
 
-  // Load products and clients matching this type
   useEffect(() => {
     setLoadingProducts(true);
     api.get('/products/', { params: { actif: true, page_size: 200 } })
       .then(r => { setProducts(r.data.results || r.data); setLoadingProducts(false); })
       .catch(() => setLoadingProducts(false));
-
     api.get('/clients/', { params: { type_client: type, page_size: 200 } })
       .then(r => setClients(r.data.results || r.data))
       .catch(() => {});
@@ -47,6 +45,8 @@ export function CommandeForm({ type }: Props) {
     ), [products, search]);
 
   const addToCart = (p: Product) => {
+    setAddedId(p.id);
+    setTimeout(() => setAddedId(null), 700);
     setCart(c => {
       const ex = c.find(i => i.product.id === p.id);
       if (ex) return c.map(i => i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i);
@@ -82,7 +82,7 @@ export function CommandeForm({ type }: Props) {
         }))
       });
       const ref = res.data.reference;
-      
+
       // Upload photo if present
       if (photo) {
         const formData = new FormData();
@@ -92,8 +92,8 @@ export function CommandeForm({ type }: Props) {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
         } catch (photoErr) {
-          console.error("Photo upload failed:", photoErr);
-          toast.error(lang === 'fr' ? "La commande est créée mais l'upload de la photo a échoué" : "تم إنشاء الطلب ولكن فشل رفع الصورة");
+          console.error('Photo upload failed:', photoErr);
+          toast.error(lang === 'fr' ? "Commande créée mais upload photo échoué" : "تم إنشاء الطلب ولكن فشل رفع الصورة");
         }
       }
 
@@ -163,7 +163,7 @@ export function CommandeForm({ type }: Props) {
                 </option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>
-                   {c.nom} — {c.phone || c.adresse || ''}
+                    {c.nom} — {c.phone || c.adresse || ''}
                   </option>
                 ))}
               </select>
@@ -181,7 +181,7 @@ export function CommandeForm({ type }: Props) {
             <Search />
             <input
               className="form-control"
-              placeholder={lang === 'fr' ? 'Rechercher produit (nom, code, catégorie)...' : 'بحث عن منتج (اسم، رمز، فئة)...'}
+              placeholder={lang === 'fr' ? 'Rechercher produit (nom, code)...' : 'بحث عن منتج (اسم، رمز)...'}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -191,23 +191,45 @@ export function CommandeForm({ type }: Props) {
           {loadingProducts ? (
             <div style={{ textAlign: 'center', padding: '40px' }}><div className="spinner" /></div>
           ) : (
-            <div className="product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '12px' }}>
+            <div className="product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               {filtered.map(p => {
                 const inCart = cart.find(i => i.product.id === p.id);
                 const pPrice = price(p);
+                const isJustAdded = addedId === p.id;
                 return (
                   <div
                     key={p.id}
-                    className="card"
                     style={{
+                      background: inCart
+                        ? (type === 'gros' ? 'rgba(99,102,241,0.04)' : 'rgba(6,182,212,0.04)')
+                        : 'var(--bg-card)',
+                      border: inCart
+                        ? `2px solid ${type === 'gros' ? 'rgba(99,102,241,0.5)' : 'rgba(6,182,212,0.5)'}`
+                        : '1px solid var(--border)',
+                      borderRadius: '14px',
                       padding: '14px',
-                      transition: 'all 0.15s ease',
-                      border: inCart ? '1px solid rgba(99,102,241,0.6)' : '1px solid var(--border)',
-                      background: inCart ? 'rgba(99,102,241,0.05)' : 'var(--bg-card)',
-                      display: 'flex', flexDirection: 'column'
+                      transition: 'all 0.2s ease',
+                      boxShadow: inCart
+                        ? `0 4px 16px ${type === 'gros' ? 'rgba(99,102,241,0.12)' : 'rgba(6,182,212,0.12)'}`
+                        : 'var(--shadow-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      position: 'relative',
                     }}
                   >
-                    <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => addToCart(p)}>
+                    {/* In-cart badge */}
+                    {inCart && (
+                      <div style={{
+                        position: 'absolute', top: '10px', right: '10px',
+                        background: type === 'gros' ? '#6366f1' : '#06b6d4',
+                        color: 'white', borderRadius: '20px', fontSize: '11px',
+                        fontWeight: 800, padding: '2px 8px',
+                        display: 'flex', alignItems: 'center', gap: '3px',
+                      }}>
+                        <CheckCircle2 size={10} />×{inCart.qty}
+                      </div>
+                    )}
+
                     {/* Product image */}
                     {p.image && (
                       <img
@@ -217,41 +239,100 @@ export function CommandeForm({ type }: Props) {
                         onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       />
                     )}
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.3 }}>
+
+                    {/* Product name */}
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.3, paddingRight: inCart ? '52px' : '0' }}>
                       {p.nom}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+
+                    {/* Code */}
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
                       {p.code} · {p.cartons_par_palette} ctn/pal.
                     </div>
-                    <div style={{ fontWeight: 900, color: type === 'gros' ? '#6366f1' : '#06b6d4', fontSize: '17px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {pPrice.toLocaleString('fr-DZ')} <span style={{ fontSize: '11px', fontWeight: 400 }}>DA</span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '2px' }}>
-                        /{fr ? 'carton' : 'كرتون'}
-                      </span>
-                    </div>
+
+                    {/* Price */}
+                    <div style={{ fontWeight: 900, color: type === 'gros' ? '#6366f1' : '#06b6d4', fontSize: '17px', marginBottom: '8px', display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                      {pPrice.toLocaleString('fr-DZ')}
+                      <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>DA/{fr ? 'carton' : 'كرتون'}</span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', marginTop: 'auto' }}>
-                      <span style={{ color: p.stock_faible ? '#ef4444' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        {p.stock_faible && <AlertTriangle size={10} />}
-                        {lang === 'fr' ? 'Stock:' : 'مخزون:'} {p.stock_actuel}
-                      </span>
+                    {/* Stock */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: p.stock_faible ? '#ef4444' : 'var(--text-muted)', marginBottom: '12px' }}>
+                      {p.stock_faible && <AlertTriangle size={10} />}
+                      {lang === 'fr' ? 'Stock:' : 'مخزون:'} {p.stock_actuel}
                     </div>
 
-                    {inCart && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '12px', justifyContent: 'center' }}>
-                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty - 1); }}><Minus size={16} color="currentColor" /></button>
+                    {/* Action buttons */}
+                    {inCart ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: 'auto' }}>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-icon"
+                          style={{ width: 30, height: 30, flexShrink: 0 }}
+                          onClick={e => { e.stopPropagation(); removeFromCart(p.id); }}
+                          title={fr ? 'Supprimer' : 'حذف'}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-icon"
+                          style={{ width: 30, height: 30, flexShrink: 0 }}
+                          onClick={e => { e.stopPropagation(); updateQty(p.id, inCart.qty - 1); }}
+                        >
+                          <Minus size={12} />
+                        </button>
                         <input
                           type="number"
                           min={1}
                           value={inCart.qty}
                           onClick={e => e.stopPropagation()}
                           onChange={e => updateQty(p.id, Number(e.target.value))}
-                          style={{ width: '40px', height: '32px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700, padding: '2px' }}
+                          style={{
+                            flex: 1, textAlign: 'center', width: '100%',
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                            borderRadius: '8px', color: 'var(--text-primary)',
+                            fontSize: '14px', fontWeight: 700, padding: '4px',
+                          }}
                         />
-                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty + 1); }}><Plus size={16} color="currentColor" /></button>
-                        <button type="button" className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={(e) => { e.stopPropagation(); removeFromCart(p.id); }}><Trash2 size={16} color="currentColor" /></button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-icon"
+                          style={{ width: 30, height: 30, flexShrink: 0 }}
+                          onClick={e => { e.stopPropagation(); addToCart(p); }}
+                        >
+                          <Plus size={12} />
+                        </button>
                       </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => addToCart(p)}
+                        style={{
+                          marginTop: 'auto',
+                          width: '100%',
+                          padding: '8px',
+                          borderRadius: '10px',
+                          border: `1.5px solid ${type === 'gros' ? 'rgba(99,102,241,0.4)' : 'rgba(6,182,212,0.4)'}`,
+                          background: isJustAdded
+                            ? (type === 'gros' ? '#6366f1' : '#06b6d4')
+                            : (type === 'gros' ? 'rgba(99,102,241,0.08)' : 'rgba(6,182,212,0.08)'),
+                          color: isJustAdded ? 'white' : (type === 'gros' ? '#6366f1' : '#06b6d4'),
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {isJustAdded ? <CheckCircle2 size={13} /> : <Plus size={13} />}
+                        {isJustAdded
+                          ? (fr ? 'Ajouté !' : 'تمت الإضافة!')
+                          : (fr ? 'Ajouter' : 'إضافة للسلة')}
+                      </button>
                     )}
                   </div>
                 );
@@ -267,123 +348,166 @@ export function CommandeForm({ type }: Props) {
         </div>
 
         {/* RIGHT: Cart */}
-        <div className="card cart-panel" style={{ position: 'sticky', top: '80px', padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
-            <ShoppingCart size={18} color="var(--brand-primary)" />
-            <h3 style={{ fontSize: '15px', fontWeight: 800 }}>
-              {lang === 'fr' ? 'Panier' : 'السلة'}
-            </h3>
-            <span className="badge badge-purple" style={{ marginLeft: 'auto' }}>
-              {cart.length} {lang === 'fr' ? 'produit(s)' : 'منتج'}
-            </span>
+        <div className="card cart-panel" style={{ position: 'sticky', top: '80px', padding: '0', overflow: 'hidden' }}>
+          {/* Cart header */}
+          <div style={{
+            padding: '16px 20px',
+            background: type === 'gros'
+              ? 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))'
+              : 'linear-gradient(135deg, rgba(6,182,212,0.12), rgba(14,165,233,0.08))',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', gap: '10px',
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '10px',
+              background: type === 'gros' ? '#6366f1' : '#06b6d4',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShoppingCart size={16} color="white" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)' }}>
+                {lang === 'fr' ? 'Panier' : 'السلة'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                {cart.length} {lang === 'fr' ? 'produit(s)' : 'منتج'}
+              </div>
+            </div>
+            {cart.length > 0 && (
+              <button
+                onClick={() => setCart([])}
+                style={{
+                  marginLeft: 'auto', background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px',
+                  padding: '5px 10px', cursor: 'pointer', color: '#ef4444',
+                  fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px',
+                }}
+              >
+                <Trash2 size={11} />
+                {fr ? 'Vider' : 'إفراغ'}
+              </button>
+            )}
           </div>
 
-          {cart.length === 0 ? (
-            <div className="empty-state" style={{ padding: '30px 0' }}>
-              <ShoppingCart size={36} />
-              <p style={{ marginTop: '8px' }}>{lang === 'fr' ? 'Panier vide' : 'السلة فارغة'}</p>
-              <p style={{ fontSize: '11px', marginTop: '4px' }}>
-                {lang === 'fr' ? 'Cliquez sur un produit pour l\'ajouter' : 'انقر على منتج لإضافته'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Cart items */}
-              <div style={{ maxHeight: '320px', overflowY: 'auto', marginBottom: '12px' }}>
-                {cart.map(item => (
-                  <div key={item.product.id} className="cart-item">
-                    <div style={{ flex: 1, minWidth: 0, marginRight: '8px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.product.nom}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {price(item.product).toLocaleString('fr-DZ')} DA × {item.qty} = {(item.qty * price(item.product)).toLocaleString('fr-DZ')} DA
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty - 1)}><Minus size={16} color="currentColor" /></button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.qty}
-                        onChange={e => updateQty(item.product.id, Number(e.target.value))}
-                        style={{ width: '40px', height: '32px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700, padding: '2px' }}
-                      />
-                      <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty + 1)}><Plus size={16} color="currentColor" /></button>
-                      <button type="button" className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={() => removeFromCart(item.product.id)}><Trash2 size={16} color="currentColor" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total */}
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '18px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>{lang === 'fr' ? 'Total:' : 'المجموع:'}</span>
-                  <span style={{ color: 'var(--brand-primary)' }}>{total.toLocaleString('fr-DZ')} DA</span>
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {cart.length} {lang === 'fr' ? 'article(s)' : 'صنف'} · {cart.reduce((s, i) => s + i.qty, 0)} {lang === 'fr' ? 'unité(s)' : 'وحدة'}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="form-group" style={{ marginBottom: '10px' }}>
-                <label className="form-label">{lang === 'fr' ? 'Notes / instructions' : 'ملاحظات'}</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  placeholder={lang === 'fr' ? 'Ex: Livraison urgente, créneau préféré...' : 'ملاحظات للمدير...'}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                />
-              </div>
-
-              {/* Photo Upload */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Camera size={14} /> {lang === 'fr' ? 'Photo (optionnel)' : 'صورة (اختياري)'}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="form-control"
-                  style={{ fontSize: '13px', padding: '8px' }}
-                  onChange={e => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      setPhoto(e.target.files[0]);
-                    }
-                  }}
-                />
-                {photo && (
-                  <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>
-                    {lang === 'fr' ? '✅ Image sélectionnée' : '✅ تم تحديد الصورة'}
-                  </div>
-                )}
-              </div>
-
-              {/* Submit */}
-              <button
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: 800 }}
-                onClick={submit}
-                disabled={submitting || !clientId}
-              >
-                {submitting ? (
-                  <><div className="spinner" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />{lang === 'fr' ? 'Envoi...' : 'إرسال...'}</>
-                ) : (
-                  <><Send size={16} />{lang === 'fr' ? 'Envoyer à l\'admin' : 'إرسال للمدير'}</>
-                )}
-              </button>
-
-              {!clientId && (
-                <p style={{ fontSize: '11px', color: '#f59e0b', textAlign: 'center', marginTop: '8px' }}>
-                  ⚠️ {lang === 'fr' ? 'Veuillez sélectionner un client' : 'يرجى اختيار عميل'}
+          <div style={{ padding: '16px 20px' }}>
+            {cart.length === 0 ? (
+              <div className="empty-state" style={{ padding: '30px 0' }}>
+                <ShoppingCart size={36} />
+                <p style={{ marginTop: '8px' }}>{lang === 'fr' ? 'Panier vide' : 'السلة فارغة'}</p>
+                <p style={{ fontSize: '11px', marginTop: '4px' }}>
+                  {lang === 'fr' ? 'Cliquez sur un produit pour l\'ajouter' : 'انقر على منتج لإضافته'}
                 </p>
-              )}
-            </>
-          )}
+              </div>
+            ) : (
+              <>
+                {/* Cart items */}
+                <div style={{ maxHeight: '260px', overflowY: 'auto', marginBottom: '14px' }}>
+                  {cart.map(item => (
+                    <div key={item.product.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '10px 0', borderBottom: '1px solid var(--border)',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.product.nom}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {price(item.product).toLocaleString('fr-DZ')} DA × {item.qty} = <strong style={{ color: 'var(--text-secondary)' }}>{(item.qty * price(item.product)).toLocaleString('fr-DZ')} DA</strong>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 26, height: 26 }} onClick={() => updateQty(item.product.id, item.qty - 1)}>
+                          <Minus size={10} />
+                        </button>
+                        <input
+                          type="number" min={1} value={item.qty}
+                          onChange={e => updateQty(item.product.id, Number(e.target.value))}
+                          style={{ width: '36px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700, padding: '2px' }}
+                        />
+                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 26, height: 26 }} onClick={() => updateQty(item.product.id, item.qty + 1)}>
+                          <Plus size={10} />
+                        </button>
+                        <button type="button" className="btn btn-danger btn-icon" style={{ width: 26, height: 26 }} onClick={() => removeFromCart(item.product.id)} title={fr ? 'Supprimer' : 'حذف'}>
+                          <Trash2 size={10} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total */}
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: '12px', padding: '14px 16px', marginBottom: '14px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>
+                    {cart.length} {lang === 'fr' ? 'article(s)' : 'صنف'} · {cart.reduce((s, i) => s + i.qty, 0)} {lang === 'fr' ? 'unité(s)' : 'وحدة'}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '20px', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 700 }}>
+                      {lang === 'fr' ? 'Total' : 'المجموع'}
+                    </span>
+                    <span style={{ color: type === 'gros' ? '#6366f1' : '#06b6d4' }}>
+                      {total.toLocaleString('fr-DZ')} <span style={{ fontSize: '13px', fontWeight: 600 }}>DA</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="form-group" style={{ marginBottom: '10px' }}>
+                  <label className="form-label">{lang === 'fr' ? 'Notes / instructions' : 'ملاحظات'}</label>
+                  <textarea
+                    className="form-control"
+                    rows={2}
+                    placeholder={lang === 'fr' ? 'Ex: Livraison urgente...' : 'ملاحظات للمدير...'}
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                  />
+                </div>
+
+                {/* Photo Upload */}
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Camera size={14} /> {lang === 'fr' ? 'Photo (optionnel)' : 'صورة (اختياري)'}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="form-control"
+                    style={{ fontSize: '13px', padding: '8px' }}
+                    onChange={e => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setPhoto(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  {photo && (
+                    <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>
+                      {lang === 'fr' ? '✅ Image sélectionnée' : '✅ تم تحديد الصورة'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit */}
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '13px', fontSize: '14px', fontWeight: 800 }}
+                  onClick={submit}
+                  disabled={submitting || !clientId}
+                >
+                  {submitting ? (
+                    <><div className="spinner" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />{lang === 'fr' ? 'Envoi...' : 'إرسال...'}</>
+                  ) : (
+                    <><Send size={16} />{lang === 'fr' ? 'Envoyer à l\'admin' : 'إرسال للمدير'}</>
+                  )}
+                </button>
+
+                {!clientId && (
+                  <p style={{ fontSize: '11px', color: '#f59e0b', textAlign: 'center', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    ⚠️ {lang === 'fr' ? 'Veuillez sélectionner un client' : 'يرجى اختيار عميل'}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </AppLayout>

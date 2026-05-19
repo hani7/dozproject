@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign } from 'lucide-react';
+import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2 } from 'lucide-react';
 
 interface Props { type: 'detail' | 'gros'; }
 const STATUS_COLORS: Record<string, string> = { 
@@ -328,7 +328,7 @@ function VentesPageContent({ type }: Props) {
                   </select>
                   <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite} onChange={e => updateLigne(i, 'quantite', e.target.value)} />
                   <input className="form-control" type="number" placeholder="Prix DA" value={l.prix_unitaire} onChange={e => updateLigne(i, 'prix_unitaire', e.target.value)} />
-                  <button className="btn btn-danger btn-icon" onClick={() => setLignes(lines => lines.filter((_, j) => j !== i))}>×</button>
+                  <button className="btn btn-danger btn-icon" title={fr ? 'Supprimer' : 'حذف'} onClick={() => setLignes(lines => lines.filter((_, j) => j !== i))}><Trash2 size={13} /></button>
                 </div>
               ))}
               <button className="btn btn-secondary btn-sm" onClick={addLigne}><Plus size={12} /> {fr ? 'Ajouter' : 'إضافة'}</button>
