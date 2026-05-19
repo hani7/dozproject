@@ -79,11 +79,8 @@ export default function PrevendeurStockPage() {
                       {p.stock_cartons_restants > 0 && <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}> + {p.stock_cartons_restants} ctn</span>}
                     </span>
                   </div>
-                  <div style={{ height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, borderRadius: 3, background: isLow ? '#ef4444' : pct < 50 ? '#f59e0b' : '#10b981', transition: 'width 0.5s' }} />
-                  </div>
                   <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    {p.stock_actuel} ctn total · min: {p.stock_minimum} ctn
+                    {p.stock_actuel} {fr ? 'ctn total' : 'إجمالي كرتون'}
                   </div>
                 </div>
 
