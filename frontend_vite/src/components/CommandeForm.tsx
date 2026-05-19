@@ -240,7 +240,7 @@ export function CommandeForm({ type }: Props) {
 
                     {inCart && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '12px', justifyContent: 'center' }}>
-                        <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty - 1); }}><Minus size={16} /></button>
+                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty - 1); }}><Minus size={16} color="currentColor" /></button>
                         <input
                           type="number"
                           min={1}
@@ -249,8 +249,8 @@ export function CommandeForm({ type }: Props) {
                           onChange={e => updateQty(p.id, Number(e.target.value))}
                           style={{ width: '40px', height: '32px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700, padding: '2px' }}
                         />
-                        <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty + 1); }}><Plus size={16} /></button>
-                        <button className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={(e) => { e.stopPropagation(); removeFromCart(p.id); }}><Trash2 size={16} /></button>
+                        <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); updateQty(p.id, inCart.qty + 1); }}><Plus size={16} color="currentColor" /></button>
+                        <button type="button" className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={(e) => { e.stopPropagation(); removeFromCart(p.id); }}><Trash2 size={16} color="currentColor" /></button>
                       </div>
                     )}
                   </div>
@@ -301,7 +301,7 @@ export function CommandeForm({ type }: Props) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty - 1)}><Minus size={16} /></button>
+                      <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty - 1)}><Minus size={16} color="currentColor" /></button>
                       <input
                         type="number"
                         min={1}
@@ -309,8 +309,8 @@ export function CommandeForm({ type }: Props) {
                         onChange={e => updateQty(item.product.id, Number(e.target.value))}
                         style={{ width: '40px', height: '32px', textAlign: 'center', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700, padding: '2px' }}
                       />
-                      <button className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty + 1)}><Plus size={16} /></button>
-                      <button className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={() => removeFromCart(item.product.id)}><Trash2 size={16} /></button>
+                      <button type="button" className="btn btn-secondary btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => updateQty(item.product.id, item.qty + 1)}><Plus size={16} color="currentColor" /></button>
+                      <button type="button" className="btn btn-danger btn-icon" style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '4px' }} onClick={() => removeFromCart(item.product.id)}><Trash2 size={16} color="currentColor" /></button>
                     </div>
                   </div>
                 ))}

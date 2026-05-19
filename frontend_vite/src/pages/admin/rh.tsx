@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Users, Calendar, DollarSign, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Users, Calendar, DollarSign, Pencil, Trash2, Search } from 'lucide-react';
 import type { Employe } from '@/lib/types';
 
 const POSTES = [
@@ -22,6 +22,7 @@ export default function RHPage() {
   const [employes, setEmployes] = useState<Employe[]>([]);
   const [tab, setTab] = useState<'employes' | 'presences' | 'paies'>('employes');
   const [modal, setModal] = useState(false);
+  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Employe | null>(null);
   const [form, setForm] = useState({ nom: '', prenom: '', poste: 'prevendeur_gros', phone: '', salaire_base: '', date_embauche: '', actif: true });
 
@@ -74,8 +75,17 @@ export default function RHPage() {
       </div>
 
       {tab === 'employes' && (
+        <div className="search-bar" style={{ marginBottom: '16px' }}>
+          <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+            <Search />
+            <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher employé...' : 'بحث عن موظف...'} value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        </div>
+      )}
+
+      {tab === 'employes' && (
         <div className="grid-3">
-          {employes.map(e => (
+          {employes.filter(e => !search || e.nom.toLowerCase().includes(search.toLowerCase()) || e.prenom.toLowerCase().includes(search.toLowerCase())).map(e => (
             <div key={e.id} className="card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                 <div style={{

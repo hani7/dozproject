@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, KeyRound, ShoppingBag, ShoppingCart, Truck, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, KeyRound, ShoppingBag, ShoppingCart, Truck, Package, Search } from 'lucide-react';
 
 interface User {
   id: number;
@@ -44,6 +44,7 @@ export default function ComptesPage() {
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [roleFilter, setRoleFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -120,10 +121,15 @@ export default function ComptesPage() {
   const getRoleOpt = (role: string) => ROLE_OPTIONS.find(r => r.value === role);
   const getSpecOpt = (s: string) => SPECIALITE_OPTIONS.find(o => o.value === s);
 
+  const filteredUsers = users.filter(u => {
+    const q = search.toLowerCase();
+    return !q || u.username.toLowerCase().includes(q) || u.first_name.toLowerCase().includes(q) || u.last_name.toLowerCase().includes(q);
+  });
+
   const grouped = {
-    admin: users.filter(u => u.role === 'admin'),
-    prevendeur: users.filter(u => u.role === 'prevendeur'),
-    livreur: users.filter(u => u.role === 'livreur'),
+    admin: filteredUsers.filter(u => u.role === 'admin'),
+    prevendeur: filteredUsers.filter(u => u.role === 'prevendeur'),
+    livreur: filteredUsers.filter(u => u.role === 'livreur'),
   };
 
   return (
@@ -158,6 +164,13 @@ export default function ComptesPage() {
             {f.icon} {f.label}
           </button>
         ))}
+      </div>
+
+      <div className="search-bar" style={{ marginBottom: '24px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search />
+          <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher utilisateur...' : 'بحث عن مستخدم...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
       </div>
 
       {loading ? (

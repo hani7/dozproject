@@ -4,7 +4,7 @@ import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import API_URL from '@/lib/config';
 import toast from 'react-hot-toast';
-import { CheckCircle, MapPin, Phone, Package, Navigation, Truck, RefreshCw } from 'lucide-react';
+import { CheckCircle, MapPin, Phone, Package, Navigation, Truck, RefreshCw, Search } from 'lucide-react';
 import type { Order } from '@/lib/types';
 
 const MEDIA_BASE = API_URL.replace('/api', '');
@@ -14,6 +14,7 @@ export default function LivraisonsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'en_livraison' | 'livree'>('en_livraison');
+  const [search, setSearch] = useState('');
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const fr = lang === 'fr';
 
@@ -69,6 +70,11 @@ export default function LivraisonsPage() {
     window.open(`tel:${phone}`);
   };
 
+  const filteredOrders = orders.filter(o => {
+    const q = search.toLowerCase();
+    return !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q) || (o as any).client_phone?.toLowerCase().includes(q);
+  });
+
   return (
     <AppLayout allowedRoles={['livreur']}>
       <div className="page-header">
@@ -78,7 +84,7 @@ export default function LivraisonsPage() {
             {fr ? 'Mes Livraisons' : 'توصيلاتي'}
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-            {orders.length} {fr ? 'commande(s)' : 'طلب'}
+            {filteredOrders.length} {fr ? 'commande(s)' : 'طلب'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -94,9 +100,16 @@ export default function LivraisonsPage() {
         </div>
       </div>
 
+      <div className="search-bar" style={{ marginBottom: '16px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search />
+          <input className="form-control" placeholder={fr ? 'Rechercher...' : 'بحث...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="empty-state card" style={{ padding: '50px' }}>
           {filter === 'en_livraison' ? <Truck size={40} /> : <CheckCircle size={40} />}
           <p style={{ marginTop: '12px', fontWeight: 600 }}>
@@ -107,8 +120,8 @@ export default function LivraisonsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {orders.map(o => (
-            <div key={o.id} className="card" style={{ padding: '16px', overflow: 'hidden' }}>
+          {filteredOrders.map(o => (
+            <div key={`${o.is_vente ? 'v' : 'c'}_${o.id}`} className="card" style={{ padding: '16px', overflow: 'hidden' }}>
               {/* Header: Reference + Type badge */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

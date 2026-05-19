@@ -4,7 +4,7 @@ import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import API_URL from '@/lib/config';
 import type { Order } from '@/lib/types';
-import { Package } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
 
 const MEDIA_BASE = API_URL.replace('/api', '');
 
@@ -16,12 +16,18 @@ const STATUS_COLORS: Record<string, string> = {
 export default function MesCommandesPage() {
   const { lang } = useLang();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     api.get('/commandes/').then(r => setOrders(r.data.results || r.data));
     const i = setInterval(() => api.get('/commandes/').then(r => setOrders(r.data.results || r.data)), 5000);
     return () => clearInterval(i);
   }, []);
+
+  const filteredOrders = orders.filter(o => {
+    const q = search.toLowerCase();
+    return !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q);
+  });
 
   const statusLabels: Record<string, string> = lang === 'fr'
     ? { en_attente: 'En attente', confirmee: 'Confirmée', en_livraison: 'En livraison', livree: 'Livrée', annulee: 'Annulée' }
@@ -32,13 +38,19 @@ export default function MesCommandesPage() {
       <div className="page-header">
         <h1>{lang === 'fr' ? 'Mes Commandes' : 'طلباتي'}</h1>
       </div>
-      {orders.length === 0 ? (
+      <div className="search-bar" style={{ marginBottom: '16px', padding: '0 16px' }}>
+        <div className="search-input-wrap">
+          <Search />
+          <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher commande...' : 'بحث عن طلب...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+      {filteredOrders.length === 0 ? (
         <div className="empty-state">
           <p>{lang === 'fr' ? 'Aucune commande trouvée' : 'لا يوجد طلبات'}</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {orders.map(o => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 16px 16px' }}>
+          {filteredOrders.map(o => (
             <div key={o.id} className="app-card">
               <div className="app-card-row">
                 <div className="app-card-title" style={{ color: 'var(--brand-primary)', fontSize: '16px' }}>

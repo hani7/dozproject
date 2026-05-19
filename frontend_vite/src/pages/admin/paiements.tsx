@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, CreditCard, ArrowRightLeft, Wallet, BadgeCheck } from 'lucide-react';
+import { Plus, CreditCard, ArrowRightLeft, Wallet, BadgeCheck, Search } from 'lucide-react';
 
 const today = new Date().toISOString().split('T')[0];
 const EMPTY_P = { type_paiement: 'vente', mode: 'especes', montant: '', date: today, client_nom: '', fournisseur_nom: '', notes: '' };
@@ -54,7 +54,9 @@ export default function PaiementsPage() {
   const [tab, setTab] = useState<'paiements' | 'virements'>('paiements');
   const [modal, setModal] = useState(false);
   const [pMode, setPMode] = useState<'versement' | 'total'>('versement');
+  const [pMode, setPMode] = useState<'versement' | 'total'>('versement');
   const [vMode, setVMode] = useState<'versement' | 'total'>('versement');
+  const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedFournisseurId, setSelectedFournisseurId] = useState('');
   const [pForm, setPForm] = useState({ ...EMPTY_P });
@@ -162,10 +164,28 @@ export default function PaiementsPage() {
   const sc: Record<string, string> = { en_attente: 'badge-warning', valide: 'badge-success', execute: 'badge-success', rejete: 'badge-danger' };
   const fr = lang === 'fr';
 
+  const filteredPaiements = paiements.filter(p => {
+    const q = search.toLowerCase();
+    return !q || p.client_nom?.toLowerCase().includes(q) || p.fournisseur_nom?.toLowerCase().includes(q);
+  });
+
+  const filteredVirements = virements.filter(v => {
+    const q = search.toLowerCase();
+    return !q || v.employe_nom?.toLowerCase().includes(q) || v.banque?.toLowerCase().includes(q) || v.motif?.toLowerCase().includes(q);
+  });
+
   return (
     <AppLayout allowedRoles={['admin']}>
       <div className="page-header">
-        <div><h1>{fr ? 'Paiements & Virements' : 'المدفوعات والتحويلات'}</h1></div>
+        <div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Wallet size={20} color="var(--brand-primary)" />
+            {fr ? 'Paiements & Virements' : 'المدفوعات والتحويلات'}
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
+            {filteredPaiements.length} {fr ? 'paiements' : 'مدفوعات'} · {filteredVirements.length} {fr ? 'virements' : 'تحويلات'}
+          </p>
+        </div>
         <button className="btn btn-primary" onClick={() => setModal(true)}><Plus size={15} /> {fr ? 'Nouveau' : 'جديد'}</button>
       </div>
 
@@ -174,14 +194,21 @@ export default function PaiementsPage() {
         <button className={`btn ${tab === 'virements' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }} onClick={() => setTab('virements')}><ArrowRightLeft size={14} /> {fr ? 'Virements' : 'تحويلات'}</button>
       </div>
 
-      {tab === 'paiements' && (
-        <div className="table-container">
+      <div className="search-bar" style={{ marginBottom: '16px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search size={18} />
+          <input className="form-control" placeholder={fr ? 'Rechercher...' : 'بحث...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="table-container">
+        {tab === 'paiements' && (
           <table>
             <thead><tr>
               <th>{fr ? 'Date' : 'التاريخ'}</th><th>{fr ? 'Type' : 'النوع'}</th><th>{fr ? 'Mode' : 'الطريقة'}</th>
               <th>{fr ? 'Client/Fournisseur' : 'العميل/المورد'}</th><th>{fr ? 'Montant' : 'المبلغ'}</th><th>Statut</th>
             </tr></thead>
-            <tbody>{paiements.map(p => (
+            <tbody>{filteredPaiements.map(p => (
               <tr key={p.id}>
                 <td style={{ fontSize: '12px' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                 <td><span className="badge badge-info">{p.type_paiement}</span></td>
@@ -192,17 +219,15 @@ export default function PaiementsPage() {
               </tr>
             ))}</tbody>
           </table>
-        </div>
-      )}
+        )}
 
-      {tab === 'virements' && (
-        <div className="table-container">
+        {tab === 'virements' && (
           <table>
             <thead><tr>
               <th>{fr ? 'Date' : 'التاريخ'}</th><th>{fr ? 'Employé' : 'الموظف'}</th><th>{fr ? 'Montant' : 'المبلغ'}</th>
               <th>{fr ? 'Banque' : 'البنك'}</th><th>{fr ? 'Motif' : 'السبب'}</th><th>Statut</th>
             </tr></thead>
-            <tbody>{virements.map(v => (
+            <tbody>{filteredVirements.map(v => (
               <tr key={v.id}>
                 <td style={{ fontSize: '12px' }}>{new Date(v.created_at).toLocaleDateString()}</td>
                 <td style={{ fontWeight: 600 }}>{v.employe_nom}</td>

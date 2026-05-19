@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, CheckCircle, Eye } from 'lucide-react';
+import { Plus, CheckCircle, Eye, Search } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = { brouillon: 'badge-gray', confirme: 'badge-info', recu: 'badge-success', annule: 'badge-danger' };
 
@@ -12,6 +12,7 @@ export default function AchatsPage() {
   const [achats, setAchats] = useState<any[]>([]);
   const [fournisseurs, setFournisseurs] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
   const [viewModal, setViewModal] = useState<any | null>(null);
   const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
@@ -54,6 +55,11 @@ export default function AchatsPage() {
     annule: { fr: 'Annulé', ar: 'ملغى' },
   };
 
+  const filtered = achats.filter(a => {
+    const q = search.toLowerCase();
+    return !q || a.reference?.toLowerCase().includes(q) || a.fournisseur_nom?.toLowerCase().includes(q);
+  });
+
   return (
     <AppLayout allowedRoles={['admin']}>
       <div className="page-header">
@@ -71,6 +77,13 @@ export default function AchatsPage() {
         </button>
       </div>
 
+      <div className="search-bar" style={{ marginBottom: '16px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search />
+          <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher référence ou fournisseur...' : 'بحث عن مرجع أو مورد...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
       <div className="table-container">
         <table>
           <thead>
@@ -86,7 +99,7 @@ export default function AchatsPage() {
             </tr>
           </thead>
           <tbody>
-            {achats.map(a => (
+            {filtered.map(a => (
               <tr key={a.id}>
                 <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{a.reference}</td>
                 <td>{a.fournisseur_nom}</td>

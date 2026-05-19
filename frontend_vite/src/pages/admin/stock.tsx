@@ -11,6 +11,7 @@ export default function StockPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [modal, setModal] = useState(false);
+  const [search, setSearch] = useState('');
   const [form, setForm] = useState({ produit: '', type_mouvement: 'entree', motif: 'ajustement', quantite: '', reference: '', notes: '' });
 
   const load = () => api.get('/stock/').then(r => setMovements(r.data.results || r.data));
@@ -45,6 +46,13 @@ export default function StockPage() {
         <button className="btn btn-primary" onClick={() => setModal(true)}><Plus size={15} /> {lang === 'fr' ? 'Nouveau mouvement' : 'حركة جديدة'}</button>
       </div>
 
+      <div className="search-bar" style={{ marginBottom: '16px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search />
+          <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher produit ou référence...' : 'بحث عن منتج أو مرجع...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
       <div className="table-container">
         <table>
           <thead>
@@ -60,7 +68,7 @@ export default function StockPage() {
             </tr>
           </thead>
           <tbody>
-            {movements.map(m => (
+            {movements.filter(m => !search || m.produit_nom.toLowerCase().includes(search.toLowerCase()) || m.reference?.toLowerCase().includes(search.toLowerCase())).map(m => (
               <tr key={m.id}>
                 <td style={{ fontSize: '12px' }}>{new Date(m.created_at).toLocaleDateString()}</td>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.produit_nom}</td>

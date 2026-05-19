@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, Truck, XCircle, RefreshCw, Eye, UserCheck, FileText, PackageCheck } from 'lucide-react';
+import { CheckCircle, Truck, XCircle, RefreshCw, Eye, UserCheck, FileText, PackageCheck, Search } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { printFacture, printBonLivraison } from '@/lib/printDocs';
 
@@ -29,6 +29,7 @@ export default function CommandesLivePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [livreurs, setLivreurs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [assignOrder, setAssignOrder] = useState<Order | null>(null);
   const [selectedLivreur, setSelectedLivreur] = useState('');
@@ -110,12 +111,13 @@ export default function CommandesLivePage() {
     } catch { }
   };
 
+  const filteredOrders = orders.filter(o => {
+    const q = search.toLowerCase();
+    return !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q);
+  });
+
   const pending = orders.filter(o => o.statut === 'en_attente').length;
   const active  = orders.filter(o => ['confirmee', 'en_livraison'].includes(o.statut)).length;
-
-  const compatibleLivreurs = assignOrder
-    ? livreurs.filter((l: any) => l.specialite === 'les_deux' || l.specialite === assignOrder.type_commande)
-    : [];
 
   const age = (created_at: string) => {
     const diff = Date.now() - new Date(created_at).getTime();
@@ -145,6 +147,13 @@ export default function CommandesLivePage() {
         </button>
       </div>
 
+      <div className="search-bar" style={{ marginBottom: '16px' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
+          <Search />
+          <input className="form-control" placeholder={fr ? 'Rechercher commande...' : 'بحث عن طلب...'} value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
       <div className="table-container">
         <table>
           <thead>
@@ -164,9 +173,9 @@ export default function CommandesLivePage() {
           <tbody>
             {loading ? (
               <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px' }}><div className="spinner" /></td></tr>
-            ) : orders.length === 0 ? (
+            ) : filteredOrders.length === 0 ? (
               <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>{fr ? 'Aucune commande' : 'لا توجد طلبات'}</td></tr>
-            ) : orders.map(o => {
+            ) : filteredOrders.map(o => {
               const isNew = (Date.now() - new Date(o.created_at).getTime()) < 120000 && o.statut === 'en_attente';
               return (
                 <tr key={o.id} style={isNew ? { background: 'rgba(245,158,11,0.05)', borderLeft: '3px solid #f59e0b' } : {}}>
