@@ -237,8 +237,8 @@ export default function PaiementsPage() {
               </tr>
             ))}</tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(false)}>
