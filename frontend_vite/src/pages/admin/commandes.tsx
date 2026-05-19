@@ -119,6 +119,10 @@ export default function CommandesLivePage() {
   const pending = orders.filter(o => o.statut === 'en_attente').length;
   const active  = orders.filter(o => ['confirmee', 'en_livraison'].includes(o.statut)).length;
 
+  const compatibleLivreurs = assignOrder
+    ? livreurs.filter((l: any) => l.specialite === 'les_deux' || l.specialite === assignOrder.type_commande)
+    : [];
+
   const age = (created_at: string) => {
     const diff = Date.now() - new Date(created_at).getTime();
     const mins = Math.floor(diff / 60000);

@@ -54,7 +54,6 @@ export default function PaiementsPage() {
   const [tab, setTab] = useState<'paiements' | 'virements'>('paiements');
   const [modal, setModal] = useState(false);
   const [pMode, setPMode] = useState<'versement' | 'total'>('versement');
-  const [pMode, setPMode] = useState<'versement' | 'total'>('versement');
   const [vMode, setVMode] = useState<'versement' | 'total'>('versement');
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');

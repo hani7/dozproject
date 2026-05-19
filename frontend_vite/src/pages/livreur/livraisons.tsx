@@ -121,13 +121,16 @@ export default function LivraisonsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {filteredOrders.map(o => (
-            <div key={`${o.is_vente ? 'v' : 'c'}_${o.id}`} className="card" style={{ padding: '16px', overflow: 'hidden' }}>
+            <div key={`${(o as any).is_vente ? 'v' : 'c'}_${o.id}`} className="card" style={{ padding: '16px', overflow: 'hidden' }}>
               {/* Header: Reference + Type badge */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '15px' }}>{o.reference}</span>
-                  <span className={`badge ${(o.type_commande || (o as any).type_vente) === 'gros' ? 'badge-purple' : 'badge-info'}`}>
-                    {(o.type_commande || (o as any).type_vente) === 'gros' ? '🏭 Gros' : '📦 Détail'}
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--brand-primary)', letterSpacing: '0.5px' }}>
+                    {o.reference}
+                  </div>
+                  {(o as any).is_vente && <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px' }}>Vente</span>}
+                  <span className={`badge ${(o as any).is_vente ? 'badge-success' : (o as any).type_commande === 'gros' ? 'badge-purple' : 'badge-info'}`} style={{ fontSize: '10px', padding: '2px 6px' }}>
+                    {(o as any).is_vente ? 'Camion' : (o as any).type_commande === 'gros' ? 'Gros' : 'Détail'}
                   </span>
                 </div>
                 {filter === 'livree' && (
@@ -225,24 +228,13 @@ export default function LivraisonsPage() {
 
                 {filter === 'en_livraison' && (
                   <button
+                    className="btn btn-success"
+                    style={{ flex: 1, padding: '12px', fontSize: '14px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(16,185,129,0.2)', marginLeft: '12px' }}
                     onClick={() => deliver(o)}
                     disabled={confirmingId === o.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '12px 24px', borderRadius: '12px', border: 'none',
-                      background: confirmingId === o.id ? '#9ca3af' : 'linear-gradient(135deg, #10b981, #059669)',
-                      color: 'white', fontSize: '14px', fontWeight: 800,
-                      cursor: confirmingId === o.id ? 'wait' : 'pointer',
-                      fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
-                      transition: 'all 0.2s', transform: confirmingId === o.id ? 'scale(0.95)' : 'scale(1)',
-                    }}
                   >
-                    {confirmingId === o.id ? (
-                      <div className="spinner" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
-                    ) : (
-                      <CheckCircle size={18} />
-                    )}
-                    {fr ? 'Livré ✓' : 'تم التوصيل ✓'}
+                    {confirmingId === o.id ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <CheckCircle size={16} />}
+                    {fr ? 'Confirmer Livraison' : 'تأكيد التوصيل'}
                   </button>
                 )}
               </div>
