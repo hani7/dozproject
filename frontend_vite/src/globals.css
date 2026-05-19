@@ -905,6 +905,10 @@ tbody tr:last-child td { border-bottom: none; }
     font-size: 13px !important;
     padding: 8px 14px !important;
   }
+  .btn-icon {
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
 
   /* Search bar */
   .search-bar {
