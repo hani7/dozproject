@@ -278,3 +278,114 @@ export function printBonLivraison(order: Order) {
 
   openPrintWindow(html, `BL-${order.reference}`);
 }
+
+// ─────────────────────────────────────────────────────────────
+// BON DE LIVRAISON JOURNALIER (RÉCAPITULATIF)
+// ─────────────────────────────────────────────────────────────
+export function printDailyBL(orders: Order[], date: string, type: 'gros' | 'detail') {
+  // Aggregate products
+  const productTotals: Record<string, { nom: string, qte: number, total: number }> = {};
+  let globalTotal = 0;
+
+  orders.forEach(o => {
+    globalTotal += Number(o.montant_total || 0);
+    o.lignes?.forEach((l: any) => {
+      if (!productTotals[l.produit_nom]) {
+        productTotals[l.produit_nom] = { nom: l.produit_nom, qte: 0, total: 0 };
+      }
+      productTotals[l.produit_nom].qte += Number(l.quantite);
+      productTotals[l.produit_nom].total += Number(l.sous_total || (l.quantite * l.prix_unitaire));
+    });
+  });
+
+  const sortedProducts = Object.values(productTotals).sort((a, b) => b.qte - a.qte);
+
+  const rows = sortedProducts.map(p => `
+    <tr>
+      <td>${p.nom}</td>
+      <td style="text-align:center; font-size:16px;"><strong>${p.qte}</strong></td>
+      <td style="text-align:right">${fmt(p.total)} DA</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>BL Journalier – ${date}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Arial', sans-serif; color: #111; font-size: 13px; padding: 40px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #8b5cf6; padding-bottom: 18px; }
+    .brand-name { font-size: 26px; font-weight: 900; color: #8b5cf6; }
+    .brand-sub  { font-size: 11px; color: #666; margin-top: 2px; }
+    .doc-info   { text-align: right; }
+    .doc-title  { font-size: 22px; font-weight: 900; color: #8b5cf6; text-transform: uppercase; letter-spacing: 2px; }
+    .doc-ref    { font-size: 16px; color: #111; margin-top: 6px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    thead tr { background: #8b5cf6; color: white; }
+    thead th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    tbody tr { border-bottom: 1px solid #e5e7eb; }
+    tbody tr:nth-child(even) { background: #f9fafb; }
+    tbody td { padding: 12px 14px; font-size: 14px; }
+    .montant-box { text-align: right; margin-bottom: 24px; }
+    .montant-inner { display: inline-block; background: #8b5cf6; color: white; padding: 12px 24px; border-radius: 8px; font-size: 18px; font-weight: 900; }
+    .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+    .summary-card { background: #f5f3ff; border: 1px solid #ede9fe; padding: 16px; border-radius: 8px; text-align: center; }
+    .summary-val { font-size: 24px; font-weight: 900; color: #6d28d9; margin-bottom: 4px; }
+    .summary-lbl { font-size: 11px; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: 1px; }
+    @media print { body { padding: 20px; } @page { margin: 1cm; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px">📅</div>
+        <div>
+          <div class="brand-name">ForCli</div>
+          <div class="brand-sub">Distribution &amp; Commerce</div>
+        </div>
+      </div>
+    </div>
+    <div class="doc-info">
+      <div class="doc-title">Bon de Livraison Global</div>
+      <div class="doc-ref">Journée du ${fmtDate(date)}</div>
+      <div style="font-size:12px;color:#888;margin-top:4px">Type : ${type === 'gros' ? '🏭 Palette (Gros)' : '📦 Carton (Détail)'}</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-val">${orders.length}</div>
+      <div class="summary-lbl">Opérations (Commandes + Ventes)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-val">${sortedProducts.reduce((sum, p) => sum + p.qte, 0)}</div>
+      <div class="summary-lbl">Articles Total</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Produit / Désignation</th>
+        <th style="text-align:center">Quantité Globale (CTN)</th>
+        <th style="text-align:right">Montant Global</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="montant-box">
+    <div class="montant-inner">Montant Global de la journée : ${fmt(globalTotal)} DA</div>
+  </div>
+
+  <div style="margin-top: 50px; text-align: center; border-top: 1px dashed #ccc; padding-top: 20px; font-size: 11px; color: #666;">
+    Récapitulatif généré par ForCli le ${new Date().toLocaleString('fr-FR')}
+  </div>
+</body>
+</html>`;
+
+  openPrintWindow(html, `BL-Journalier-${date}`);
+}

@@ -3,7 +3,8 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2, Printer } from 'lucide-react';
+import { printDailyBL } from '@/lib/printDocs';
 
 interface Props { type: 'detail' | 'gros'; }
 const STATUS_COLORS: Record<string, string> = { 
@@ -205,13 +206,18 @@ function VentesPageContent({ type }: Props) {
           <h1>{title}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{ventes.length} {fr ? 'ventes' : 'عملية بيع'}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => {
-          setForm({ reference: `V-${Date.now()}`, client: '', date: new Date().toISOString().split('T')[0], mode_paiement: 'especes', remise: '0', notes: '' });
-          setLignes([{ produit: '', quantite: '1', prix_unitaire: '' }]);
-          setModal(true);
-        }}>
-          <Plus size={15} /> {fr ? 'Nouvelle vente' : 'بيع جديد'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-secondary" onClick={() => printDailyBL(ventes, new Date().toISOString().split('T')[0], type)} style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }}>
+            <Printer size={15} /> {fr ? 'BL du jour' : 'وصل تسليم اليوم'}
+          </button>
+          <button className="btn btn-primary" onClick={() => {
+            setForm({ reference: `V-${Date.now()}`, client: '', date: new Date().toISOString().split('T')[0], mode_paiement: 'especes', remise: '0', notes: '' });
+            setLignes([{ produit: '', quantite: '1', prix_unitaire: '' }]);
+            setModal(true);
+          }}>
+            <Plus size={15} /> {fr ? 'Nouvelle vente' : 'بيع جديد'}
+          </button>
+        </div>
       </div>
 
       {/* Date filters */}
@@ -234,6 +240,7 @@ function VentesPageContent({ type }: Props) {
               <th>{fr ? 'Référence' : 'المرجع'}</th>
               <th>{fr ? 'Client' : 'العميل'}</th>
               <th>{fr ? 'Date' : 'التاريخ'}</th>
+              <th>{fr ? 'Produits' : 'المنتجات'}</th>
               <th>{fr ? 'Total' : 'المجموع'}</th>
               <th>{fr ? 'Payé' : 'المدفوع'}</th>
               <th>{fr ? 'Reste' : 'المتبقي'}</th>
@@ -257,6 +264,15 @@ function VentesPageContent({ type }: Props) {
                   )}
                 </td>
                 <td style={{ fontSize: '12px' }}>{v.date}</td>
+                <td style={{ fontSize: '12px', minWidth: '150px' }}>
+                  {v.lignes?.slice(0, 2).map((l: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{l.produit_nom}</span>
+                      <span style={{ fontWeight: 600 }}>×{l.quantite}</span>
+                    </div>
+                  ))}
+                  {(v.lignes?.length || 0) > 2 && <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>+{(v.lignes?.length || 0) - 2} {fr ? 'autres' : 'أخرى'}</span>}
+                </td>
                 <td style={{ fontWeight: 600 }}>{Number(v.montant_total || 0).toLocaleString()} DA</td>
                 <td style={{ color: 'var(--text-muted)' }}>{Number(v.montant_paye || 0).toLocaleString()} DA</td>
                 <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
