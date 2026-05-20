@@ -228,24 +228,26 @@ export default function PrevendeurClientsPage() {
                 </div>
               </div>
               <div className="app-card-sub" style={{ marginTop: '4px' }}>
-                {c.adresse || '-'}
+                {c.phone && <span style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 600 }}>📞 {c.phone}</span>}
+                {c.phone && c.adresse && ' · '}
+                {c.adresse || ''}
               </div>
               <div className="app-card-actions" style={{ marginTop: '12px' }}>
                 {c.phone && (
-                  <button onClick={() => window.open(`tel:${c.phone}`)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <button onClick={() => window.open(`tel:${c.phone}`)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
                     <Phone size={14} /> {fr ? 'Appeler' : 'اتصال'}
                   </button>
                 )}
                 {c.latitude && c.longitude && (
-                  <button onClick={() => window.open(`https://www.google.com/maps?q=${c.latitude},${c.longitude}`, '_blank')} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <button onClick={() => window.open(`https://www.google.com/maps?q=${c.latitude},${c.longitude}`, '_blank')} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
                     <Navigation size={14} /> GPS
                   </button>
                 )}
-                <button onClick={() => openEdit(c)} style={{ width: 36, padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Edit2 size={16} />
+                <button onClick={() => openEdit(c)} style={{ width: 36, height: 36, padding: '0', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }} title={fr ? 'Modifier' : 'تعديل'}>
+                  <Edit2 size={15} />
                 </button>
-                <button onClick={() => handleDelete(c.id)} style={{ width: 36, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Trash2 size={16} />
+                <button onClick={() => handleDelete(c.id)} style={{ width: 36, height: 36, padding: '0', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }} title={fr ? 'Supprimer' : 'حذف'}>
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
