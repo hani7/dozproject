@@ -33,6 +33,10 @@ class CommandeSerializer(serializers.ModelSerializer):
     client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True)
     prevendeur_nom = serializers.SerializerMethodField()
     livreur_nom = serializers.SerializerMethodField()
+    has_retour       = serializers.SerializerMethodField()
+    retours          = serializers.SerializerMethodField()
+    has_non_conforme = serializers.SerializerMethodField()
+    non_conformes    = serializers.SerializerMethodField()
 
     class Meta:
         model = Commande
@@ -43,6 +47,58 @@ class CommandeSerializer(serializers.ModelSerializer):
 
     def get_livreur_nom(self, obj):
         return obj.livreur.get_full_name() if obj.livreur else ''
+
+    def get_has_retour(self, obj):
+        from stock.models import MouvementStock
+        return MouvementStock.objects.filter(
+            reference=obj.reference, motif='retour'
+        ).exists()
+
+    def get_retours(self, obj):
+        from stock.models import MouvementStock
+        prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
+        mvts = MouvementStock.objects.filter(
+            reference=obj.reference, motif='retour'
+        ).select_related('produit').order_by('created_at')
+        result = []
+        for m in mvts:
+            prix = prix_par_produit.get(m.produit_id, 0)
+            result.append({
+                'produit_nom':        m.produit.nom,
+                'produit_id':         m.produit_id,
+                'quantite_retournee': float(m.quantite),
+                'prix_unitaire':      prix,
+                'montant_retourne':   float(m.quantite) * prix,
+                'notes':              m.notes or '',
+                'created_at':         m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '',
+            })
+        return result
+
+    def get_has_non_conforme(self, obj):
+        from stock.models import MouvementStock
+        return MouvementStock.objects.filter(
+            reference=obj.reference, motif='non_conforme'
+        ).exists()
+
+    def get_non_conformes(self, obj):
+        from stock.models import MouvementStock
+        prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
+        mvts = MouvementStock.objects.filter(
+            reference=obj.reference, motif='non_conforme'
+        ).select_related('produit').order_by('created_at')
+        result = []
+        for m in mvts:
+            prix = prix_par_produit.get(m.produit_id, 0)
+            result.append({
+                'produit_nom':     m.produit.nom,
+                'produit_id':      m.produit_id,
+                'quantite_perdue': float(m.quantite),
+                'prix_unitaire':   prix,
+                'valeur_perdue':   float(m.quantite) * prix,
+                'notes':           m.notes or '',
+                'created_at':      m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '',
+            })
+        return result
 
 
 class CommandeCreateSerializer(serializers.ModelSerializer):

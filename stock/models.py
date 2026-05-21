@@ -13,6 +13,7 @@ class MouvementStock(models.Model):
         ('achat', 'Achat fournisseur'),
         ('vente', 'Vente client'),
         ('retour', 'Retour'),
+        ('non_conforme', 'Non Conforme'),
         ('perte', 'Perte / Casse'),
         ('ajustement', 'Ajustement inventaire'),
         ('transfert', 'Transfert'),

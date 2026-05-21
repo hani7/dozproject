@@ -203,7 +203,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 MouvementStock.objects.create(
                     produit_id=ligne.produit_id,
                     type_mouvement='sortie',
-                    motif='perte',
+                    motif='non_conforme',
                     quantite=qte,
                     stock_avant=produit.stock_actuel + qte,
                     stock_apres=produit.stock_actuel,

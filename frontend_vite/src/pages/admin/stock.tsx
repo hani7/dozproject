@@ -165,6 +165,7 @@ export default function StockPage() {
                   <option value="achat">{lang === 'fr' ? 'Achat fournisseur' : 'شراء من مورد'}</option>
                   <option value="vente">{lang === 'fr' ? 'Vente client' : 'بيع لعميل'}</option>
                   <option value="retour">{lang === 'fr' ? 'Retour' : 'إرجاع'}</option>
+                  <option value="non_conforme">{lang === 'fr' ? 'Non Conforme' : 'غير مطابق'}</option>
                   <option value="perte">{lang === 'fr' ? 'Perte/Casse' : 'خسارة/كسر'}</option>
                   <option value="ajustement">{lang === 'fr' ? 'Ajustement' : 'تعديل'}</option>
                 </select>
