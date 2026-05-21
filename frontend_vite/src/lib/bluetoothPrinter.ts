@@ -333,20 +333,28 @@ export function printTicketHTML(ticket: TicketData): void {
 </body>
 </html>`;
 
-  const w = window.open('', '_blank', 'width=250,height=600,scrollbars=yes');
-  if (!w) { toast_fallback(); return; }
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { w.print(); w.close(); }, 400);
-}
-
-function toast_fallback() {
-  console.warn('Popup blocked — trying direct print');
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
-  setTimeout(() => document.body.removeChild(iframe), 3000);
+  
+  const doc = iframe.contentWindow?.document;
+  if (doc) {
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 500);
+  } else {
+    document.body.removeChild(iframe);
+    toast_fallback();
+  }
+}
+
+function toast_fallback() {
+  console.warn('Print failed');
 }
 
 /** Main print function — tries Bluetooth first, falls back to HTML print */
