@@ -327,7 +327,7 @@ export default function LivraisonsPage() {
                       <Phone size={15} /> {fr ? 'Appeler' : 'اتصال'}
                     </button>
                     <button onClick={() => openGPS(o)}
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: (o.client_latitude && o.client_longitude) || o.client_adresse ? 1 : 0.5 }}>
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: ((o as any).client_latitude && (o as any).client_longitude) || (o as any).client_adresse ? 1 : 0.5 }}>
                       <Navigation size={15} /> {fr ? 'GPS' : 'GPS'}
                     </button>
                   </div>
