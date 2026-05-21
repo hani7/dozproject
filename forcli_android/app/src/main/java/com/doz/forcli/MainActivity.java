@@ -226,10 +226,10 @@ public class MainActivity extends AppCompatActivity {
                     if (!cachePath.exists()) {
                         cachePath.mkdirs();
                     }
-                    File file = new File(cachePath, "ticket.jpg");
+                    File file = new File(cachePath, "ticket.png");
                     FileOutputStream stream = new FileOutputStream(file);
-                    // JPEG compression is significantly faster than PNG
-                    croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                    // PNG compression for maximum compatibility with Eleph Label
+                    croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                     stream.close();
 
                     Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", file);
@@ -241,14 +241,14 @@ public class MainActivity extends AppCompatActivity {
                         shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
                         shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
 
-                        // Print directly to RawBT which handles 58mm perfectly
-                        shareIntent.setPackage("ru.a402d.rawbtprinter");
+                        // Print via Eleph Label
+                        shareIntent.setPackage("com.sandu.JxPrinter");
                         
                         runOnUiThread(() -> {
                             try {
                                 startActivity(shareIntent);
                             } catch (android.content.ActivityNotFoundException e) {
-                                // Fallback to chooser if RawBT is not installed
+                                // Fallback to chooser if Eleph Label is not installed
                                 shareIntent.setPackage(null);
                                 startActivity(Intent.createChooser(shareIntent, "Imprimer via"));
                             }
