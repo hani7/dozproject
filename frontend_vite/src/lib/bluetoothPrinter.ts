@@ -256,18 +256,15 @@ export function printTicketHTML(ticket: TicketData): void {
     </style>
     <div style="background: rgba(0,0,0,0.75); position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
       
-      <div class="no-print" style="display: flex; gap: 5px; margin-bottom: 15px; width: 100%; max-width: 360px; flex-wrap: wrap; justify-content: center;">
-        <button id="ticket-close-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+      <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 320px; flex-wrap: wrap; justify-content: center;">
+        <button id="ticket-close-btn" style="flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 14px; cursor: pointer;">
           Fermer (إغلاق)
         </button>
-        <button id="ticket-print-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+        <button id="ticket-print-btn" style="flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 14px; cursor: pointer;">
           🖨 Imprimer
         </button>
-        <button id="ticket-rawbt-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #8b5cf6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
-          🖨 RawBT
-        </button>
-        <button id="ticket-share-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
-          📤 Partager
+        <button id="ticket-share-btn" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 4px;">
+          📤 Partager / Sauvegarder
         </button>
       </div>
 
@@ -328,43 +325,29 @@ export function printTicketHTML(ticket: TicketData): void {
     </div>
   `;
 
+  // Remove existing overlay if any
+  const existing = document.getElementById('ticket-print-overlay');
+  if (existing) existing.remove();
+
   const printOverlay = document.createElement('div');
   printOverlay.id = 'ticket-print-overlay';
   printOverlay.innerHTML = html;
   document.body.appendChild(printOverlay);
   
-  // Attach events using JS to bypass CSP limits on inline onclick
-  const closeBtn = document.getElementById('ticket-close-btn');
-  const printBtn = document.getElementById('ticket-print-btn');
-  const rawbtBtn = document.getElementById('ticket-rawbt-btn');
-  const shareBtn = document.getElementById('ticket-share-btn');
+  // Attach events using querySelector to ensure we target the new overlay
+  const closeBtn = printOverlay.querySelector('#ticket-close-btn');
+  const printBtn = printOverlay.querySelector('#ticket-print-btn');
+  const shareBtn = printOverlay.querySelector('#ticket-share-btn');
   
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
-      const overlay = document.getElementById('ticket-print-overlay');
-      if (overlay) document.body.removeChild(overlay);
+      printOverlay.remove();
     });
   }
   
   if (printBtn) {
     printBtn.addEventListener('click', () => {
       window.print();
-    });
-  }
-
-  if (rawbtBtn) {
-    rawbtBtn.addEventListener('click', () => {
-      try {
-        const rawBytes = buildESCPOS(ticket);
-        let binary = '';
-        for (let i = 0; i < rawBytes.byteLength; i++) {
-          binary += String.fromCharCode(rawBytes[i]);
-        }
-        const base64Data = btoa(binary);
-        window.location.href = `intent:${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-      } catch (e) {
-        console.error('RawBT error', e);
-      }
     });
   }
 
