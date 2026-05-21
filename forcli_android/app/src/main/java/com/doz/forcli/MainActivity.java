@@ -173,11 +173,14 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap cropWhitespace(Bitmap bitmap) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
+        
         int left = width, right = -1;
+        int top = height, bottom = -1;
 
         int[] rowPixels = new int[width];
         for (int y = 0; y < height; y++) {
             bitmap.getPixels(rowPixels, 0, width, 0, y, width, 1);
+            boolean rowHasContent = false;
             for (int x = 0; x < width; x++) {
                 int color = rowPixels[x];
                 int r = android.graphics.Color.red(color);
@@ -187,17 +190,25 @@ public class MainActivity extends AppCompatActivity {
                 if (r < 250 || g < 250 || b < 250) {
                     if (x < left) left = x;
                     if (x > right) right = x;
+                    rowHasContent = true;
                 }
+            }
+            if (rowHasContent) {
+                if (y < top) top = y;
+                if (y > bottom) bottom = y;
             }
         }
 
-        if (left > right) return bitmap; // Blank image
+        if (left > right || top > bottom) return bitmap; // Blank image
 
-        int padding = 10;
-        left = Math.max(0, left - padding);
-        right = Math.min(width - 1, right + padding);
+        int paddingX = 10;
+        int paddingY = 10;
+        left = Math.max(0, left - paddingX);
+        right = Math.min(width - 1, right + paddingX);
+        top = Math.max(0, top - paddingY);
+        bottom = Math.min(height - 1, bottom + paddingY);
 
-        return Bitmap.createBitmap(bitmap, left, 0, right - left + 1, height);
+        return Bitmap.createBitmap(bitmap, left, top, right - left + 1, bottom - top + 1);
     }
 
     private void doPrint() {
@@ -226,20 +237,19 @@ public class MainActivity extends AppCompatActivity {
                     if (!cachePath.exists()) {
                         cachePath.mkdirs();
                     }
-                    File file = new File(cachePath, "ticket.png");
+                    File file = new File(cachePath, "ticket.jpg");
                     FileOutputStream stream = new FileOutputStream(file);
-                    // PNG compression for maximum compatibility with Eleph Label
-                    croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    // JPEG is safer and faster. Background is white, so no alpha needed.
+                    croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                     stream.close();
 
                     Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", file);
 
                     if (contentUri != null) {
-                        Intent shareIntent = new Intent();
-                        shareIntent.setAction(Intent.ACTION_SEND);
-                        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("image/jpeg");
                         shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
                         // Print via Eleph Label
                         shareIntent.setPackage("com.sandu.JxPrinter");
