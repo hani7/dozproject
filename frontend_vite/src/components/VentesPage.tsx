@@ -44,6 +44,9 @@ function VentesPageContent({ type }: Props) {
   const [form, setForm] = useState({ reference: '', client: '', date: '', mode_paiement: 'especes', remise: '0', notes: '' });
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [retourFilter, setRetourFilter] = useState<'all' | 'avec' | 'sans'>('all');
 
   const prevCountRef = useRef(0);
 
@@ -214,6 +217,24 @@ function VentesPageContent({ type }: Props) {
 
   const title = type === 'gros' ? (fr ? 'Vente Gros' : 'بيع الجملة') : (fr ? 'Vente Détail' : 'بيع التجزئة');
 
+  // Client-side filtering
+  const filtered = ventes.filter(v => {
+    const q = search.toLowerCase();
+    if (q && !v.reference?.toLowerCase().includes(q) && !v.client_nom?.toLowerCase().includes(q)) return false;
+    if (statusFilter && v.statut !== statusFilter) return false;
+    if (retourFilter === 'avec' && !v.has_retour) return false;
+    if (retourFilter === 'sans' && v.has_retour) return false;
+    return true;
+  });
+
+  const statusOptions = [
+    { value: 'confirmee',    label: fr ? 'Confirmée' : 'مؤكدة' },
+    { value: 'en_livraison', label: fr ? 'En livraison' : 'قيد التوصيل' },
+    { value: 'livree',       label: fr ? 'Livrée' : 'مُسلَّمة' },
+    { value: 'cloturee',     label: fr ? 'Clôturée' : 'مغلقة' },
+    { value: 'annulee',      label: fr ? 'Annulée' : 'ملغاة' },
+  ];
+
   const CloseBtn = ({ onClick }: { onClick: () => void }) => (
     <button onClick={onClick} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}
       onMouseEnter={e => { e.currentTarget.style.background = '#ef444420'; e.currentTarget.style.color = '#ef4444'; }}
@@ -241,16 +262,57 @@ function VentesPageContent({ type }: Props) {
         </div>
       </div>
 
-      {/* Date filters */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>📅 {fr ? 'Période :' : 'الفترة :'}</span>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input type="date" className="form-control" style={{ width: 160, fontSize: '13px' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          <span style={{ color: 'var(--text-muted)' }}>→</span>
-          <input type="date" className="form-control" style={{ width: 160, fontSize: '13px' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
-          {(dateFrom || dateTo) && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>{fr ? 'Effacer' : 'مسح'}</button>
-          )}
+      {/* ── Filters bar — grid layout ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '20% 20% 20% 1fr', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+
+        {/* 20% — Search */}
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px', pointerEvents: 'none' }}>🔍</span>
+          <input type="text" className="form-control"
+            placeholder={fr ? 'Réf. ou client...' : 'مرجع أو عميل...'}
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft: 30, fontSize: '13px', height: '36px', width: '100%' }} />
+        </div>
+
+        {/* 20% — Status dropdown */}
+        <select className="form-control" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          style={{ fontSize: '13px', height: '36px', width: '100%', cursor: 'pointer' }}>
+          <option value="">{fr ? 'Tous les états' : 'جميع الحالات'}</option>
+          {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+
+        {/* 20% — Retour segmented */}
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', height: '36px', width: '100%' }}>
+          {(['all', 'avec', 'sans'] as const).map(val => (
+            <button key={val} onClick={() => setRetourFilter(val)} style={{
+              flex: 1, fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+              borderRight: val !== 'sans' ? '1px solid var(--border)' : 'none',
+              background: retourFilter === val ? (val === 'avec' ? 'rgba(245,158,11,0.18)' : val === 'sans' ? 'rgba(16,185,129,0.15)' : 'var(--brand-primary)') : 'var(--bg-elevated)',
+              color: retourFilter === val ? (val === 'avec' ? '#d97706' : val === 'sans' ? '#059669' : '#fff') : 'var(--text-muted)',
+            }}>
+              {val === 'all' ? 'Tous' : val === 'avec' ? '⟳ Retour' : '✓ Sans'}
+            </button>
+          ))}
+        </div>
+
+        {/* 40% (1fr) — Date range + count + reset */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)', flexShrink: 0 }}>📅</span>
+          <input type="date" className="form-control" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            style={{ flex: 1, fontSize: '13px', height: '36px', minWidth: 0 }} />
+          <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>→</span>
+          <input type="date" className="form-control" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            style={{ flex: 1, fontSize: '13px', height: '36px', minWidth: 0 }} />
+          {(search || statusFilter || retourFilter !== 'all' || dateFrom || dateTo) && <>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {filtered.length}
+            </span>
+            <button className="btn btn-secondary btn-sm" title="Réinitialiser"
+              style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.35)', flexShrink: 0, padding: '4px 8px' }}
+              onClick={() => { setSearch(''); setStatusFilter(''); setRetourFilter('all'); setDateFrom(''); setDateTo(''); }}>
+              ✕
+            </button>
+          </>}
         </div>
       </div>
 
@@ -271,7 +333,7 @@ function VentesPageContent({ type }: Props) {
             </tr>
           </thead>
           <tbody>
-            {ventes.map(v => (
+            {filtered.map(v => (
               <tr key={`${v._source}-${v.id}`} style={v._source === 'commande' ? { background: 'rgba(99,102,241,0.03)', borderLeft: '3px solid rgba(99,102,241,0.3)' } : {}}>
                 <td>
                   <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '13px' }}>{v.reference}</div>
