@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
@@ -18,11 +18,13 @@ export default function MesCommandesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api.get('/commandes/').then(r => setOrders(r.data.results || r.data));
-    const i = setInterval(() => api.get('/commandes/').then(r => setOrders(r.data.results || r.data)), 5000);
-    return () => clearInterval(i);
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filteredOrders = orders.filter(o => {
     const q = search.toLowerCase();

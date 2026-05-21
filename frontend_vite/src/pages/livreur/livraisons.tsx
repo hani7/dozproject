@@ -71,11 +71,6 @@ export default function LivraisonsPage() {
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    if (filter !== 'en_livraison') return;
-    const iv = setInterval(load, 10000);
-    return () => clearInterval(iv);
-  }, [filter, load]);
 
   const deliver = async (order: any) => {
     setConfirmingId(order.id);
@@ -83,8 +78,6 @@ export default function LivraisonsPage() {
       const endpoint = order.is_vente ? `/ventes/${order.id}/livrer/` : `/commandes/${order.id}/livrer/`;
       await api.post(endpoint);
       toast.success(fr ? '✅ Livraison confirmée!' : '✅ تم تأكيد التوصيل!');
-      // Auto-print ticket on delivery
-      printOrder(order);
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || 'Erreur');
