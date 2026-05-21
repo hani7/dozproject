@@ -19,12 +19,14 @@ class LigneVenteSerializer(serializers.ModelSerializer):
         return None
 
 class VenteSerializer(serializers.ModelSerializer):
-    lignes         = LigneVenteSerializer(many=True, read_only=True)
-    client_nom     = serializers.CharField(source='client.nom', read_only=True)
-    cree_par_nom   = serializers.CharField(source='cree_par.get_full_name', read_only=True)
-    reste_a_payer  = serializers.ReadOnlyField()
-    has_retour     = serializers.SerializerMethodField()
-    retours        = serializers.SerializerMethodField()
+    lignes           = LigneVenteSerializer(many=True, read_only=True)
+    client_nom       = serializers.CharField(source='client.nom', read_only=True)
+    cree_par_nom     = serializers.CharField(source='cree_par.get_full_name', read_only=True)
+    reste_a_payer    = serializers.ReadOnlyField()
+    has_retour       = serializers.SerializerMethodField()
+    retours          = serializers.SerializerMethodField()
+    has_non_conforme = serializers.SerializerMethodField()
+    non_conformes    = serializers.SerializerMethodField()
 
     class Meta:
         model = Vente
@@ -40,21 +42,47 @@ class VenteSerializer(serializers.ModelSerializer):
         from stock.models import MouvementStock
         # Build a price lookup from the vente's lignes
         prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
-        qte_par_produit  = {l.produit_id: float(l.quantite) for l in obj.lignes.all()}
         mvts = MouvementStock.objects.filter(
             reference=obj.reference, motif='retour'
         ).select_related('produit').order_by('created_at')
         result = []
         for m in mvts:
             prix = prix_par_produit.get(m.produit_id, 0)
-            qte_originale = float(m.stock_avant + m.quantite)  # stock before was stock_apres+qte
             result.append({
-                'produit_nom': m.produit.nom,
+                'produit_nom':        m.produit.nom,
+                'produit_id':         m.produit_id,
                 'quantite_retournee': float(m.quantite),
-                'prix_unitaire': prix,
-                'montant_retourne': float(m.quantite) * prix,
-                'notes': m.notes or '',
-                'created_at': m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '',
+                'prix_unitaire':      prix,
+                'montant_retourne':   float(m.quantite) * prix,
+                'notes':              m.notes or '',
+                'created_at':         m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '',
+            })
+        return result
+
+    def get_has_non_conforme(self, obj):
+        from stock.models import MouvementStock
+        return MouvementStock.objects.filter(
+            reference=obj.reference, motif='non_conforme'
+        ).exists()
+
+    def get_non_conformes(self, obj):
+        from stock.models import MouvementStock
+        # Use original prix_unitaire stored in current lignes
+        prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
+        mvts = MouvementStock.objects.filter(
+            reference=obj.reference, motif='non_conforme'
+        ).select_related('produit').order_by('created_at')
+        result = []
+        for m in mvts:
+            prix = prix_par_produit.get(m.produit_id, 0)
+            result.append({
+                'produit_nom':    m.produit.nom,
+                'produit_id':     m.produit_id,
+                'quantite_perdue': float(m.quantite),
+                'prix_unitaire':  prix,
+                'valeur_perdue':  float(m.quantite) * prix,
+                'notes':          m.notes or '',
+                'created_at':     m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '',
             })
         return result
 

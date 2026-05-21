@@ -58,15 +58,16 @@ class VenteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def retour(self, request, pk=None):
         """Process a product return: restore stock, update sale total."""
+        from decimal import Decimal
         vente = self.get_object()
         lignes_retour = request.data.get('lignes', [])
         if not lignes_retour:
             return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
 
         with transaction.atomic():
-            valeur_retour_totale = 0
+            valeur_retour_totale = Decimal('0')
             for item in lignes_retour:
-                qte = int(item.get('quantite', 0))
+                qte = Decimal(str(item.get('quantite', 0)))
                 if qte <= 0:
                     continue
                 try:
@@ -83,14 +84,13 @@ class VenteViewSet(viewsets.ModelViewSet):
                         status=400,
                     )
 
-                # Race-condition-safe update
+                # Race-condition-safe stock update (+qte = return to stock)
                 Produit.objects.filter(pk=ligne.produit_id).update(
                     stock_actuel=F('stock_actuel') + qte
                 )
                 produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
 
-                valeur_retour = qte * float(ligne.prix_unitaire)
-                valeur_retour_totale += valeur_retour
+                valeur_retour_totale += qte * ligne.prix_unitaire
 
                 MouvementStock.objects.create(
                     produit_id=ligne.produit_id,
@@ -104,9 +104,9 @@ class VenteViewSet(viewsets.ModelViewSet):
                     cree_par=request.user,
                 )
 
-            nouveau_total = float(vente.montant_total) - valeur_retour_totale
-            nouveau_paye  = max(0, float(vente.montant_paye) - valeur_retour_totale)
-            vente.montant_total = max(0, nouveau_total)
+            nouveau_total = vente.montant_total - valeur_retour_totale
+            nouveau_paye  = max(Decimal('0'), vente.montant_paye - valeur_retour_totale)
+            vente.montant_total = max(Decimal('0'), nouveau_total)
             vente.montant_paye  = nouveau_paye
             vente.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 
@@ -152,36 +152,55 @@ class VenteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def non_conforme(self, request, pk=None):
+        from decimal import Decimal
         vente = self.get_object()
         lignes_retour = request.data.get('lignes', [])
         if not lignes_retour:
             return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
 
         with transaction.atomic():
-            valeur_retour_totale = 0
+            valeur_retour_totale = Decimal('0')
             for item in lignes_retour:
-                qte = int(item.get('quantite', 0))
+                qte = Decimal(str(item.get('quantite', 0)))
                 if qte <= 0:
                     continue
                 try:
                     ligne = vente.lignes.get(produit_id=item['produit_id'])
                 except LigneVente.DoesNotExist:
                     return Response({'error': f"Produit {item['produit_id']} introuvable."}, status=400)
-                
+
                 if qte > ligne.quantite:
                     return Response({'error': f"Quantité ({qte}) > vendue ({ligne.quantite})."}, status=400)
 
-                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour = qte * ligne.prix_unitaire
                 valeur_retour_totale += valeur_retour
-                
-                # Diminue la quantité de la ligne pour que le total corresponde aux articles acceptés
-                ligne.quantite -= qte
-                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+
+                # Produit perdu — déduire du stock SANS retour
+                Produit.objects.filter(pk=ligne.produit_id).update(
+                    stock_actuel=F('stock_actuel') - qte
+                )
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+
+                MouvementStock.objects.create(
+                    produit_id=ligne.produit_id,
+                    type_mouvement='sortie',
+                    motif='non_conforme',
+                    quantite=qte,
+                    stock_avant=produit.stock_actuel + qte,
+                    stock_apres=produit.stock_actuel,
+                    reference=vente.reference,
+                    notes=f"Déclaration non-conforme — {qte} carton(s) perdu(s) — Vente {vente.reference}",
+                    cree_par=request.user,
+                )
+
+                # Diminue la quantité de la ligne
+                ligne.quantite  = ligne.quantite - qte
+                ligne.sous_total = ligne.prix_unitaire * ligne.quantite
                 ligne.save(update_fields=['quantite', 'sous_total'])
 
-            nouveau_total = float(vente.montant_total) - valeur_retour_totale
-            nouveau_paye  = max(0, float(vente.montant_paye) - valeur_retour_totale)
-            vente.montant_total = max(0, nouveau_total)
+            nouveau_total = vente.montant_total - valeur_retour_totale
+            nouveau_paye  = max(Decimal('0'), vente.montant_paye - valeur_retour_totale)
+            vente.montant_total = max(Decimal('0'), nouveau_total)
             vente.montant_paye  = nouveau_paye
             vente.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 

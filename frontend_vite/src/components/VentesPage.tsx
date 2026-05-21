@@ -40,6 +40,7 @@ function VentesPageContent({ type }: Props) {
   const [paiementAmount, setPaiementAmount] = useState('');
   const [paiementMode, setPaiementMode] = useState('especes');
   const [retourQty, setRetourQty] = useState<Record<number, string>>({});
+
   const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
   const [form, setForm] = useState({ reference: '', client: '', date: '', mode_paiement: 'especes', remise: '0', notes: '' });
   const [dateFrom, setDateFrom] = useState('');
@@ -531,6 +532,59 @@ function VentesPageContent({ type }: Props) {
                 📝 {viewModal.notes}
               </div>
             )}
+
+            {/* ── Non-Conforme breakdown (independent, from serializer) ── */}
+            {viewModal.non_conformes && viewModal.non_conformes.length > 0 && (() => {
+              const ncs = viewModal.non_conformes;
+              const totalNcQte = ncs.reduce((s: number, n: any) => s + Number(n.quantite_perdue), 0);
+              const totalNcVal = ncs.reduce((s: number, n: any) => s + Number(n.valeur_perdue), 0);
+              return (
+                <div style={{ background: 'rgba(239,68,68,0.05)', border: '2px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <AlertTriangle size={14} color="#ef4444" />
+                    <span style={{ fontWeight: 700, fontSize: '13px', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {fr ? 'Déclarations Non-Conformes' : 'إعلانات عدم المطابقة'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {ncs.map((n: any, i: number) => (
+                      <div key={i} style={{ background: 'var(--bg-base)', borderRadius: '8px', padding: '10px 12px', border: '1px solid rgba(239,68,68,0.15)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '13px' }}>{n.produit_nom}</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{n.created_at}</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                          <div style={{ textAlign: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '6px', padding: '7px 4px' }}>
+                            <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 700, marginBottom: '3px' }}>{fr ? 'QTÉ PERDUE' : 'كمية مفقودة'}</div>
+                            <div style={{ fontWeight: 800, fontSize: '14px', color: '#ef4444' }}>- {n.quantite_perdue} ctn</div>
+                          </div>
+                          <div style={{ textAlign: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '6px', padding: '7px 4px' }}>
+                            <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 700, marginBottom: '3px' }}>{fr ? 'PRIX/CTN' : 'سعر/كرتون'}</div>
+                            <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)' }}>{Number(n.prix_unitaire).toLocaleString('fr-DZ')} DA</div>
+                          </div>
+                          <div style={{ textAlign: 'center', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px', padding: '7px 4px' }}>
+                            <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 700, marginBottom: '3px' }}>{fr ? 'VALEUR DÉDUITE' : 'قيمة مخصومة'}</div>
+                            <div style={{ fontWeight: 800, fontSize: '14px', color: '#ef4444' }}>- {Number(n.valeur_perdue).toLocaleString('fr-DZ')} DA</div>
+                          </div>
+                        </div>
+                        {n.notes && <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>📝 {n.notes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  {/* NC totals — independent calculation */}
+                  <div style={{ borderTop: '1px dashed rgba(239,68,68,0.3)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Total perdu (NC)' : 'إجمالي مفقود (NC)'}</span>
+                      <span style={{ fontWeight: 700, color: '#ef4444' }}>- {totalNcQte} ctn</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', borderTop: '1px solid rgba(239,68,68,0.15)', paddingTop: '6px', marginTop: '2px' }}>
+                      <span style={{ color: '#ef4444', fontWeight: 700 }}>{fr ? 'Valeur déduite' : 'القيمة المخصومة'}</span>
+                      <span style={{ fontWeight: 900, color: '#ef4444', fontSize: '15px' }}>- {totalNcVal.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Retour breakdown */}
             {viewModal.retours && viewModal.retours.length > 0 && (() => {

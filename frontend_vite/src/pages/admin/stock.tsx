@@ -85,8 +85,8 @@ export default function StockPage() {
               <th>{lang === 'fr' ? 'Type' : 'النوع'}</th>
               <th>{lang === 'fr' ? 'Motif' : 'السبب'}</th>
               <th>{lang === 'fr' ? 'Quantité' : 'الكمية'}</th>
-              <th>{lang === 'fr' ? 'Avant' : 'قبل'}</th>
-              <th>{lang === 'fr' ? 'Après' : 'بعد'}</th>
+              <th style={{ color: 'var(--text-muted)' }}>{lang === 'fr' ? 'Avant (ctn)' : 'قبل (ctn)'}</th>
+              <th style={{ color: '#006045', fontWeight: 800 }}>{lang === 'fr' ? 'Stock (ctn)' : 'المخزون (ctn)'}</th>
               <th>{lang === 'fr' ? 'Référence' : 'المرجع'}</th>
             </tr>
           </thead>
@@ -109,14 +109,25 @@ export default function StockPage() {
                     {typeLabels[m.type_mouvement]?.[lang] || m.type_mouvement}
                   </span>
                 </td>
-                <td style={{ fontSize: '12px' }}>{m.motif}</td>
+                <td style={{ fontSize: '12px' }}>
+                  {m.motif === 'retour' ? (
+                    <span style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6', borderRadius: '6px', padding: '2px 8px', fontWeight: 700, fontSize: '11px' }}>↩ retour</span>
+                  ) : m.motif === 'non_conforme' ? (
+                    <span style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', borderRadius: '6px', padding: '2px 8px', fontWeight: 700, fontSize: '11px' }}>⚠ non-conforme</span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>{m.motif}</span>
+                  )}
+                </td>
                 <td style={{ fontWeight: 700 }}>
                   <span style={{ color: m.type_mouvement === 'entree' ? '#10b981' : m.type_mouvement === 'sortie' ? '#ef4444' : '#f59e0b' }}>
                     {m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : ''}{m.quantite}
                   </span>
                 </td>
-                <td style={{ color: 'var(--text-muted)' }}>{m.stock_avant}</td>
-                <td style={{ fontWeight: 600 }}>{m.stock_apres}</td>
+                <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{m.stock_avant} <span style={{ fontSize: '10px' }}>ctn</span></td>
+                <td style={{ fontWeight: 800, fontSize: '14px' }}>
+                  <span style={{ color: 'var(--brand-primary)' }}>{m.stock_apres}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '2px' }}>ctn</span>
+                </td>
                 <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.reference || '-'}</td>
               </tr>
             ))}

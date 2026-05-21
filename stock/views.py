@@ -13,6 +13,7 @@ class MouvementStockViewSet(viewsets.ModelViewSet):
         'produit': ['exact'],
         'type_mouvement': ['exact'],
         'motif': ['exact'],
+        'reference': ['exact'],
         'created_at': ['gte', 'lte']
     }
     ordering_fields = ['created_at']
