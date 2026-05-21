@@ -21,6 +21,10 @@ class LigneVenteSerializer(serializers.ModelSerializer):
 class VenteSerializer(serializers.ModelSerializer):
     lignes           = LigneVenteSerializer(many=True, read_only=True)
     client_nom       = serializers.CharField(source='client.nom', read_only=True)
+    client_phone     = serializers.CharField(source='client.phone', read_only=True)
+    client_adresse   = serializers.CharField(source='client.adresse', read_only=True)
+    client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True)
+    client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True)
     cree_par_nom     = serializers.CharField(source='cree_par.get_full_name', read_only=True)
     reste_a_payer    = serializers.ReadOnlyField()
     has_retour       = serializers.SerializerMethodField()
