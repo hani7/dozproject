@@ -244,113 +244,103 @@ export async function printViaBluetoothRaw(ticket: TicketData): Promise<boolean>
 // ── HTML Fallback Print (window.print) ──────────────────────────────────────
 export function printTicketHTML(ticket: TicketData): void {
   const reste = Math.max(0, ticket.montant_total - ticket.montant_paye);
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Ticket ${ticket.reference}</title>
-<style>
-  @page { size: 58mm auto; margin: 0; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
-    width: 58mm;
-    padding: 3mm 2mm;
-    color: #000;
-    background: #fff;
+  const printAreaId = 'ticket-print-area';
+  let printArea = document.getElementById(printAreaId);
+  if (!printArea) {
+    printArea = document.createElement('div');
+    printArea.id = printAreaId;
+    document.body.appendChild(printArea);
+    
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media screen {
+        #${printAreaId} { display: none; }
+      }
+      @media print {
+        body > *:not(#${printAreaId}) { display: none !important; }
+        #${printAreaId} { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+        @page { size: 58mm auto; margin: 0; }
+        .print-ticket-container { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 58mm; padding: 3mm 2mm; color: #000; background: #fff; }
+        .print-ticket-container .center { text-align: center; }
+        .print-ticket-container .bold { font-weight: bold; }
+        .print-ticket-container .xlarge { font-size: 20px; }
+        .print-ticket-container .divider { border-top: 1px dashed #000; margin: 3px 0; }
+        .print-ticket-container .row { display: flex; justify-content: space-between; margin: 1px 0; }
+        .print-ticket-container .product { margin: 3px 0 2px; }
+        .print-ticket-container .product .name { font-weight: bold; font-size: 10px; }
+        .print-ticket-container .product .detail { display: flex; justify-content: space-between; font-size: 10px; padding-left: 4px; }
+        .print-ticket-container .total-line { font-weight: bold; font-size: 13px; }
+        .print-ticket-container .reste-box { border: 2px solid #000; padding: 3px; margin-top: 3px; }
+        .print-ticket-container .solde-box { text-align: center; font-weight: bold; }
+        .print-ticket-container .footer { text-align: center; font-size: 9px; margin-top: 6px; }
+        .print-ticket-container .tag { display: inline-block; border: 1px solid #000; padding: 1px 4px; font-size: 9px; margin-bottom: 4px; }
+      }
+    `;
+    document.head.appendChild(style);
   }
-  .center { text-align: center; }
-  .right  { text-align: right; }
-  .bold   { font-weight: bold; }
-  .large  { font-size: 16px; }
-  .xlarge { font-size: 20px; }
-  .divider { border-top: 1px dashed #000; margin: 3px 0; }
-  .row    { display: flex; justify-content: space-between; margin: 1px 0; }
-  .product { margin: 3px 0 2px; }
-  .product .name { font-weight: bold; font-size: 10px; }
-  .product .detail { display: flex; justify-content: space-between; font-size: 10px; padding-left: 4px; }
-  .total-line { font-weight: bold; font-size: 13px; }
-  .reste-box { border: 2px solid #000; padding: 3px; margin-top: 3px; }
-  .solde-box { text-align: center; font-weight: bold; }
-  .footer { text-align: center; font-size: 9px; margin-top: 6px; }
-  .tag { display: inline-block; border: 1px solid #000; padding: 1px 4px; font-size: 9px; margin-bottom: 4px; }
-</style>
-</head>
-<body>
-  <div class="center">
-    <div class="xlarge bold">ForCli</div>
-    <div style="font-size:9px">Distribution &amp; Commerce</div>
-  </div>
 
-  <div class="divider" style="margin:4px 0"></div>
+  const html = `
+    <div class="print-ticket-container">
+      <div class="center">
+        <div class="xlarge bold">ForCli</div>
+        <div style="font-size:9px">Distribution &amp; Commerce</div>
+      </div>
 
-  <div class="row"><span>Ref:</span><span class="bold">${ticket.reference}</span></div>
-  <div class="row"><span>Date:</span><span>${ticket.date}</span></div>
-  <div class="row"><span>Client:</span><span class="bold">${ticket.client_nom}</span></div>
-  ${ticket.client_phone ? `<div class="row"><span>Tel:</span><span>${ticket.client_phone}</span></div>` : ''}
-  ${ticket.livreur_nom ? `<div class="row"><span>Livreur:</span><span>${ticket.livreur_nom}</span></div>` : ''}
+      <div class="divider" style="margin:4px 0"></div>
 
-  <div class="divider"></div>
+      <div class="row"><span>Ref:</span><span class="bold">${ticket.reference}</span></div>
+      <div class="row"><span>Date:</span><span>${ticket.date}</span></div>
+      <div class="row"><span>Client:</span><span class="bold">${ticket.client_nom}</span></div>
+      ${ticket.client_phone ? `<div class="row"><span>Tel:</span><span>${ticket.client_phone}</span></div>` : ''}
+      ${ticket.livreur_nom ? `<div class="row"><span>Livreur:</span><span>${ticket.livreur_nom}</span></div>` : ''}
 
-  ${ticket.lignes.map(l => `
-  <div class="product">
-    <div class="name">${l.produit_nom}</div>
-    <div class="detail">
-      <span>x${l.quantite} ctn @ ${l.prix_unitaire.toLocaleString('fr-DZ')} DA</span>
-      <span class="bold">${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+      <div class="divider"></div>
+
+      ${ticket.lignes.map(l => `
+      <div class="product">
+        <div class="name">${l.produit_nom}</div>
+        <div class="detail">
+          <span>x${l.quantite} ctn @ ${l.prix_unitaire.toLocaleString('fr-DZ')} DA</span>
+          <span class="bold">${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+        </div>
+      </div>`).join('')}
+
+      <div class="divider"></div>
+
+      <div class="row total-line">
+        <span>TOTAL</span>
+        <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
+      </div>
+      <div class="row">
+        <span>Payé</span>
+        <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
+      </div>
+
+      ${reste > 0 ? `
+      <div class="reste-box">
+        <div class="row" style="font-size:13px;font-weight:bold">
+          <span>RESTE A PAYER</span>
+          <span>${reste.toLocaleString('fr-DZ')} DA</span>
+        </div>
+      </div>` : `
+      <div class="solde-box" style="margin-top:4px">
+        <span class="tag">✓ SOLDE COMPLET</span>
+      </div>`}
+
+      <div class="divider" style="margin-top:6px"></div>
+      <div class="footer">
+        <div>Merci pour votre commande!</div>
+        <div>ForCli — doz.baitul.tech</div>
+        <div>${new Date().toLocaleString('fr-DZ')}</div>
+      </div>
     </div>
-  </div>`).join('')}
+  `;
 
-  <div class="divider"></div>
-
-  <div class="row total-line">
-    <span>TOTAL</span>
-    <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
-  </div>
-  <div class="row">
-    <span>Payé</span>
-    <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
-  </div>
-
-  ${reste > 0 ? `
-  <div class="reste-box">
-    <div class="row" style="font-size:13px;font-weight:bold">
-      <span>RESTE A PAYER</span>
-      <span>${reste.toLocaleString('fr-DZ')} DA</span>
-    </div>
-  </div>` : `
-  <div class="solde-box" style="margin-top:4px">
-    <span class="tag">✓ SOLDE COMPLET</span>
-  </div>`}
-
-  <div class="divider" style="margin-top:6px"></div>
-  <div class="footer">
-    <div>Merci pour votre commande!</div>
-    <div>ForCli — doz.baitul.tech</div>
-    <div>${new Date().toLocaleString('fr-DZ')}</div>
-  </div>
-</body>
-</html>`;
-
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
+  printArea.innerHTML = html;
   
-  const doc = iframe.contentWindow?.document;
-  if (doc) {
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    }, 500);
-  } else {
-    document.body.removeChild(iframe);
-    toast_fallback();
-  }
+  setTimeout(() => {
+    window.print();
+  }, 300);
 }
 
 function toast_fallback() {
