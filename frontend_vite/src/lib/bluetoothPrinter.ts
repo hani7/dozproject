@@ -257,14 +257,17 @@ export function printTicketHTML(ticket: TicketData): void {
     <div style="background: rgba(0,0,0,0.75); position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
       
       <div class="no-print" style="display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 320px; flex-wrap: wrap; justify-content: center;">
-        <button id="ticket-close-btn" style="flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 14px; cursor: pointer;">
+        <button id="ticket-close-btn" style="flex: 1; min-width: 120px; padding: 10px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           Fermer (إغلاق)
         </button>
-        <button id="ticket-print-btn" style="flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 14px; cursor: pointer;">
+        <button id="ticket-print-btn" style="flex: 1; min-width: 120px; padding: 10px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           🖨 Imprimer
         </button>
-        <button id="ticket-share-btn" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 4px;">
-          📤 Partager vers Eleph Label (Image)
+        <button id="ticket-share-img-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #8b5cf6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+          📸 Partager Image (Eleph Label)
+        </button>
+        <button id="ticket-share-txt-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+          📝 Partager Texte (WhatsApp)
         </button>
       </div>
 
@@ -337,7 +340,8 @@ export function printTicketHTML(ticket: TicketData): void {
   // Attach events using querySelector to ensure we target the new overlay
   const closeBtn = printOverlay.querySelector('#ticket-close-btn');
   const printBtn = printOverlay.querySelector('#ticket-print-btn');
-  const shareBtn = printOverlay.querySelector('#ticket-share-btn');
+  const shareImgBtn = printOverlay.querySelector('#ticket-share-img-btn');
+  const shareTxtBtn = printOverlay.querySelector('#ticket-share-txt-btn');
   
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
@@ -347,51 +351,97 @@ export function printTicketHTML(ticket: TicketData): void {
   
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      window.print();
+      // Inject temporary CSS to format the screen perfectly for Android's Image Capture
+      const style = document.createElement('style');
+      style.id = 'android-print-temp-style';
+      style.innerHTML = `
+        body > *:not(#ticket-print-overlay) { display: none !important; }
+        #ticket-print-overlay { 
+          background: white !important; 
+          padding: 0 !important; 
+          align-items: flex-start !important; 
+          justify-content: flex-start !important; 
+        }
+        .no-print { display: none !important; }
+        .print-ticket-container { 
+          box-shadow: none !important; 
+          margin: 0 !important; 
+          padding: 10px !important;
+          max-width: 384px !important; 
+          width: 384px !important; 
+          max-height: none !important; 
+          overflow: visible !important; 
+          border-radius: 0 !important; 
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Wait a tiny bit for the browser to render the clean ticket
+      setTimeout(() => {
+        window.print();
+        
+        // Restore the normal UI after Android has finished capturing (2 seconds is safe)
+        setTimeout(() => {
+          const s = document.getElementById('android-print-temp-style');
+          if (s) s.remove();
+        }, 2000);
+      }, 100);
     });
   }
 
-  if (shareBtn) {
-    shareBtn.addEventListener('click', async () => {
+  // --- TEXT SHARE (100% WebView Compatible via Intent) ---
+  if (shareTxtBtn) {
+    shareTxtBtn.addEventListener('click', () => {
+      let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
+      ticket.lignes.forEach(l => {
+        txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
+      });
+      txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
+      if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
+      else txt += `SOLDE COMPLET\n`;
+
       try {
-        shareBtn.textContent = '⏳ Génération...';
+        if (navigator.share) {
+          navigator.share({ title: 'Ticket ' + ticket.reference, text: txt }).catch(() => {
+            // Fallback to Intent if navigator.share fails
+            window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
+          });
+        } else {
+          // Fallback to Intent directly
+          window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
+        }
+      } catch (e) {
+        window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
+      }
+    });
+  }
+
+  // --- IMAGE SHARE ---
+  if (shareImgBtn) {
+    shareImgBtn.addEventListener('click', async () => {
+      try {
+        shareImgBtn.textContent = '⏳ Génération...';
         const container = printOverlay.querySelector('.print-ticket-container') as HTMLElement;
         if (!container) return;
         
-        // Dynamically import html2canvas so it doesn't break other parts
         const html2canvas = (await import('html2canvas')).default;
-        
-        const canvas = await html2canvas(container, {
-          scale: 2,
-          backgroundColor: '#ffffff'
-        });
+        const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
         
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const file = new File([blob], `ticket_${ticket.reference}.png`, { type: 'image/png' });
           
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: 'Ticket ' + ticket.reference,
-              files: [file]
-            });
+            await navigator.share({ title: 'Ticket', files: [file] });
           } else {
-            // Text fallback
-            let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
-            ticket.lignes.forEach(l => {
-              txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
-            });
-            txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
-            if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
-            else txt += `SOLDE COMPLET\n`;
-            if (navigator.share) await navigator.share({ title: 'Ticket ' + ticket.reference, text: txt });
-            else alert("Le partage d'image n'est pas supporté par votre appareil.");
+            // If image sharing is blocked, tell user
+            alert("Le partage d'image n'est pas autorisé par votre application. Utilisez 'Partager Texte'.");
           }
-          shareBtn.textContent = '📤 Partager vers Eleph Label (Image)';
+          shareImgBtn.textContent = '📸 Partager Image (Eleph Label)';
         }, 'image/png');
       } catch (e) {
         console.error('Share error', e);
-        shareBtn.textContent = 'Erreur';
+        shareImgBtn.textContent = 'Erreur Génération';
       }
     });
   }

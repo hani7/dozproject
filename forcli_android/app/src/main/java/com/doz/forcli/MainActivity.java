@@ -24,6 +24,15 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
+import android.webkit.JavascriptInterface;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileOutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WebView.enableSlowWholeDocumentDraw();
         setContentView(R.layout.activity_main);
 
         // Views
@@ -70,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setUseWideViewPort(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        // Add Javascript Interface for printing
+        webView.addJavascriptInterface(new WebAppInterface(this), "AndroidInterface");
 
         // SwipeRefresh colors
         swipeRefreshLayout.setColorSchemeColors(
@@ -106,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 progressBar.setVisibility(View.GONE);
                 swipeRefreshLayout.setRefreshing(false);
+                view.evaluateJavascript("window.print = function() { AndroidInterface.print(); };", null);
             }
 
             @Override
@@ -153,6 +167,112 @@ public class MainActivity extends AppCompatActivity {
             webView.goBack();
         } else {
             super.onBackPressed();
+        }
+    }
+
+    private Bitmap cropWhitespace(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int left = width, right = -1;
+
+        int[] rowPixels = new int[width];
+        for (int y = 0; y < height; y++) {
+            bitmap.getPixels(rowPixels, 0, width, 0, y, width, 1);
+            for (int x = 0; x < width; x++) {
+                int color = rowPixels[x];
+                int r = android.graphics.Color.red(color);
+                int g = android.graphics.Color.green(color);
+                int b = android.graphics.Color.blue(color);
+                // Threshold for anti-aliasing (ignore pure white or near-white)
+                if (r < 250 || g < 250 || b < 250) {
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                }
+            }
+        }
+
+        if (left > right) return bitmap; // Blank image
+
+        int padding = 10;
+        left = Math.max(0, left - padding);
+        right = Math.min(width - 1, right + padding);
+
+        return Bitmap.createBitmap(bitmap, left, 0, right - left + 1, height);
+    }
+
+    private void doPrint() {
+        try {
+            android.widget.Toast.makeText(this, "Préparation...", android.widget.Toast.LENGTH_SHORT).show();
+            // Get content dimensions for exact continuous roll length
+            int width = webView.getWidth();
+            int contentHeight = (int) (webView.getContentHeight() * webView.getScale());
+
+            if (width <= 0) width = 384; // standard 58mm width pixels
+            if (contentHeight <= 0) contentHeight = webView.getHeight();
+
+            // Create bitmap on UI thread (RGB_565 uses 50% less RAM)
+            Bitmap bitmap = Bitmap.createBitmap(width, contentHeight, Bitmap.Config.RGB_565);
+            Canvas canvas = new Canvas(bitmap);
+            canvas.drawColor(android.graphics.Color.WHITE);
+            webView.draw(canvas);
+
+            // Offload compression and IO to background thread to prevent UI freeze
+            new Thread(() -> {
+                try {
+                    // Auto-crop white margins so the ticket uses the full 58mm width
+                    Bitmap croppedBitmap = cropWhitespace(bitmap);
+
+                    File cachePath = new File(getCacheDir(), "images");
+                    if (!cachePath.exists()) {
+                        cachePath.mkdirs();
+                    }
+                    File file = new File(cachePath, "ticket.jpg");
+                    FileOutputStream stream = new FileOutputStream(file);
+                    // JPEG compression is significantly faster than PNG
+                    croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                    stream.close();
+
+                    Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", file);
+
+                    if (contentUri != null) {
+                        Intent shareIntent = new Intent();
+                        shareIntent.setAction(Intent.ACTION_SEND);
+                        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+
+                        // Print directly to RawBT which handles 58mm perfectly
+                        shareIntent.setPackage("ru.a402d.rawbtprinter");
+                        
+                        runOnUiThread(() -> {
+                            try {
+                                startActivity(shareIntent);
+                            } catch (android.content.ActivityNotFoundException e) {
+                                // Fallback to chooser if RawBT is not installed
+                                shareIntent.setPackage(null);
+                                startActivity(Intent.createChooser(shareIntent, "Imprimer via"));
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class WebAppInterface {
+        Context mContext;
+
+        WebAppInterface(Context c) {
+            mContext = c;
+        }
+
+        @JavascriptInterface
+        public void print() {
+            runOnUiThread(() -> doPrint());
         }
     }
 }
