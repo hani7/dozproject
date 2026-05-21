@@ -110,7 +110,7 @@ export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
             >
               <UserCircle size={18} color={showMenu ? '#6366f1' : 'var(--text-secondary)'} />
               <span style={{ fontSize: '12px', fontWeight: 700, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: showMenu ? '#6366f1' : 'var(--text-secondary)' }}>
-                {user?.first_name || user?.username || 'Admin'}
+                {user?.full_name || user?.username || 'Admin'}
               </span>
             </button>
 
@@ -127,7 +127,7 @@ export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
                 }}>
                   {/* User info */}
                   <div style={{ padding: '8px 12px 10px', borderBottom: '1px solid var(--border)', marginBottom: '6px' }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{user?.first_name} {user?.last_name}</div>
+                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{user?.full_name || user?.username}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{user?.username}</div>
                     <div style={{ fontSize: '10px', marginTop: '2px', padding: '1px 7px', background: 'rgba(99,102,241,0.12)', color: '#6366f1', borderRadius: '10px', display: 'inline-block', fontWeight: 700 }}>
                       {user?.role}

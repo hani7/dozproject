@@ -28,7 +28,6 @@ export default function TourneePage() {
   const fr = lang === 'fr';
 
   const [clients, setClients]     = useState<any[]>([]);
-  const [search, setSearch]       = useState('');
   const [visits, setVisits]       = useState<Visit[]>([]);
   const [expanded, setExpanded]   = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
@@ -37,11 +36,6 @@ export default function TourneePage() {
     api.get('/clients/', { params: { page_size: 500 } })
       .then(r => setClients(r.data.results || r.data));
   }, []);
-
-  const filtered = clients.filter(c => {
-    const q = search.toLowerCase();
-    return !q || c.nom?.toLowerCase().includes(q) || c.telephone?.includes(q);
-  });
 
   const visitedIds = new Set(visits.map(v => v.clientId));
 
@@ -109,45 +103,24 @@ export default function TourneePage() {
           <Plus size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           {fr ? 'Ajouter un client visité' : 'إضافة عميل تمت زيارته'}
         </div>
-        <div className="search-input-wrap">
-          <Search />
-          <input
-            className="form-control"
-            placeholder={fr ? 'Rechercher client...' : 'ابحث عن عميل...'}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        {search && (
-          <div style={{ marginTop: '8px', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
-            {filtered.slice(0, 20).map(c => (
-              <button
-                key={c.id}
-                onClick={() => addVisit(c)}
-                disabled={visitedIds.has(String(c.id))}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--border)',
-                  background: visitedIds.has(String(c.id)) ? 'rgba(16,185,129,0.06)' : 'var(--bg-elevated)',
-                  cursor: visitedIds.has(String(c.id)) ? 'default' : 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left',
-                }}
-              >
-                <span style={{ fontWeight: 600, fontSize: '13px' }}>{c.nom}</span>
-                {visitedIds.has(String(c.id))
-                  ? <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>✓ {fr ? 'Ajouté' : 'مضاف'}</span>
-                  : <span style={{ fontSize: '11px', color: 'var(--brand-primary)', fontWeight: 700 }}>+ {fr ? 'Ajouter' : 'إضافة'}</span>
-                }
-              </button>
-            ))}
-            {filtered.length === 0 && (
-              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                {fr ? 'Aucun client trouvé' : 'لا يوجد عميل'}
-              </div>
-            )}
-          </div>
-        )}
+        <select
+          className="form-control"
+          onChange={(e) => {
+            const client = clients.find(c => String(c.id) === e.target.value);
+            if (client) addVisit(client);
+            // Reset the select back to default after adding
+            e.target.value = "";
+          }}
+          defaultValue=""
+          style={{ width: '100%', fontSize: '14px', fontWeight: 600 }}
+        >
+          <option value="" disabled>{fr ? '-- Sélectionner un client --' : '-- اختر عميلاً --'}</option>
+          {clients.map(c => (
+            <option key={c.id} value={c.id} disabled={visitedIds.has(String(c.id))}>
+              {c.nom} {visitedIds.has(String(c.id)) ? (fr ? '(Déjà ajouté)' : '(تمت إضافته)') : ''}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Visit cards */}
