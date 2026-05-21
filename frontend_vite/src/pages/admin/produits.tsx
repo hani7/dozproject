@@ -186,13 +186,14 @@ export default function ProduitsPage() {
               <th>📦 {fr ? 'Vente Détail (carton)' : 'تجزئة (كرتون)'}</th>
               <th>🏪 {fr ? 'Vente Gros (carton)' : 'جملة (كرتون)'}</th>
               <th>{fr ? 'Stock' : 'المخزون'}</th>
+              <th style={{ color: 'var(--brand-primary)', fontWeight: 800 }}>📦 {fr ? 'Stock (ctn)' : 'مخزون (كرتون)'}</th>
               <th>{fr ? 'Statut' : 'الحالة'}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '40px' }}><div className="spinner" /></td></tr>
+              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px' }}><div className="spinner" /></td></tr>
             ) : products.map(p => (
               <tr key={p.id}>
                 {/* Image thumbnail */}
@@ -234,6 +235,18 @@ export default function ProduitsPage() {
                         ({p.stock_actuel} ctn / min {p.stock_minimum})
                       </div>
                     </div>
+                  </div>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                    <span style={{
+                      fontWeight: 900, fontSize: '20px',
+                      color: p.stock_faible ? '#ef4444' : 'var(--brand-primary)'
+                    }}>{p.stock_actuel}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>ctn</span>
+                    {p.stock_faible && (
+                      <span style={{ fontSize: '9px', background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>⚠ FAIBLE</span>
+                    )}
                   </div>
                 </td>
                 <td>

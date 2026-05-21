@@ -654,10 +654,6 @@ function VentesPageContent({ type }: Props) {
               );
             })()}
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button className="btn btn-warning btn-sm" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
-                onClick={() => { setViewModal(null); openRetour(viewModal); }}>
-                <RotateCcw size={13} /> {fr ? 'Faire un retour' : 'إرجاع'}
-              </button>
               <button className="btn btn-secondary" onClick={() => setViewModal(null)}>{fr ? 'Fermer' : 'إغلاق'}</button>
             </div>
           </div>

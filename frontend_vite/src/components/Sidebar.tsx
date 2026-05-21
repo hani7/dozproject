@@ -8,7 +8,7 @@ import {
   TrendingUp, BarChart3, Radio, Users, CreditCard,
   UserCircle, Truck, ClipboardList, ShoppingBag,
   LogOut, ChevronRight, Building2, KeyRound,
-  ChevronLeft, FileText
+  ChevronLeft, FileText, PieChart
 } from 'lucide-react';
 
 const adminNav = [
@@ -23,6 +23,7 @@ const adminNav = [
   { label: 'nav.sales_gros', href: '/admin/vente-gros', icon: BarChart3 },
   { label: 'nav.orders', href: '/admin/commandes', icon: Radio },
   { label: 'nav.historique', href: '/admin/historique-commandes', icon: ClipboardList },
+  { label: 'nav.statistiques', href: '/admin/statistiques', icon: PieChart },
   { label: 'nav.hr', href: '/admin/rh', icon: UserCircle },
   { label: 'nav.payments', href: '/admin/paiements', icon: CreditCard },
   { label: 'nav.comptes', href: '/admin/comptes', icon: KeyRound },

@@ -21,6 +21,7 @@ import Comptes from '@/pages/admin/comptes'
 import HistoriqueCommandes from '@/pages/admin/historique-commandes'
 import RH from '@/pages/admin/rh'
 import BonCommande from '@/pages/admin/bon-commande'
+import Statistiques from '@/pages/admin/benefices'
 import Livraisons from '@/pages/livreur/livraisons'
 import LivreurHistorique from '@/pages/livreur/historique'
 import CommandeDetail from '@/pages/prevendeur/commande-detail'
@@ -56,6 +57,7 @@ export default function App() {
               <Route path="/admin/historique-commandes" element={<HistoriqueCommandes />} />
               <Route path="/admin/rh" element={<RH />} />
               <Route path="/admin/bon-commande" element={<BonCommande />} />
+              <Route path="/admin/statistiques" element={<Statistiques />} />
 
               {/* Livreur */}
               <Route path="/livreur/livraisons" element={<Livraisons />} />
