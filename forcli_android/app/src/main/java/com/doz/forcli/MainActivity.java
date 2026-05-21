@@ -12,8 +12,10 @@ import android.view.animation.AnimationUtils;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
-import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebView;
+import android.content.Intent;
+import android.net.Uri;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -78,8 +80,21 @@ public class MainActivity extends AppCompatActivity {
             webView.reload();
         });
 
-        // WebViewClient
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.startsWith("tel:")) {
+                    Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
+                    startActivity(intent);
+                    return true;
+                } else if (url.startsWith("mailto:") || url.startsWith("geo:") || url.contains("maps.google.com") || url.contains("google.com/maps")) {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    startActivity(intent);
+                    return true;
+                }
+                return false; // Let WebView handle normal http/https links
+            }
+
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 progressBar.setVisibility(View.VISIBLE);

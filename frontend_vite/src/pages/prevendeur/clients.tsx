@@ -232,17 +232,19 @@ export default function PrevendeurClientsPage() {
                 {c.phone && c.adresse && ' · '}
                 {c.adresse || ''}
               </div>
-              <div className="app-card-actions" style={{ marginTop: '12px' }}>
-                {c.phone && (
-                  <button onClick={() => window.location.href = `tel:${c.phone}`} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                <div className="app-card-actions" style={{ marginTop: '12px' }}>
+                  <button onClick={() => {
+                    if (!c.phone) toast.error(fr ? 'Aucun numéro disponible (non saisi)' : 'لا يوجد رقم هاتف (لم يتم إدخاله)');
+                    else window.location.href = `tel:${c.phone}`;
+                  }} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', opacity: c.phone ? 1 : 0.5 }}>
                     <Phone size={14} /> {fr ? 'Appeler' : 'اتصال'}
                   </button>
-                )}
-                {c.latitude && c.longitude && (
-                  <button onClick={() => window.location.href = `https://www.google.com/maps?q=${c.latitude},${c.longitude}`} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <button onClick={() => {
+                    if (c.latitude && c.longitude) window.location.href = `https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+                    else toast.error(fr ? 'Aucune position GPS disponible' : 'لا يوجد موقع GPS');
+                  }} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', opacity: (c.latitude && c.longitude) ? 1 : 0.5 }}>
                     <Navigation size={14} /> GPS
                   </button>
-                )}
                 <button onClick={() => openEdit(c)} style={{ width: 36, height: 36, padding: '0', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }} title={fr ? 'Modifier' : 'تعديل'}>
                   <Edit2 size={15} />
                 </button>

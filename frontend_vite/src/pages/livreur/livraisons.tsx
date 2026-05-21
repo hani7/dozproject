@@ -202,7 +202,13 @@ export default function LivraisonsPage() {
     }
   };
 
-  const callClient = (phone: string) => window.location.href = `tel:${phone}`;
+  const callClient = (phone: string) => {
+    if (!phone) {
+      toast.error(fr ? 'Aucun numéro disponible (non saisi)' : 'لا يوجد رقم هاتف (لم يتم إدخاله)');
+      return;
+    }
+    window.location.href = `tel:${phone}`;
+  };
 
   const filteredOrders = orders.filter(o => {
     const q = search.toLowerCase();
@@ -316,14 +322,12 @@ export default function LivraisonsPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    {o.client_phone && (
-                      <button onClick={() => callClient(o.client_phone)}
-                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.08)', color: '#3b82f6', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <Phone size={15} /> {fr ? 'Appeler' : 'اتصال'}
-                      </button>
-                    )}
+                    <button onClick={() => callClient(o.client_phone)}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.08)', color: '#3b82f6', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: o.client_phone ? 1 : 0.5 }}>
+                      <Phone size={15} /> {fr ? 'Appeler' : 'اتصال'}
+                    </button>
                     <button onClick={() => openGPS(o)}
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: (o.client_latitude && o.client_longitude) || o.client_adresse ? 1 : 0.5 }}>
                       <Navigation size={15} /> {fr ? 'GPS' : 'GPS'}
                     </button>
                   </div>
