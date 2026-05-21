@@ -352,6 +352,39 @@ function VentesPageContent({ type }: Props) {
             }).join('')}
           </tbody>
         </table>
+
+        <div style="margin-top: 30px; border-top: 2px solid #333; padding-top: 15px;">
+          <h3 style="margin-top: 0;">${fr ? 'Récapitulatif (Hors annulées/brouillon)' : 'الملخص'}</h3>
+          <table style="width: auto; border: none; margin-top: 10px;">
+            <tr style="background: none;">
+              <td style="border: none; padding: 4px 15px 4px 0;"><strong>${fr ? 'Montant Total' : 'المبلغ الإجمالي'} :</strong></td>
+              <td style="border: none; padding: 4px 0; font-weight: bold; color: #ef4444;">${stats.totalMontant.toLocaleString()} DA</td>
+            </tr>
+            <tr style="background: none;">
+              <td style="border: none; padding: 4px 15px 4px 0;"><strong>${fr ? 'Total Cartons sortis' : 'إجمالي الكراتين الخارجة'} :</strong></td>
+              <td style="border: none; padding: 4px 0; font-weight: bold; color: #10b981;">${stats.totalCartons} ctn</td>
+            </tr>
+          </table>
+
+          <h4 style="margin-top: 20px; margin-bottom: 8px;">${fr ? 'Détail par produit' : 'التفاصيل حسب المنتج'}</h4>
+          <table style="width: 50%; min-width: 300px; margin-top: 0;">
+            <thead>
+              <tr>
+                <th style="background: #f8fafc; text-align: left;">${fr ? 'Produit' : 'المنتج'}</th>
+                <th style="background: #f8fafc; text-align: right;">${fr ? 'Quantité' : 'الكمية'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(stats.cartonsParProduit).map(([nom, qte]) => `
+                <tr>
+                  <td>${nom}</td>
+                  <td style="text-align: right; font-weight: bold;">${qte} ctn</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
       </body>
       </html>
     `;
