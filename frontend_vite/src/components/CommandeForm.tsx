@@ -55,10 +55,21 @@ export function CommandeForm({ type }: Props) {
         setLoadingProducts(false);
       })
       .catch(() => setLoadingProducts(false));
-    api
-      .get("/clients/", { params: { type_client: type, page_size: 200 } })
-      .then((r) => setClients(r.data.results || r.data))
-      .catch(() => {});
+    const fetchAllClients = async () => {
+      try {
+        let all: any[] = [];
+        let url: string | null = `/clients/?type_client=${type}&page_size=500`;
+        while (url) {
+          const r = await api.get(url);
+          all = [...all, ...(r.data.results || r.data)];
+          url = r.data.next || null;
+        }
+        setClients(all);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchAllClients();
   }, [type]);
 
   const filtered = useMemo(

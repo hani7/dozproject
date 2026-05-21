@@ -279,25 +279,29 @@ function VentesPageContent({ type }: Props) {
   ];
 
   const exportExcel = () => {
-    let csv = '\uFEFF';
-    csv += (fr ? 'Référence,Client,Date,Paiement,Montant Total,Montant Payé,Reste,Statut\n' : 'المرجع,العميل,التاريخ,الدفع,المبلغ الإجمالي,المبلغ المدفوع,الباقي,الحالة\n');
+    let tsv = '\uFEFF';
+    tsv += (fr ? 'Référence\tClient\tDate\tPaiement\tMontant Total\tMontant Payé\tReste\tStatut\n' : 'المرجع\tالعميل\tالتاريخ\tالدفع\tالمبلغ الإجمالي\tالمبلغ المدفوع\tالباقي\tالحالة\n');
     filtered.forEach(v => {
       const rest = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
       const statusLabel = statusOptions.find(o => o.value === v.statut)?.label || v.statut;
-      csv += `${v.reference},"${v.client_nom || ''}",${v.date},${v.mode_paiement},${v.montant_total},${v.montant_paye || 0},${rest},${statusLabel}\n`;
+      // Nettoyer les sauts de ligne ou tabulations accidentels dans le nom du client
+      const nomClient = (v.client_nom || '').replace(/[\t\n\r]/g, ' ');
+      tsv += `${v.reference}\t${nomClient}\t${v.date}\t${v.mode_paiement}\t${v.montant_total}\t${v.montant_paye || 0}\t${rest}\t${statusLabel}\n`;
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ventes_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `ventes_${type}_${new Date().toISOString().split('T')[0]}.xls`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const exportPDF = () => {
-    const w = window.open('', '_blank');
-    if (!w) { toast.error(fr ? 'Popup bloqué' : 'تم حظر النافذة المنبثقة'); return; }
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
     const html = `
       <html dir="${fr ? 'ltr' : 'rtl'}">
       <head>
@@ -311,7 +315,7 @@ function VentesPageContent({ type }: Props) {
           h2 { text-align: center; }
         </style>
       </head>
-      <body onload="window.print(); window.close();">
+      <body>
         <h2>${fr ? 'Rapport des Ventes' : 'تقرير المبيعات'} - ${type === 'gros' ? 'Gros' : 'Détail'}</h2>
         <table>
           <thead>
@@ -348,8 +352,15 @@ function VentesPageContent({ type }: Props) {
       </body>
       </html>
     `;
-    w.document.write(html);
-    w.document.close();
+    
+    iframe.contentDocument?.write(html);
+    iframe.contentDocument?.close();
+    
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    };
   };
 
   const CloseBtn = ({ onClick }: { onClick: () => void }) => (
