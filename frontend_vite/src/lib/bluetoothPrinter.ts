@@ -384,7 +384,7 @@ export function printTicketHTML(ticket: TicketData): void {
           text: txt
         }).catch(err => console.log('Share canceled', err));
       } else {
-        alert('Le partage n\\'est pas supporté sur cette application/navigateur.');
+        alert("Le partage n'est pas supporté sur cette application/navigateur.");
       }
     });
   }
