@@ -53,17 +53,28 @@ export default function StatistiquesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    const fetchAllClients = async () => {
+      let all: any[] = [];
+      let url: string | null = '/clients/?page_size=100';
+      while (url) {
+        const r = await api.get(url);
+        all = [...all, ...(r.data.results || r.data)];
+        url = r.data.next || null;
+      }
+      return all;
+    };
+
     const [ben, dash, prods, cls, vts] = await Promise.allSettled([
       api.get('/dashboard/benefices/', { params: { date_from: dateFrom, date_to: dateTo, group_by: groupBy } }),
       api.get('/dashboard/stats/'),
       api.get('/products/', { params: { page_size: 100 } }),
-      api.get('/clients/', { params: { page_size: 100 } }),
+      fetchAllClients(),
       api.get('/ventes/', { params: { page_size: 200, ordering: '-created_at' } }),
     ]);
     if (ben.status === 'fulfilled') setBenData(ben.value.data);
     if (dash.status === 'fulfilled') setDashData(dash.value.data);
     if (prods.status === 'fulfilled') setProducts(prods.value.data.results || prods.value.data);
-    if (cls.status === 'fulfilled') setClients(cls.value.data.results || cls.value.data);
+    if (cls.status === 'fulfilled') setClients(cls.value);
     if (vts.status === 'fulfilled') setVentes(vts.value.data.results || vts.value.data);
     setLoading(false);
   }, [dateFrom, dateTo, groupBy]);
