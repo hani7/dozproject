@@ -79,6 +79,7 @@ export interface Order {
   livreur_nom?: string;
   statut: 'en_attente' | 'confirmee' | 'en_livraison' | 'livree' | 'annulee';
   montant_total: number;
+  montant_paye?: number;
   notes: string;
   date_livraison_souhaitee?: string | null;
   lignes: OrderItem[];
@@ -117,4 +118,5 @@ export interface DashboardStats {
   clients: number;
   fournisseurs: number;
   sales_chart: { date: string; total: number }[];
+  benefice_mois: number;
 }

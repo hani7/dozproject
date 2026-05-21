@@ -8,7 +8,7 @@ import { CheckCircle, MapPin, Phone, Package, Navigation, Truck, RefreshCw, Doll
 import type { Order } from '@/lib/types';
 import {
   isBTSupported, tryAutoConnect, requestPrinter, isConnected, disconnect,
-  printTicket, printTicketHTML, type PrinterStatus, type TicketData, getStoredDeviceName
+  printTicket, printTicketHTML, printViaBluetoothRaw, type PrinterStatus, type TicketData, getStoredDeviceName
 } from '@/lib/bluetoothPrinter';
 
 const MEDIA_BASE = API_URL.replace('/api', '');
@@ -109,7 +109,7 @@ export default function LivraisonsPage() {
   const printOrder = (order: any) => {
     const ticket = buildTicket(order);
     if (isConnected()) {
-      printTicket(ticket).then(ok => {
+      printViaBluetoothRaw(ticket).then(ok => {
         if (ok) toast.success('🖨 Ticket imprimé!', { duration: 2000 });
         else    printTicketHTML(ticket);
       });

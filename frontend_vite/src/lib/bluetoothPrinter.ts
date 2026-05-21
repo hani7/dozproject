@@ -22,8 +22,8 @@ const BLE_WRITE_CHARS = [
   '000018f1-0000-1000-8000-00805f9b34fb', // Generic write
 ];
 
-let _device: BluetoothDevice | null = null;
-let _char: BluetoothRemoteGATTCharacteristic | null = null;
+let _device: any = null;
+let _char: any = null;
 
 export type PrinterStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'unsupported';
 
@@ -46,7 +46,7 @@ export const tryAutoConnect = async (): Promise<boolean> => {
     // Prefer previously used device
     const savedName = getStoredDeviceName();
     const target = savedName
-      ? devices.find((d: BluetoothDevice) => d.name === savedName) || devices[0]
+      ? devices.find((d: any) => d.name === savedName) || devices[0]
       : devices[0];
 
     if (!target) return false;
@@ -63,7 +63,7 @@ export const requestPrinter = async (): Promise<boolean> => {
     return false;
   }
   try {
-    const device = await navigator.bluetooth.requestDevice({
+    const device = await (navigator as any).bluetooth.requestDevice({
       filters: BLE_PRINTER_SERVICES.map(s => ({ services: [s] })),
       optionalServices: BLE_PRINTER_SERVICES,
     });
@@ -74,7 +74,7 @@ export const requestPrinter = async (): Promise<boolean> => {
   }
 };
 
-async function connectDevice(device: BluetoothDevice): Promise<boolean> {
+async function connectDevice(device: any): Promise<boolean> {
   try {
     _device = device;
     const server = await device.gatt!.connect();

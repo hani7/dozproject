@@ -85,6 +85,13 @@ export default function DashboardPage() {
       sub: lang === 'fr' ? 'Produits sous seuil' : 'منتجات تحت الحد',
       icon: '⚠️', color: (stats?.produits.stock_faible ?? 0) > 0 ? '#ef4444' : '#10b981',
     },
+    {
+      label: lang === 'fr' ? 'Bénéfice du mois' : 'ربح الشهر',
+      value: fmt(stats?.benefice_mois ?? 0),
+      sub: lang === 'fr' ? 'CA − coût d\'achat' : 'الإيرادات − التكلفة',
+      icon: (stats?.benefice_mois ?? 0) >= 0 ? '📈' : '📉',
+      color: (stats?.benefice_mois ?? 0) >= 0 ? '#10b981' : '#ef4444',
+    },
   ];
 
   return (

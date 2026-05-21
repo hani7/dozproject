@@ -8,13 +8,13 @@ from datetime import timedelta
 
 from products.models import Produit
 from commandes.models import Commande
-from ventes.models import Vente
+from ventes.models import Vente, LigneVente
 from clients.models import Client
 from fournisseurs.models import Fournisseur
 
 
-# Cache key — bumped to v2 to invalidate any stale v1 cache
-_DASH_CACHE_KEY = 'dashboard_stats_v2'
+# Cache key — v3 includes benefice
+_DASH_CACHE_KEY = 'dashboard_stats_v3'
 _DASH_CACHE_TTL = 60  # seconds
 
 
@@ -51,6 +51,21 @@ def dashboard_stats(request):
         detail_total=Sum('montant_total', filter=Q(type_vente='detail')),
         gros_total=Sum('montant_total', filter=Q(type_vente='gros')),
     )
+
+    # ── Bénéfice du mois: CA ventes - coût d'achat des articles vendus ──
+    lignes_mois = LigneVente.objects.filter(
+        vente__created_at__date__gte=month_start
+    ).select_related('produit').aggregate(
+        ca=Sum(
+            ExpressionWrapper(F('quantite') * F('prix_unitaire'), output_field=DecimalField())
+        ),
+        cout=Sum(
+            ExpressionWrapper(F('quantite') * F('produit__prix_achat'), output_field=DecimalField())
+        ),
+    )
+    ca   = float(lignes_mois['ca']   or 0)
+    cout = float(lignes_mois['cout'] or 0)
+    benefice_mois = round(ca - cout, 2)
 
     # ── Orders — combine Commande + Vente ──────────────────────
     cmd_agg = Commande.objects.aggregate(
@@ -100,6 +115,7 @@ def dashboard_stats(request):
         'clients':      total_clients,
         'fournisseurs': total_fournisseurs,
         'sales_chart':  sales_chart,
+        'benefice_mois': benefice_mois,
     }
 
     cache.set(_DASH_CACHE_KEY, data, _DASH_CACHE_TTL)
