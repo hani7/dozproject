@@ -110,6 +110,8 @@ class CommandeViewSet(viewsets.ModelViewSet):
             
             # Déduire définitivement les quantités du stock
             for ligne in commande.lignes.all():
+                if ligne.quantite <= 0:
+                    continue
                 Produit.objects.filter(pk=ligne.produit_id).update(
                     stock_actuel=F('stock_actuel') - ligne.quantite
                 )
