@@ -13,6 +13,9 @@ export default function StockPage() {
   const [modal, setModal] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({ produit: '', type_mouvement: 'entree', motif: 'ajustement', quantite: '', reference: '', notes: '' });
+  const [typeFilter, setTypeFilter] = useState(''); // '' | 'entree' | 'sortie' | 'ajustement'
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = () => api.get('/stock/').then(r => setMovements(r.data.results || r.data));
   useEffect(() => {
@@ -46,11 +49,31 @@ export default function StockPage() {
         <button className="btn btn-primary" onClick={() => setModal(true)}><Plus size={15} /> {lang === 'fr' ? 'Nouveau mouvement' : 'حركة جديدة'}</button>
       </div>
 
-      <div className="search-bar" style={{ marginBottom: '16px' }}>
-        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
-          <Search />
-          <input className="form-control" placeholder={lang === 'fr' ? 'Rechercher produit ou référence...' : 'بحث عن منتج أو مرجع...'} value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+          <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input className="form-control" style={{ paddingLeft: 28, fontSize: '13px' }} placeholder={lang === 'fr' ? 'Produit ou référence...' : 'منتج أو مرجع...'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        {/* Type filter */}
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          {[{ v: '', label: lang === 'fr' ? 'Tous' : 'الكل' }, { v: 'entree', label: lang === 'fr' ? '↑ Entrée' : '↑ دخول' }, { v: 'sortie', label: lang === 'fr' ? '↓ Sortie' : '↓ خروج' }].map(({ v, label }) => (
+            <button key={v} onClick={() => setTypeFilter(v)}
+              style={{ padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: typeFilter === v ? 'none' : '1px solid var(--border)', background: typeFilter === v ? (v === 'entree' ? '#10b981' : v === 'sortie' ? '#ef4444' : 'var(--brand-primary)') : 'var(--bg-elevated)', color: typeFilter === v ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {/* Date range */}
+        <input type="date" className="form-control" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ fontSize: '12px', flex: '0 0 140px' }} title={lang === 'fr' ? 'De' : 'من'} />
+        <span style={{ color: 'var(--text-muted)', fontSize: '12px', flexShrink: 0 }}>→</span>
+        <input type="date" className="form-control" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ fontSize: '12px', flex: '0 0 140px' }} title={lang === 'fr' ? 'À' : 'إلى'} />
+        {(typeFilter || dateFrom || dateTo || search) && (
+          <button onClick={() => { setSearch(''); setTypeFilter(''); setDateFrom(''); setDateTo(''); }} style={{ fontSize: '11px', padding: '6px 10px', borderRadius: '7px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+            × {lang === 'fr' ? 'Réinit.' : 'إعادة'}
+          </button>
+        )}
       </div>
 
       <div className="table-container">
@@ -68,7 +91,15 @@ export default function StockPage() {
             </tr>
           </thead>
           <tbody>
-            {movements.filter(m => !search || m.produit_nom.toLowerCase().includes(search.toLowerCase()) || m.reference?.toLowerCase().includes(search.toLowerCase())).map(m => (
+            {movements.filter(m => {
+              const q = search.toLowerCase();
+              const matchSearch = !q || m.produit_nom.toLowerCase().includes(q) || m.reference?.toLowerCase().includes(q);
+              const matchType = !typeFilter || m.type_mouvement === typeFilter;
+              const mDate = new Date(m.created_at).toISOString().split('T')[0];
+              const matchFrom = !dateFrom || mDate >= dateFrom;
+              const matchTo   = !dateTo   || mDate <= dateTo;
+              return matchSearch && matchType && matchFrom && matchTo;
+            }).map(m => (
               <tr key={m.id}>
                 <td style={{ fontSize: '12px' }}>{new Date(m.created_at).toLocaleDateString()}</td>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.produit_nom}</td>

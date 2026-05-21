@@ -8,7 +8,7 @@ import {
   TrendingUp, BarChart3, Radio, Users, CreditCard,
   UserCircle, Truck, ClipboardList, ShoppingBag,
   LogOut, ChevronRight, Building2, KeyRound,
-  ChevronLeft
+  ChevronLeft, FileText
 } from 'lucide-react';
 
 const adminNav = [
@@ -16,6 +16,7 @@ const adminNav = [
   { label: 'nav.products', href: '/admin/produits', icon: Package },
   { label: 'nav.stock', href: '/admin/stock', icon: Warehouse },
   { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },
+  { label: 'nav.bon_commande', href: '/admin/bon-commande', icon: FileText },
   { label: 'nav.purchases', href: '/admin/achats', icon: ShoppingCart },
   { label: 'nav.clients', href: '/admin/clients', icon: Users },
   { label: 'nav.sales_detail', href: '/admin/vente-detail', icon: TrendingUp },

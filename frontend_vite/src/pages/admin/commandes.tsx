@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { CheckCircle, Truck, XCircle, RefreshCw, Eye, UserCheck, FileText, PackageCheck, Search } from 'lucide-react';
+import { CheckCircle, Truck, XCircle, RefreshCw, Eye, UserCheck, FileText, PackageCheck, Search, AlertTriangle } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { printFacture, printBonLivraison } from '@/lib/printDocs';
 
@@ -33,6 +33,9 @@ export default function CommandesLivePage() {
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [assignOrder, setAssignOrder] = useState<Order | null>(null);
   const [selectedLivreur, setSelectedLivreur] = useState('');
+  const [nonConformeModal, setNonConformeModal] = useState<any | null>(null);
+  const [ncQty, setNcQty] = useState<Record<number, string>>({});
+  const [doingNC, setDoingNC] = useState(false);
   const prevCountRef = useRef(0);
 
   const load = useCallback(async () => {
@@ -109,6 +112,31 @@ export default function CommandesLivePage() {
       toast.success(fr ? 'Annulé' : 'تم الإلغاء');
       load();
     } catch { }
+  };
+
+  const openNonConforme = (order: any) => {
+    setNcQty({});
+    setNonConformeModal(order);
+  };
+
+  const doNonConforme = async () => {
+    if (!nonConformeModal) return;
+    const lignes = (nonConformeModal.lignes || []).filter((l: any) => Number(ncQty[l.produit] || 0) > 0)
+      .map((l: any) => ({ produit_id: l.produit, quantite: Number(ncQty[l.produit]) }));
+    if (!lignes.length) { toast.error(fr ? 'Aucune quantité non-conforme saisie' : 'أدخل كمية غير مطابقة'); return; }
+    setDoingNC(true);
+    try {
+      const endpoint = nonConformeModal.is_vente
+        ? `/ventes/${nonConformeModal.id}/non_conforme/`
+        : `/commandes/${nonConformeModal.id}/non_conforme/`;
+      await api.post(endpoint, { lignes });
+      toast.success(fr ? '✅ Non-conforme déclaré — stock mis à jour' : '✅ تم الإعلان عن عدم المطابقة');
+      setNonConformeModal(null);
+      setViewOrder(null);
+      load();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Erreur');
+    } finally { setDoingNC(false); }
   };
 
   const filteredOrders = orders.filter(o => {
@@ -320,9 +348,22 @@ export default function CommandesLivePage() {
               </table>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '16px', marginBottom: '16px' }}>
-              <span>Total</span>
-              <span style={{ color: 'var(--brand-primary)' }}>{Number(viewOrder.montant_total).toLocaleString('fr-DZ')} DA</span>
+            {/* Payment info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '10px 14px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '3px' }}>{fr ? 'Total' : 'المجموع'}</div>
+                <div style={{ fontWeight: 900, fontSize: '16px', color: 'var(--brand-primary)' }}>{Number(viewOrder.montant_total).toLocaleString('fr-DZ')} DA</div>
+              </div>
+              <div style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '10px 14px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '3px' }}>{fr ? 'Payé' : 'المدفوع'}</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: '#10b981' }}>{Number(viewOrder.montant_paye || 0).toLocaleString('fr-DZ')} DA</div>
+              </div>
+              <div style={{ background: (Number(viewOrder.montant_total) - Number(viewOrder.montant_paye || 0)) > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(16,185,129,0.07)', border: `1px solid ${(Number(viewOrder.montant_total) - Number(viewOrder.montant_paye || 0)) > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`, borderRadius: '10px', padding: '10px 14px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '3px' }}>{fr ? 'Reste' : 'المتبقي'}</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: (Number(viewOrder.montant_total) - Number(viewOrder.montant_paye || 0)) > 0 ? '#ef4444' : '#10b981' }}>
+                  {Math.max(0, Number(viewOrder.montant_total) - Number(viewOrder.montant_paye || 0)).toLocaleString('fr-DZ')} DA
+                </div>
+              </div>
             </div>
 
             {viewOrder.notes && (
@@ -333,13 +374,19 @@ export default function CommandesLivePage() {
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               {viewOrder.statut === 'en_attente' && (
-                <button className="btn btn-success" onClick={() => { confirm(viewOrder.id); setViewOrder(null); }}>
+                <button className="btn btn-success" onClick={() => { confirm(viewOrder as any); setViewOrder(null); }}>
                   <CheckCircle size={13} /> {fr ? 'Confirmer' : 'تأكيد'}
                 </button>
               )}
               {viewOrder.statut === 'confirmee' && (
                 <button className="btn btn-primary" onClick={() => { setViewOrder(null); openAssign(viewOrder); }}>
                   <UserCheck size={13} /> {fr ? 'Assigner livreur' : 'تعيين موزع'}
+                </button>
+              )}
+              {!['annulee', 'livree'].includes(viewOrder.statut) && (
+                <button onClick={() => openNonConforme(viewOrder)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <AlertTriangle size={13} /> {fr ? 'Non-conforme' : 'غير مطابق'}
                 </button>
               )}
               <button className="btn btn-secondary" onClick={() => printFacture(viewOrder)} style={{ color: '#059669', borderColor: '#059669' }}>
@@ -398,6 +445,75 @@ export default function CommandesLivePage() {
               <button className="btn btn-secondary" onClick={() => setAssignOrder(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
               <button className="btn btn-primary" onClick={doAssign} disabled={!selectedLivreur || compatibleLivreurs.length === 0}>
                 <UserCheck size={14} /> {fr ? 'Confirmer l\'assignation' : 'تأكيد التعيين'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Non-Conforme Modal ── */}
+      {nonConformeModal && (
+        <div className="modal-overlay" onClick={() => setNonConformeModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={18} color="#ef4444" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>{fr ? 'Déclarer non-conforme' : 'إعلان عدم المطابقة'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{nonConformeModal.reference} · {nonConformeModal.client_nom}</div>
+                </div>
+              </div>
+              <button onClick={() => setNonConformeModal(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '12px', color: '#ef4444' }}>
+              ⚠️ {fr ? 'Les quantités déclarées seront supprimées du stock (sans retour). Le montant sera réduit en conséquence.' : 'الكميات المعلنة ستُحذف من المخزون بدون إرجاع. سيُخفَّض المبلغ تبعاً لذلك.'}
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '8px', marginBottom: '6px', padding: '0 4px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{fr ? 'Produit' : 'المنتج'}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#ef4444', textAlign: 'center' }}>{fr ? 'Qté NC' : 'كمية NC'}</span>
+              </div>
+              {(nonConformeModal.lignes || []).map((l: any) => (
+                <div key={l.produit} style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{l.produit_nom}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{fr ? 'Cmdé' : 'المطلوب'}: {l.quantite} · {Number(l.prix_unitaire).toLocaleString('fr-DZ')} DA/u</div>
+                  </div>
+                  <input type="number" min="0" max={l.quantite} placeholder="0"
+                    value={ncQty[l.produit] || ''}
+                    onChange={e => setNcQty(prev => ({ ...prev, [l.produit]: e.target.value }))}
+                    style={{ textAlign: 'center', fontSize: '14px', fontWeight: 700, borderRadius: '8px', border: '2px solid rgba(239,68,68,0.35)', background: 'var(--bg-base)', color: Number(ncQty[l.produit] || 0) > 0 ? '#ef4444' : 'var(--text-primary)', padding: '6px', fontFamily: 'inherit', width: '100%' }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Running deduction */}
+            {(() => {
+              const deduction = (nonConformeModal.lignes || []).reduce((s: number, l: any) => s + Number(ncQty[l.produit] || 0) * Number(l.prix_unitaire), 0);
+              const newTotal = Math.max(0, Number(nonConformeModal.montant_total) - deduction);
+              return deduction > 0 ? (
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 600 }}>{fr ? 'Déduction' : 'الخصم'}</span>
+                    <span style={{ color: '#ef4444', fontWeight: 700 }}>- {deduction.toLocaleString('fr-DZ')} DA</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                    <span style={{ fontWeight: 700 }}>{fr ? 'Nouveau total' : 'المجموع الجديد'}</span>
+                    <span style={{ fontWeight: 900, color: 'var(--brand-primary)' }}>{newTotal.toLocaleString('fr-DZ')} DA</span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setNonConformeModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+              <button onClick={doNonConforme} disabled={doingNC}
+                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: doingNC ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {doingNC ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <AlertTriangle size={15} />}
+                {fr ? 'Confirmer non-conforme' : 'تأكيد عدم المطابقة'}
               </button>
             </div>
           </div>
