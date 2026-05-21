@@ -244,103 +244,88 @@ export async function printViaBluetoothRaw(ticket: TicketData): Promise<boolean>
 // ── HTML Fallback Print (window.print) ──────────────────────────────────────
 export function printTicketHTML(ticket: TicketData): void {
   const reste = Math.max(0, ticket.montant_total - ticket.montant_paye);
-  const printAreaId = 'ticket-print-area';
-  let printArea = document.getElementById(printAreaId);
-  if (!printArea) {
-    printArea = document.createElement('div');
-    printArea.id = printAreaId;
-    document.body.appendChild(printArea);
-    
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @media screen {
-        #${printAreaId} { display: none; }
-      }
-      @media print {
-        body > *:not(#${printAreaId}) { display: none !important; }
-        #${printAreaId} { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-        @page { size: 58mm auto; margin: 0; }
-        .print-ticket-container { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 58mm; padding: 3mm 2mm; color: #000; background: #fff; }
-        .print-ticket-container .center { text-align: center; }
-        .print-ticket-container .bold { font-weight: bold; }
-        .print-ticket-container .xlarge { font-size: 20px; }
-        .print-ticket-container .divider { border-top: 1px dashed #000; margin: 3px 0; }
-        .print-ticket-container .row { display: flex; justify-content: space-between; margin: 1px 0; }
-        .print-ticket-container .product { margin: 3px 0 2px; }
-        .print-ticket-container .product .name { font-weight: bold; font-size: 10px; }
-        .print-ticket-container .product .detail { display: flex; justify-content: space-between; font-size: 10px; padding-left: 4px; }
-        .print-ticket-container .total-line { font-weight: bold; font-size: 13px; }
-        .print-ticket-container .reste-box { border: 2px solid #000; padding: 3px; margin-top: 3px; }
-        .print-ticket-container .solde-box { text-align: center; font-weight: bold; }
-        .print-ticket-container .footer { text-align: center; font-size: 9px; margin-top: 6px; }
-        .print-ticket-container .tag { display: inline-block; border: 1px solid #000; padding: 1px 4px; font-size: 9px; margin-bottom: 4px; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   const html = `
-    <div class="print-ticket-container">
-      <div class="center">
-        <div class="xlarge bold">ForCli</div>
-        <div style="font-size:9px">Distribution &amp; Commerce</div>
+    <style>
+      @media print {
+        body > *:not(#ticket-print-overlay) { display: none !important; }
+        #ticket-print-overlay { position: absolute; top: 0; left: 0; width: 100%; background: white !important; }
+        .no-print { display: none !important; }
+        .print-ticket-container { box-shadow: none !important; margin: 0 !important; width: 100% !important; max-width: none !important; }
+        @page { size: 58mm auto; margin: 0; }
+      }
+    </style>
+    <div style="background: rgba(0,0,0,0.75); position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+      
+      <div class="no-print" style="display: flex; gap: 10px; margin-bottom: 15px; width: 100%; max-width: 320px;">
+        <button onclick="document.body.removeChild(this.parentElement.parentElement);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+          Fermer (إغلاق)
+        </button>
+        <button onclick="window.print();" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+          🖨 Imprimer
+        </button>
       </div>
 
-      <div class="divider" style="margin:4px 0"></div>
-
-      <div class="row"><span>Ref:</span><span class="bold">${ticket.reference}</span></div>
-      <div class="row"><span>Date:</span><span>${ticket.date}</span></div>
-      <div class="row"><span>Client:</span><span class="bold">${ticket.client_nom}</span></div>
-      ${ticket.client_phone ? `<div class="row"><span>Tel:</span><span>${ticket.client_phone}</span></div>` : ''}
-      ${ticket.livreur_nom ? `<div class="row"><span>Livreur:</span><span>${ticket.livreur_nom}</span></div>` : ''}
-
-      <div class="divider"></div>
-
-      ${ticket.lignes.map(l => `
-      <div class="product">
-        <div class="name">${l.produit_nom}</div>
-        <div class="detail">
-          <span>x${l.quantite} ctn @ ${l.prix_unitaire.toLocaleString('fr-DZ')} DA</span>
-          <span class="bold">${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+      <div class="print-ticket-container" style="background: white; width: 100%; max-width: 320px; max-height: 80vh; overflow-y: auto; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div class="center" style="text-align: center;">
+          <div class="xlarge bold" style="font-size: 20px; font-weight: bold;">ForCli</div>
+          <div style="font-size:10px">Distribution &amp; Commerce</div>
         </div>
-      </div>`).join('')}
 
-      <div class="divider"></div>
+        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
 
-      <div class="row total-line">
-        <span>TOTAL</span>
-        <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
-      </div>
-      <div class="row">
-        <span>Payé</span>
-        <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
-      </div>
+        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Ref:</span><span class="bold" style="font-weight: bold;">${ticket.reference}</span></div>
+        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Date:</span><span>${ticket.date}</span></div>
+        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Client:</span><span class="bold" style="font-weight: bold;">${ticket.client_nom}</span></div>
+        ${ticket.client_phone ? `<div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Tel:</span><span>${ticket.client_phone}</span></div>` : ''}
+        ${ticket.livreur_nom ? `<div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Livreur:</span><span>${ticket.livreur_nom}</span></div>` : ''}
 
-      ${reste > 0 ? `
-      <div class="reste-box">
-        <div class="row" style="font-size:13px;font-weight:bold">
-          <span>RESTE A PAYER</span>
-          <span>${reste.toLocaleString('fr-DZ')} DA</span>
+        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+
+        ${ticket.lignes.map(l => `
+        <div class="product" style="margin-bottom: 6px;">
+          <div class="name" style="font-weight: bold; font-size: 12px;">${l.produit_nom}</div>
+          <div class="detail" style="display: flex; justify-content: space-between; font-size: 11px; padding-left: 8px; color: #444;">
+            <span>x${l.quantite} ctn @ ${l.prix_unitaire.toLocaleString('fr-DZ')} DA</span>
+            <span class="bold" style="font-weight: bold; color: #000;">${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+          </div>
+        </div>`).join('')}
+
+        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+
+        <div class="row total-line" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
+          <span>TOTAL</span>
+          <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
         </div>
-      </div>` : `
-      <div class="solde-box" style="margin-top:4px">
-        <span class="tag">✓ SOLDE COMPLET</span>
-      </div>`}
+        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+          <span>Payé</span>
+          <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
+        </div>
 
-      <div class="divider" style="margin-top:6px"></div>
-      <div class="footer">
-        <div>Merci pour votre commande!</div>
-        <div>ForCli — doz.baitul.tech</div>
-        <div>${new Date().toLocaleString('fr-DZ')}</div>
+        ${reste > 0 ? `
+        <div class="reste-box" style="border: 2px solid #000; padding: 6px; margin-top: 8px;">
+          <div class="row" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+            <span>RESTE A PAYER</span>
+            <span style="color: #ef4444;">${reste.toLocaleString('fr-DZ')} DA</span>
+          </div>
+        </div>` : `
+        <div class="solde-box" style="text-align: center; font-weight: bold; margin-top: 8px;">
+          <span class="tag" style="display: inline-block; border: 1px solid #10b981; color: #10b981; padding: 4px 8px; font-size: 11px;">✓ SOLDE COMPLET</span>
+        </div>`}
+
+        <div class="divider" style="border-top: 1px dashed #000; margin: 12px 0;"></div>
+        <div class="footer" style="text-align: center; font-size: 10px; color: #666;">
+          <div>Merci pour votre commande!</div>
+          <div>ForCli — doz.baitul.tech</div>
+          <div>${new Date().toLocaleString('fr-DZ')}</div>
+        </div>
       </div>
     </div>
   `;
 
-  printArea.innerHTML = html;
-  
-  setTimeout(() => {
-    window.print();
-  }, 300);
+  const printOverlay = document.createElement('div');
+  printOverlay.id = 'ticket-print-overlay';
+  printOverlay.innerHTML = html;
+  document.body.appendChild(printOverlay);
 }
 
 function toast_fallback() {
