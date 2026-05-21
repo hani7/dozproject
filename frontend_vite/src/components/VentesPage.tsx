@@ -535,20 +535,35 @@ function VentesPageContent({ type }: Props) {
                 <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
                 <td><span className={`badge ${STATUS_COLORS[v.statut]}`}>{statusLabels[v.statut]?.[lang]}</span></td>
                 <td style={{ textAlign: 'center' }}>
-                  {v.has_retour ? (
-                    <span title={fr ? 'Retour effectué' : 'تم الإرجاع'} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      background: 'rgba(245,158,11,0.13)', color: '#d97706',
-                      border: '1.5px solid rgba(245,158,11,0.4)', borderRadius: '20px',
-                      padding: '3px 10px', fontSize: '11px', fontWeight: 700,
-                      letterSpacing: '0.3px', whiteSpace: 'nowrap',
-                    }}>
-                      <RotateCcw size={11} strokeWidth={2.5} />
-                      {fr ? 'Retour' : 'إرجاع'}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>—</span>
-                  )}
+                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
+                    {v.has_retour && (
+                      <span title={fr ? 'Retour effectué' : 'تم الإرجاع'} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        background: 'rgba(59,130,246,0.13)', color: '#3b82f6',
+                        border: '1.5px solid rgba(59,130,246,0.4)', borderRadius: '20px',
+                        padding: '3px 10px', fontSize: '11px', fontWeight: 700,
+                        letterSpacing: '0.3px', whiteSpace: 'nowrap',
+                      }}>
+                        <RotateCcw size={11} strokeWidth={2.5} />
+                        {fr ? 'Retour' : 'إرجاع'}
+                      </span>
+                    )}
+                    {v.has_non_conforme && (
+                      <span title={fr ? 'Non Conforme' : 'غير مطابق'} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        background: 'rgba(239,68,68,0.13)', color: '#ef4444',
+                        border: '1.5px solid rgba(239,68,68,0.4)', borderRadius: '20px',
+                        padding: '3px 10px', fontSize: '11px', fontWeight: 700,
+                        letterSpacing: '0.3px', whiteSpace: 'nowrap',
+                      }}>
+                        <AlertTriangle size={11} strokeWidth={2.5} />
+                        NC
+                      </span>
+                    )}
+                    {!v.has_retour && !v.has_non_conforme && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>—</span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '5px' }}>
