@@ -11,3 +11,4 @@ class ClientViewSet(viewsets.ModelViewSet):
     filterset_fields = ['type_client']
     search_fields = ['nom', 'phone']
     ordering_fields = ['nom', 'created_at', 'solde']
+    pagination_class = None
