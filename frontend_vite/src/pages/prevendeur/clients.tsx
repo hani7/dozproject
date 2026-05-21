@@ -30,10 +30,25 @@ export default function PrevendeurClientsPage() {
   const mapInstanceRef = useRef<any>(null);
   const fr = lang === 'fr';
 
-  const loadClients = () => {
-    api.get('/clients/', { params: { page_size: 200, type_client: clientType } })
-      .then(r => { setClients(r.data.results || r.data); setLoading(false); })
-      .catch(() => setLoading(false));
+  const loadClients = async () => {
+    try {
+      let allClients: any[] = [];
+      let nextUrl: string | null = `/clients/?page_size=200&type_client=${clientType}`;
+      while (nextUrl) {
+        const r = await api.get(nextUrl);
+        const data = r.data.results || r.data;
+        allClients = [...allClients, ...data];
+        if (r.data.next) {
+          nextUrl = r.data.next;
+        } else {
+          nextUrl = null;
+        }
+      }
+      setClients(allClients);
+      setLoading(false);
+    } catch (e) {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { 
@@ -243,7 +258,7 @@ export default function PrevendeurClientsPage() {
                 <div className="app-card-actions" style={{ marginTop: '12px' }}>
                   <button onClick={() => {
                     if (!c.phone) toast.error(fr ? 'Aucun numéro disponible (non saisi)' : 'لا يوجد رقم هاتف (لم يتم إدخاله)');
-                    else window.location.href = `tel:${c.phone}`;
+                    else window.location.href = `tel:${c.phone.replace(/\s+/g, '')}`;
                   }} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', opacity: c.phone ? 1 : 0.5 }}>
                     <Phone size={14} /> {fr ? 'Appeler' : 'اتصال'}
                   </button>

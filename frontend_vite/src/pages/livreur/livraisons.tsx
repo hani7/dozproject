@@ -201,7 +201,7 @@ export default function LivraisonsPage() {
       toast.error(fr ? 'Aucun numéro disponible (non saisi)' : 'لا يوجد رقم هاتف (لم يتم إدخاله)');
       return;
     }
-    window.location.href = `tel:${phone}`;
+    window.location.href = `tel:${phone.replace(/\s+/g, '')}`;
   };
 
   const filteredOrders = orders.filter(o => {

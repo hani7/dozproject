@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2, Printer } from 'lucide-react';
+import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2, Printer, FileText, Download } from 'lucide-react';
 import { printDailyBL } from '@/lib/printDocs';
 
 interface Props { type: 'detail' | 'gros'; }
@@ -278,6 +278,80 @@ function VentesPageContent({ type }: Props) {
     { value: 'annulee',      label: fr ? 'Annulée' : 'ملغاة' },
   ];
 
+  const exportExcel = () => {
+    let csv = '\uFEFF';
+    csv += (fr ? 'Référence,Client,Date,Paiement,Montant Total,Montant Payé,Reste,Statut\n' : 'المرجع,العميل,التاريخ,الدفع,المبلغ الإجمالي,المبلغ المدفوع,الباقي,الحالة\n');
+    filtered.forEach(v => {
+      const rest = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
+      const statusLabel = statusOptions.find(o => o.value === v.statut)?.label || v.statut;
+      csv += `${v.reference},"${v.client_nom || ''}",${v.date},${v.mode_paiement},${v.montant_total},${v.montant_paye || 0},${rest},${statusLabel}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ventes_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPDF = () => {
+    const w = window.open('', '_blank');
+    if (!w) { toast.error(fr ? 'Popup bloqué' : 'تم حظر النافذة المنبثقة'); return; }
+    const html = `
+      <html dir="${fr ? 'ltr' : 'rtl'}">
+      <head>
+        <title>Export Ventes ${type.toUpperCase()}</title>
+        <style>
+          body { font-family: sans-serif; font-size: 12px; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: ${fr ? 'left' : 'right'}; }
+          th { background: #f4f4f4; }
+          .right { text-align: ${fr ? 'right' : 'left'}; }
+          h2 { text-align: center; }
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        <h2>${fr ? 'Rapport des Ventes' : 'تقرير المبيعات'} - ${type === 'gros' ? 'Gros' : 'Détail'}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>${fr ? 'Référence' : 'المرجع'}</th>
+              <th>${fr ? 'Client' : 'العميل'}</th>
+              <th>${fr ? 'Date' : 'التاريخ'}</th>
+              <th>${fr ? 'Paiement' : 'الدفع'}</th>
+              <th class="right">${fr ? 'Total' : 'المجموع'}</th>
+              <th class="right">${fr ? 'Payé' : 'المدفوع'}</th>
+              <th class="right">${fr ? 'Reste' : 'الباقي'}</th>
+              <th>${fr ? 'Statut' : 'الحالة'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(v => {
+              const rest = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
+              const statusLabel = statusOptions.find(o => o.value === v.statut)?.label || v.statut;
+              return `
+                <tr>
+                  <td>${v.reference}</td>
+                  <td>${v.client_nom || ''}</td>
+                  <td>${v.date}</td>
+                  <td>${v.mode_paiement}</td>
+                  <td class="right">${Number(v.montant_total).toLocaleString()} DA</td>
+                  <td class="right">${Number(v.montant_paye || 0).toLocaleString()} DA</td>
+                  <td class="right">${rest.toLocaleString()} DA</td>
+                  <td>${statusLabel}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+    w.document.write(html);
+    w.document.close();
+  };
+
   const CloseBtn = ({ onClick }: { onClick: () => void }) => (
     <button onClick={onClick} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}
       onMouseEnter={e => { e.currentTarget.style.background = '#ef444420'; e.currentTarget.style.color = '#ef4444'; }}
@@ -291,7 +365,13 @@ function VentesPageContent({ type }: Props) {
           <h1>{title}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{ventes.length} {fr ? 'ventes' : 'عملية بيع'}</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={exportExcel} style={{ color: '#10b981', borderColor: '#10b981' }}>
+            <Download size={15} /> {fr ? 'Excel' : 'إكسل'}
+          </button>
+          <button className="btn btn-secondary" onClick={exportPDF} style={{ color: '#ef4444', borderColor: '#ef4444' }}>
+            <FileText size={15} /> {fr ? 'PDF' : 'بي دي إف'}
+          </button>
           <button className="btn btn-secondary" onClick={() => printDailyBL(ventes, new Date().toISOString().split('T')[0], type)} style={{ color: '#8b5cf6', borderColor: '#8b5cf6' }}>
             <Printer size={15} /> {fr ? 'BL du jour' : 'وصل تسليم اليوم'}
           </button>
