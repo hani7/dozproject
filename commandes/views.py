@@ -137,9 +137,10 @@ class CommandeViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
 
         with transaction.atomic():
-            valeur_retour_totale = 0
+            from decimal import Decimal
+            valeur_retour_totale = Decimal('0')
             for item in lignes_retour:
-                qte = int(item.get('quantite', 0))
+                qte = Decimal(str(item.get('quantite', 0)))
                 if qte <= 0:
                     continue
                 try:
@@ -150,17 +151,17 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 if qte > ligne.quantite:
                     return Response({'error': f"Quantité ({qte}) > commandée ({ligne.quantite})."}, status=400)
 
-                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour = qte * ligne.prix_unitaire
                 valeur_retour_totale += valeur_retour
                 
                 ligne.quantite -= qte
-                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+                ligne.sous_total = ligne.prix_unitaire * ligne.quantite
                 ligne.save(update_fields=['quantite', 'sous_total'])
 
             # Commande : Le retour ne touche pas au stock, il diminue juste le total
-            nouveau_total = float(commande.montant_total) - valeur_retour_totale
-            nouveau_paye  = max(0, float(commande.montant_paye) - valeur_retour_totale)
-            commande.montant_total = max(0, nouveau_total)
+            nouveau_total = commande.montant_total - valeur_retour_totale
+            nouveau_paye  = max(Decimal('0'), commande.montant_paye - valeur_retour_totale)
+            commande.montant_total = max(Decimal('0'), nouveau_total)
             commande.montant_paye  = nouveau_paye
             commande.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 
@@ -180,9 +181,10 @@ class CommandeViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Aucune ligne de retour fournie.'}, status=400)
 
         with transaction.atomic():
-            valeur_retour_totale = 0
+            from decimal import Decimal
+            valeur_retour_totale = Decimal('0')
             for item in lignes_retour:
-                qte = int(item.get('quantite', 0))
+                qte = Decimal(str(item.get('quantite', 0)))
                 if qte <= 0:
                     continue
                 try:
@@ -210,16 +212,16 @@ class CommandeViewSet(viewsets.ModelViewSet):
                     cree_par=request.user,
                 )
 
-                valeur_retour = qte * float(ligne.prix_unitaire)
+                valeur_retour = qte * ligne.prix_unitaire
                 valeur_retour_totale += valeur_retour
                 
                 ligne.quantite -= qte
-                ligne.sous_total = float(ligne.prix_unitaire) * ligne.quantite
+                ligne.sous_total = ligne.prix_unitaire * ligne.quantite
                 ligne.save(update_fields=['quantite', 'sous_total'])
 
-            nouveau_total = float(commande.montant_total) - valeur_retour_totale
-            nouveau_paye  = max(0, float(commande.montant_paye) - valeur_retour_totale)
-            commande.montant_total = max(0, nouveau_total)
+            nouveau_total = commande.montant_total - valeur_retour_totale
+            nouveau_paye  = max(Decimal('0'), commande.montant_paye - valeur_retour_totale)
+            commande.montant_total = max(Decimal('0'), nouveau_total)
             commande.montant_paye  = nouveau_paye
             commande.save(update_fields=['montant_total', 'montant_paye', 'updated_at'])
 

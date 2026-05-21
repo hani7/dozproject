@@ -80,8 +80,8 @@ function VentesPageContent({ type }: Props) {
         type_vente: c.type_commande,
         date: c.created_at?.split('T')[0],
         mode_paiement: '\u2014',
-        montant_paye: 0,
-        reste_a_payer: c.montant_total,
+        montant_paye: c.montant_paye || 0,
+        reste_a_payer: c.reste_a_payer !== undefined ? c.reste_a_payer : (Number(c.montant_total) - Number(c.montant_paye || 0)),
         remise: 0,
       }));
 
