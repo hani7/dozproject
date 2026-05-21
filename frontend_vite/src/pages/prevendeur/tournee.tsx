@@ -44,7 +44,6 @@ export default function TourneePage() {
     const v: Visit = { clientId: String(client.id), clientNom: client.nom, reason: null, note: '', saved: false };
     setVisits(prev => [...prev, v]);
     setExpanded(String(client.id));
-    setSearch('');
   };
 
   const setReason = (clientId: string, reason: Reason) => {

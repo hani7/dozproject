@@ -93,7 +93,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}
       style={{
         width: sidebarWidth,
-        background: collapsed ? '#009f43' : '#006045',
+        background: collapsed ? '#5629b8' : '#7132ca',
         borderRight: isRTL ? 'none' : '1px solid rgba(255,255,255,0.1)',
         borderLeft: isRTL ? '1px solid rgba(255,255,255,0.1)' : 'none',
       }}
@@ -105,7 +105,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ) : (
           <>
             <h1 style={{
-              background: 'linear-gradient(135deg, #ffffff, #a5f3c8)',
+              background: 'linear-gradient(135deg, #ffffff, #d8b4fe)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -127,7 +127,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           width: 28,
           height: 28,
           borderRadius: '50%',
-          background: collapsed ? '#009f43' : '#006045',
+          background: collapsed ? '#5629b8' : '#7132ca',
           border: '2px solid rgba(255,255,255,0.2)',
           color: '#fff',
           display: 'flex',
