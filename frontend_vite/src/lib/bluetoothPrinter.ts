@@ -264,7 +264,7 @@ export function printTicketHTML(ticket: TicketData): void {
           🖨 Imprimer
         </button>
         <button id="ticket-share-btn" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 4px;">
-          📤 Partager / Sauvegarder
+          📤 Partager vers Eleph Label (Image)
         </button>
       </div>
 
@@ -352,22 +352,46 @@ export function printTicketHTML(ticket: TicketData): void {
   }
 
   if (shareBtn) {
-    shareBtn.addEventListener('click', () => {
-      let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
-      ticket.lignes.forEach(l => {
-        txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
-      });
-      txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
-      if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
-      else txt += `SOLDE COMPLET\n`;
-
-      if (navigator.share) {
-        navigator.share({
-          title: 'Ticket ' + ticket.reference,
-          text: txt
-        }).catch(err => console.log('Share canceled', err));
-      } else {
-        alert("Le partage n'est pas supporté sur cette application/navigateur.");
+    shareBtn.addEventListener('click', async () => {
+      try {
+        shareBtn.textContent = '⏳ Génération...';
+        const container = printOverlay.querySelector('.print-ticket-container') as HTMLElement;
+        if (!container) return;
+        
+        // Dynamically import html2canvas so it doesn't break other parts
+        const html2canvas = (await import('html2canvas')).default;
+        
+        const canvas = await html2canvas(container, {
+          scale: 2,
+          backgroundColor: '#ffffff'
+        });
+        
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], `ticket_${ticket.reference}.png`, { type: 'image/png' });
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: 'Ticket ' + ticket.reference,
+              files: [file]
+            });
+          } else {
+            // Text fallback
+            let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
+            ticket.lignes.forEach(l => {
+              txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
+            });
+            txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
+            if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
+            else txt += `SOLDE COMPLET\n`;
+            if (navigator.share) await navigator.share({ title: 'Ticket ' + ticket.reference, text: txt });
+            else alert("Le partage d'image n'est pas supporté par votre appareil.");
+          }
+          shareBtn.textContent = '📤 Partager vers Eleph Label (Image)';
+        }, 'image/png');
+      } catch (e) {
+        console.error('Share error', e);
+        shareBtn.textContent = 'Erreur';
       }
     });
   }
