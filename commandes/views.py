@@ -158,6 +158,22 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 ligne.sous_total = ligne.prix_unitaire * ligne.quantite
                 ligne.save(update_fields=['quantite', 'sous_total'])
 
+                # Trace le retour dans les mouvements de stock sans modifier stock_actuel (déjà pris en compte par la réduction de quantité)
+                from stock.models import MouvementStock
+                from products.models import Produit
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+                MouvementStock.objects.create(
+                    produit_id=ligne.produit_id,
+                    type_mouvement='entree',
+                    motif='retour',
+                    quantite=qte,
+                    stock_avant=produit.stock_actuel,
+                    stock_apres=produit.stock_actuel,
+                    reference=commande.reference,
+                    notes=f"Retour de {qte} carton(s) — Commande {commande.reference}",
+                    cree_par=request.user,
+                )
+
             # Commande : Le retour ne touche pas au stock, il diminue juste le total
             nouveau_total = commande.montant_total - valeur_retour_totale
             nouveau_paye  = max(Decimal('0'), commande.montant_paye - valeur_retour_totale)
