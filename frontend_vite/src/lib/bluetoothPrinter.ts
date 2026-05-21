@@ -256,12 +256,18 @@ export function printTicketHTML(ticket: TicketData): void {
     </style>
     <div style="background: rgba(0,0,0,0.75); position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
       
-      <div class="no-print" style="display: flex; gap: 10px; margin-bottom: 15px; width: 100%; max-width: 320px;">
-        <button id="ticket-close-btn" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+      <div class="no-print" style="display: flex; gap: 5px; margin-bottom: 15px; width: 100%; max-width: 360px; flex-wrap: wrap; justify-content: center;">
+        <button id="ticket-close-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           Fermer (إغلاق)
         </button>
-        <button id="ticket-print-btn" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+        <button id="ticket-print-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           🖨 Imprimer
+        </button>
+        <button id="ticket-rawbt-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #8b5cf6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+          🖨 RawBT
+        </button>
+        <button id="ticket-share-btn" style="flex: 1; min-width: 100px; padding: 12px 6px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
+          📤 Partager
         </button>
       </div>
 
@@ -330,6 +336,8 @@ export function printTicketHTML(ticket: TicketData): void {
   // Attach events using JS to bypass CSP limits on inline onclick
   const closeBtn = document.getElementById('ticket-close-btn');
   const printBtn = document.getElementById('ticket-print-btn');
+  const rawbtBtn = document.getElementById('ticket-rawbt-btn');
+  const shareBtn = document.getElementById('ticket-share-btn');
   
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
@@ -341,6 +349,43 @@ export function printTicketHTML(ticket: TicketData): void {
   if (printBtn) {
     printBtn.addEventListener('click', () => {
       window.print();
+    });
+  }
+
+  if (rawbtBtn) {
+    rawbtBtn.addEventListener('click', () => {
+      try {
+        const rawBytes = buildESCPOS(ticket);
+        let binary = '';
+        for (let i = 0; i < rawBytes.byteLength; i++) {
+          binary += String.fromCharCode(rawBytes[i]);
+        }
+        const base64Data = btoa(binary);
+        window.location.href = `intent:${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+      } catch (e) {
+        console.error('RawBT error', e);
+      }
+    });
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', () => {
+      let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
+      ticket.lignes.forEach(l => {
+        txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
+      });
+      txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
+      if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
+      else txt += `SOLDE COMPLET\n`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'Ticket ' + ticket.reference,
+          text: txt
+        }).catch(err => console.log('Share canceled', err));
+      } else {
+        alert('Le partage n\\'est pas supporté sur cette application/navigateur.');
+      }
     });
   }
 }
