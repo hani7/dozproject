@@ -49,6 +49,11 @@ function VentesPageContent({ type }: Props) {
   const [statusFilter, setStatusFilter] = useState('');
   const [retourFilter, setRetourFilter] = useState<'all' | 'avec' | 'sans'>('all');
 
+  // Searchable client dropdown state
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientList, setShowClientList] = useState(false);
+  const filteredClientsForDropdown = clients.filter(c => c.nom?.toLowerCase().includes(clientSearch.toLowerCase()));
+
   const prevCountRef = useRef(0);
 
   const load = useCallback(async () => {
@@ -476,12 +481,52 @@ function VentesPageContent({ type }: Props) {
                 <label className="form-label">{fr ? 'Référence' : 'المرجع'}</label>
                 <input className="form-control" value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label className="form-label">{fr ? 'Client' : 'العميل'}</label>
-                <select className="form-control" value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))}>
-                  <option value="">--</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-                </select>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="form-control"
+                    placeholder={fr ? 'Rechercher un client...' : 'ابحث عن عميل...'}
+                    value={form.client ? (clients.find(c => String(c.id) === String(form.client))?.nom || '') : clientSearch}
+                    onChange={e => {
+                      setForm(f => ({ ...f, client: '' })); // clear selected client when typing
+                      setClientSearch(e.target.value);
+                      setShowClientList(true);
+                    }}
+                    onFocus={() => setShowClientList(true)}
+                    onBlur={() => setTimeout(() => setShowClientList(false), 200)}
+                    style={{ paddingRight: form.client ? '30px' : '12px' }}
+                  />
+                  {form.client && (
+                    <span
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#ef4444', fontSize: '14px', fontWeight: 'bold' }}
+                      onClick={() => { setForm(f => ({ ...f, client: '' })); setClientSearch(''); }}
+                    >
+                      ✕
+                    </span>
+                  )}
+                </div>
+                {showClientList && !form.client && (
+                  <div style={{ position: 'absolute', zIndex: 100, width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '4px' }}>
+                    {filteredClientsForDropdown.length === 0 ? (
+                      <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '13px' }}>{fr ? 'Aucun résultat' : 'لا توجد نتائج'}</div>
+                    ) : (
+                      filteredClientsForDropdown.map(c => (
+                        <div key={c.id} style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: '13px' }}
+                          onMouseDown={() => {
+                            setForm(f => ({ ...f, client: String(c.id) }));
+                            setShowClientList(false);
+                            setClientSearch('');
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {c.nom}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">{fr ? 'Date' : 'التاريخ'}</label>
