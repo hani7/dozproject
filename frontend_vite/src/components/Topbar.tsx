@@ -2,7 +2,7 @@ import { useLocation } from 'react-router-dom';
 import { useLang } from '@/contexts/LangContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Sun, Moon, LogOut, UserCircle } from 'lucide-react';
+import { Sun, Moon, LogOut, UserCircle, Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const pageTitles: Record<string, { fr: string; ar: string }> = {
@@ -61,7 +61,7 @@ function LiveClock({ lang }: { lang: string }) {
   );
 }
 
-export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
+export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: boolean, onMenuClick?: () => void }) {
   const { pathname } = useLocation();
   const { lang, setLang } = useLang();
   const { theme, toggleTheme } = useTheme();
@@ -78,6 +78,11 @@ export default function Topbar({ isMobileRole }: { isMobileRole?: boolean }) {
 
   return (
     <header className="topbar" style={isMobileRole ? { justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderBottom: 'none', background: 'var(--brand-primary)', color: 'white' } : {}}>
+      {!isMobileRole && (
+        <button className="mobile-menu-btn" onClick={onMenuClick} style={{ display: 'none', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <Menu size={24} />
+        </button>
+      )}
       <h2 className="topbar-title" style={isMobileRole ? { color: 'white', flex: 1, textAlign: 'center', fontSize: '16px', letterSpacing: '0.5px' } : {}}>{title}</h2>
 
       {!isMobileRole && (

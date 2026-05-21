@@ -234,7 +234,7 @@ export default function PrevendeurClientsPage() {
               </div>
               <div className="app-card-actions" style={{ marginTop: '12px' }}>
                 {c.phone && (
-                  <button onClick={() => window.open(`tel:${c.phone}`)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <button onClick={() => window.location.href = `tel:${c.phone}`} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
                     <Phone size={14} /> {fr ? 'Appeler' : 'اتصال'}
                   </button>
                 )}

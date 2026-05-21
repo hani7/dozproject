@@ -202,7 +202,7 @@ export default function LivraisonsPage() {
     }
   };
 
-  const callClient = (phone: string) => window.open(`tel:${phone}`);
+  const callClient = (phone: string) => window.location.href = `tel:${phone}`;
 
   const filteredOrders = orders.filter(o => {
     const q = search.toLowerCase();

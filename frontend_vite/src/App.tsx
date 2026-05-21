@@ -4,34 +4,32 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { LangProvider } from '@/contexts/LangContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
-import { lazy, Suspense } from 'react'
-
-// Pages (Lazy loaded for performance/code-splitting)
-const Login = lazy(() => import('@/pages/Login'))
-const Dashboard = lazy(() => import('@/pages/admin/dashboard'))
-const Produits = lazy(() => import('@/pages/admin/produits'))
-const Stock = lazy(() => import('@/pages/admin/stock'))
-const Commandes = lazy(() => import('@/pages/admin/commandes'))
-const Clients = lazy(() => import('@/pages/admin/clients'))
-const Fournisseurs = lazy(() => import('@/pages/admin/fournisseurs'))
-const VenteDetail = lazy(() => import('@/pages/admin/vente-detail'))
-const VenteGros = lazy(() => import('@/pages/admin/vente-gros'))
-const Paiements = lazy(() => import('@/pages/admin/paiements'))
-const Achats = lazy(() => import('@/pages/admin/achats'))
-const Categories = lazy(() => import('@/pages/admin/categories'))
-const Comptes = lazy(() => import('@/pages/admin/comptes'))
-const HistoriqueCommandes = lazy(() => import('@/pages/admin/historique-commandes'))
-const RH = lazy(() => import('@/pages/admin/rh'))
-const BonCommande = lazy(() => import('@/pages/admin/bon-commande'))
-const Statistiques = lazy(() => import('@/pages/admin/benefices'))
-const Livraisons = lazy(() => import('@/pages/livreur/livraisons'))
-const LivreurHistorique = lazy(() => import('@/pages/livreur/historique'))
-const CommandeDetail = lazy(() => import('@/pages/prevendeur/commande-detail'))
-const CommandeGros = lazy(() => import('@/pages/prevendeur/commande-gros'))
-const MesCommandes = lazy(() => import('@/pages/prevendeur/mes-commandes'))
-const PrevendeurClients = lazy(() => import('@/pages/prevendeur/clients'))
-const PrevendeurStock = lazy(() => import('@/pages/prevendeur/stock'))
-const Tournee = lazy(() => import('@/pages/prevendeur/tournee'))
+// Pages
+import Login from '@/pages/Login'
+import Dashboard from '@/pages/admin/dashboard'
+import Produits from '@/pages/admin/produits'
+import Stock from '@/pages/admin/stock'
+import Commandes from '@/pages/admin/commandes'
+import Clients from '@/pages/admin/clients'
+import Fournisseurs from '@/pages/admin/fournisseurs'
+import VenteDetail from '@/pages/admin/vente-detail'
+import VenteGros from '@/pages/admin/vente-gros'
+import Paiements from '@/pages/admin/paiements'
+import Achats from '@/pages/admin/achats'
+import Categories from '@/pages/admin/categories'
+import Comptes from '@/pages/admin/comptes'
+import HistoriqueCommandes from '@/pages/admin/historique-commandes'
+import RH from '@/pages/admin/rh'
+import BonCommande from '@/pages/admin/bon-commande'
+import Statistiques from '@/pages/admin/benefices'
+import Livraisons from '@/pages/livreur/livraisons'
+import LivreurHistorique from '@/pages/livreur/historique'
+import CommandeDetail from '@/pages/prevendeur/commande-detail'
+import CommandeGros from '@/pages/prevendeur/commande-gros'
+import MesCommandes from '@/pages/prevendeur/mes-commandes'
+import PrevendeurClients from '@/pages/prevendeur/clients'
+import PrevendeurStock from '@/pages/prevendeur/stock'
+import Tournee from '@/pages/prevendeur/tournee'
 
 export default function App() {
   return (
@@ -40,8 +38,7 @@ export default function App() {
         <LangProvider>
           <AuthProvider>
             <Toaster position="top-right" />
-            <Suspense fallback={<div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}><div className="spinner" /></div>}>
-              <Routes>
+            <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<Login />} />
 
@@ -77,8 +74,7 @@ export default function App() {
 
               {/* 404 */}
               <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </Suspense>
+            </Routes>
           </AuthProvider>
         </LangProvider>
       </ThemeProvider>

@@ -74,14 +74,21 @@ export default function AppLayout({ children, allowedRoles }: Props) {
   return (
     <div className="app-layout">
       {/* Desktop sidebar — hidden on mobile for prevendeur/livreur via CSS */}
-      <div className={isMobileRole ? 'mobile-hide-sidebar' : ''}>
+      <div className={`sidebar-container ${isMobileRole ? 'mobile-hide-sidebar' : (!sidebarCollapsed ? 'mobile-open' : 'mobile-closed')}`}>
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
       </div>
+      {/* Backdrop for mobile sidebar */}
+      {!isMobileRole && !sidebarCollapsed && (
+        <div 
+          className="mobile-sidebar-backdrop" 
+          onClick={() => setSidebarCollapsed(true)} 
+        />
+      )}
       <div
         className={`main-content ${isMobileRole ? 'mobile-main' : ''}`}
         style={{ marginLeft: isMobileRole ? undefined : (sidebarCollapsed ? 72 : 260), transition: 'margin-left 0.3s ease' }}
       >
-        <Topbar isMobileRole={isMobileRole} />
+        <Topbar isMobileRole={isMobileRole} onMenuClick={() => setSidebarCollapsed(c => !c)} />
         <main className={`page-content ${isMobileRole ? 'mobile-page-content' : ''}`}>
           {children}
         </main>

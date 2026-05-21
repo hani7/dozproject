@@ -104,13 +104,34 @@ body {
   left: 0; top: 0;
   display: flex;
   flex-direction: column;
-  z-index: 100;
-  transition: width 0.3s ease, background 0.3s ease;
+  z-index: 1000;
+  transition: width 0.3s ease, background 0.3s ease, transform 0.3s ease;
   overflow: hidden;
   box-shadow: 4px 0 20px rgba(0,0,0,0.12);
 }
 
 [dir="rtl"] .sidebar { left: auto; right: 0; box-shadow: -4px 0 20px rgba(0,0,0,0.12); }
+
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 .sidebar-logo { padding: 24px 20px 20px; }
 .sidebar-logo h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
@@ -816,7 +837,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .mobile-nav-item.active {
   color: var(--brand-primary);
-  background: rgba(0,96,69,0.08);
+  background: rgba(113,50,202,0.08);
 }
 
 .mobile-nav-item svg {
@@ -828,11 +849,21 @@ tbody tr:last-child td { border-bottom: none; }
 ══════════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* Hide sidebar for mobile roles */
+  /* Hide sidebar for mobile roles ONLY */
   .mobile-hide-sidebar { display: none !important; }
 
+  /* For admin mobile sidebar */
+  .sidebar-container { display: block !important; }
+  .sidebar-container.mobile-closed .sidebar { transform: translateX(-100%); }
+  [dir="rtl"] .sidebar-container.mobile-closed .sidebar { transform: translateX(100%); }
+  
+  .sidebar-container.mobile-open .sidebar { transform: translateX(0); width: 260px !important; }
+  
+  .mobile-menu-btn { display: block !important; margin-right: 10px; }
+  [dir="rtl"] .mobile-menu-btn { margin-right: 0; margin-left: 10px; }
+
   /* Main content takes full width */
-  .mobile-main {
+  .main-content {
     margin-left: 0 !important;
     margin-right: 0 !important;
   }

@@ -35,11 +35,11 @@
 
 .mobile-nav-item.active {
   color: var(--brand-primary);
-  background: rgba(0,96,69,0.1);
+  background: rgba(113,50,202,0.1);
   transform: translateY(-4px);
 }
 .mobile-nav-item.active svg {
-  filter: drop-shadow(0 4px 8px rgba(0,96,69,0.3));
+  filter: drop-shadow(0 4px 8px rgba(113,50,202,0.3));
 }
 
 .mobile-hide-sidebar { display: none !important; }
@@ -56,7 +56,7 @@
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   color: white;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 6px 20px rgba(0,96,69,0.4);
+  box-shadow: 0 6px 20px rgba(113,50,202,0.4);
   cursor: pointer;
   z-index: 150;
   border: none;

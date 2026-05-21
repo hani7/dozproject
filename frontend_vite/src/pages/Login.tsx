@@ -38,7 +38,7 @@ export default function LoginPage() {
           <div style={{ marginBottom: '28px' }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
-              background: 'linear-gradient(135deg, #006045, #009f43)',
+              background: 'linear-gradient(135deg, #5629b8, #7132ca)',
               borderRadius: '12px', padding: '8px 16px', marginBottom: '22px',
             }}>
               <span style={{ fontSize: '18px' }}>🚚</span>
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', background: loading ? 'rgba(0,96,69,0.5)' : 'linear-gradient(135deg, #006045, #009f43)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 14px rgba(0,96,69,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', background: loading ? 'rgba(86,41,184,0.5)' : 'linear-gradient(135deg, #5629b8, #7132ca)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 14px rgba(86,41,184,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s' }}>
               {loading ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> {fr ? 'Connexion...' : 'جاري...'}</> : (fr ? '→ Se connecter' : '→ دخول')}
             </button>
           </form>
@@ -93,11 +93,11 @@ export default function LoginPage() {
       {/* ── RIGHT: Hero image (68%) ─────────────────────── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} className="login-hero-panel">
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/hero.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,50,30,0.78) 0%, rgba(0,96,69,0.55) 50%, rgba(0,0,0,0.25) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(40,10,80,0.78) 0%, rgba(86,41,184,0.55) 50%, rgba(0,0,0,0.25) 100%)' }} />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '40px 48px' }}>
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '20px', padding: '5px 14px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.25)' }}>
-              <span style={{ color: '#a5f3c8', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>
+              <span style={{ color: '#d8b4fe', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>
             </div>
             <h2 style={{ color: '#fff', fontSize: '30px', fontWeight: 900, lineHeight: 1.2, letterSpacing: '-0.5px', marginBottom: '10px', textShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
               {fr ? 'Gérez votre réseau\nde distribution' : 'أدر شبكة توزيعك\nبكل سهولة'}
@@ -117,7 +117,7 @@ export default function LoginPage() {
               return (
                 <div key={i} style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ width: 34, height: 34, borderRadius: '8px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={16} color="#a5f3c8" />
+                    <Icon size={16} color="#d8b4fe" />
                   </div>
                   <div>
                     <div style={{ color: '#fff', fontWeight: 900, fontSize: '16px', lineHeight: 1 }}>{s.value}</div>
@@ -135,18 +135,18 @@ export default function LoginPage() {
         {/* Background image */}
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/hero.png)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6 }} />
         {/* Dark green overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(0,40,25,0.85) 0%, rgba(0,80,50,0.72) 50%, rgba(0,0,0,0.60) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(30,10,60,0.85) 0%, rgba(60,20,120,0.72) 50%, rgba(0,0,0,0.60) 100%)' }} />
 
         {/* Content */}
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
           {/* Top brand */}
           <div style={{ padding: '52px 28px 0', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #006045, #009f43)', borderRadius: '14px', padding: '10px 20px', marginBottom: '14px', boxShadow: '0 4px 20px rgba(0,150,70,0.4)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #5629b8, #7132ca)', borderRadius: '14px', padding: '10px 20px', marginBottom: '14px', boxShadow: '0 4px 20px rgba(113,50,202,0.4)' }}>
               <span style={{ fontSize: '20px' }}>🚚</span>
               <span style={{ color: '#fff', fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px' }}>ForCli</span>
             </div>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', borderRadius: '20px', padding: '4px 14px', border: '1px solid rgba(255,255,255,0.2)' }}>
-              <span style={{ color: '#a5f3c8', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>
+              <span style={{ color: '#d8b4fe', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>
             </div>
           </div>
 
@@ -172,7 +172,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-              <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: loading ? 'rgba(0,96,69,0.5)' : 'linear-gradient(135deg, #006045, #009f43)', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 20px rgba(0,150,70,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s', marginTop: '4px' }}>
+              <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: loading ? 'rgba(86,41,184,0.5)' : 'linear-gradient(135deg, #5629b8, #7132ca)', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 20px rgba(113,50,202,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s', marginTop: '4px' }}>
                 {loading ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> {fr ? 'Connexion...' : 'جاري...'}</> : (fr ? '→ Se connecter' : '→ دخول')}
               </button>
             </form>
@@ -181,7 +181,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div style={{ padding: '16px 28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-              © 2025 ForCli · <a href="https://www.baitul.tech/" target="_blank" rel="noopener noreferrer" style={{ color: '#a5f3c8', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
+              © 2025 ForCli · <a href="https://www.baitul.tech/" target="_blank" rel="noopener noreferrer" style={{ color: '#d8b4fe', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
             </span>
             <button onClick={() => setLang(fr ? 'ar' : 'fr')} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.8)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               {fr ? 'العربية' : 'Français'}
