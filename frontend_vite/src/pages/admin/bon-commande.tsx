@@ -15,23 +15,17 @@ function getPalettes(quantite: number, unitesPalette = 40): { palettes: number; 
 function printBonCommande(achat: any, fr: boolean) {
   const dateStr = new Date().toLocaleDateString('fr-DZ', { day: '2-digit', month: 'long', year: 'numeric' });
   const lignesHTML = (achat.lignes || []).map((l: any, i: number) => {
-    const { palettes, reste } = getPalettes(Number(l.quantite));
+    const pal = Number(l.quantite); // already in PALETTES
     return `
       <tr>
         <td>${i + 1}</td>
         <td style="font-weight:700">${l.produit_nom || '—'}</td>
-        <td style="text-align:center;font-weight:700;font-size:15px">${Number(l.quantite).toLocaleString('fr-DZ')} ctn</td>
-        <td style="text-align:center">
-          ${palettes > 0 ? `<span style="font-weight:700;color:#006045">${palettes} pal</span>` : ''}
-          ${reste > 0 ? `<span style="color:#555;font-size:11px"> + ${reste} ctn</span>` : ''}
-          ${palettes === 0 && reste === 0 ? '—' : ''}
-        </td>
+        <td style="text-align:center;font-weight:800;font-size:15px;color:#006045">${pal} pal</td>
         <td style="text-align:center;color:#888">—</td>
       </tr>`;
   }).join('');
 
-  const totalCtns = (achat.lignes || []).reduce((s: number, l: any) => s + Number(l.quantite), 0);
-  const { palettes: totalPal, reste: totalReste } = getPalettes(totalCtns);
+  const totalPal = (achat.lignes || []).reduce((s: number, l: any) => s + Number(l.quantite), 0);
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -133,9 +127,8 @@ function printBonCommande(achat: any, fr: boolean) {
       <tr>
         <th>#</th>
         <th>${fr ? 'Produit' : 'المنتج'}</th>
-        <th style="text-align:center">${fr ? 'Quantité (ctn)' : 'الكمية (كرتون)'}</th>
-        <th style="text-align:center">${fr ? 'Palettes' : 'باليت'}</th>
-        <th style="text-align:center">${fr ? 'Prix unit.' : 'السعر'}</th>
+        <th style="text-align:center">${fr ? 'Quantité (pal)' : 'الكمية (باليت)'}</th>
+        <th style="text-align:center">${fr ? 'Notes' : 'ملاحظات'}</th>
       </tr>
     </thead>
     <tbody>
@@ -146,16 +139,8 @@ function printBonCommande(achat: any, fr: boolean) {
   <!-- Summary -->
   <div class="summary">
     <div class="item">
-      <div class="lbl">${fr ? 'Total caisses' : 'مجموع الكراتين'}</div>
-      <div class="val">${totalCtns.toLocaleString('fr-DZ')} ctn</div>
-    </div>
-    <div class="item">
       <div class="lbl">${fr ? 'Total palettes' : 'مجموع الباليت'}</div>
-      <div class="val">${totalPal} pal${totalReste > 0 ? ` + ${totalReste} ctn` : ''}</div>
-    </div>
-    <div class="item">
-      <div class="lbl">${fr ? 'Références' : 'عدد المنتجات'}</div>
-      <div class="val">${(achat.lignes || []).length} réf.</div>
+      <div class="val">${totalPal} pal</div>
     </div>
   </div>
 
@@ -216,6 +201,10 @@ export default function BonCommandePage() {
   const [newModal, setNewModal] = useState(false);
   const [newForm, setNewForm] = useState({ reference: '', fournisseur_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [newLignes, setNewLignes] = useState([{ ...EMPTY_LIGNE }]);
+  // Saved standalone bons (localStorage)
+  const [savedBons, setSavedBons] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem('forcli_bons_commande') || '[]'); } catch { return []; }
+  });
 
   useEffect(() => {
     Promise.all([
@@ -242,16 +231,31 @@ export default function BonCommandePage() {
 
   const generateNew = () => {
     const fournisseur = fournisseurs.find((f: any) => String(f.id) === newForm.fournisseur_id);
+    // quantite stored in PALETTES directly
     const lignes = newLignes.filter(l => l.produit_nom.trim() && Number(l.quantite) > 0)
       .map(l => ({ produit_nom: l.produit_nom, quantite: l.quantite, prix_unitaire: 0 }));
     if (!lignes.length) { toast.error(fr ? 'Ajoutez au moins un produit' : 'أضف منتجاً واحداً'); return; }
-    printBonCommande({ reference: newForm.reference || `BC-${Date.now()}`, fournisseur_nom: fournisseur?.nom || '', fournisseur_tel: fournisseur?.telephone || '', fournisseur_adresse: fournisseur?.adresse || '', date: newForm.date, notes: newForm.notes, statut: '', mode_paiement: '', lignes }, fr);
+    const bon = {
+      reference: newForm.reference || `BC-${Date.now()}`,
+      fournisseur_nom: fournisseur?.nom || '',
+      fournisseur_tel: fournisseur?.telephone || '',
+      fournisseur_adresse: fournisseur?.adresse || '',
+      date: newForm.date, notes: newForm.notes,
+      statut: '', mode_paiement: '',
+      lignes,
+      saved_at: new Date().toISOString(),
+    };
+    // Persist to localStorage
+    const updated = [bon, ...savedBons];
+    setSavedBons(updated);
+    try { localStorage.setItem('forcli_bons_commande', JSON.stringify(updated)); } catch {}
+    toast.success(fr ? '✅ Bon enregistré et imprimé!' : '✅ تم الحفظ والطباعة!');
+    printBonCommande(bon, fr);
     setNewModal(false);
   };
 
   return (
     <AppLayout allowedRoles={['admin']}>
-      <>
       <div className="page-header">
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -280,12 +284,51 @@ export default function BonCommandePage() {
         </div>
       </div>
 
+      {/* ── Saved standalone bons ── */}
+      {savedBons.length > 0 && (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--brand-primary)', letterSpacing: '1px', marginBottom: '10px' }}>
+            📋 {fr ? `${savedBons.length} bon(s) enregistré(s)` : `${savedBons.length} أمر/أوامر محفوظة`}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {savedBons.map((bon, idx) => (
+              <div key={idx} className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'rgba(0,96,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={16} color="var(--brand-primary)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: '13px' }}>{bon.reference}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                    {bon.fournisseur_nom || (fr ? '— sans fournisseur —' : '— بدون مورد —')}
+                    {' · '}
+                    {(bon.lignes || []).reduce((s: number, l: any) => s + Number(l.quantite), 0)} pal
+                    {' · '}
+                    {new Date(bon.saved_at).toLocaleDateString('fr-DZ')}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                  <button onClick={() => printBonCommande(bon, fr)}
+                    style={{ padding: '5px 10px', borderRadius: '7px', border: '1px solid rgba(0,96,69,0.3)', background: 'rgba(0,96,69,0.06)', color: 'var(--brand-primary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Printer size={12} /> {fr ? 'Réimprimer' : 'إعادة طباعة'}
+                  </button>
+                  <button onClick={() => { const u = savedBons.filter((_, i) => i !== idx); setSavedBons(u); try { localStorage.setItem('forcli_bons_commande', JSON.stringify(u)); } catch {} }}
+                    style={{ width: 28, height: 28, borderRadius: '7px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Divider ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '1px', flexShrink: 0 }}>{fr ? "Depuis les bons d'achat" : 'من المشتريات'}</span>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
       </div>
+
 
       {/* Search */}
       <div style={{ marginBottom: '16px', maxWidth: 400, position: 'relative' }}>
@@ -393,7 +436,7 @@ export default function BonCommandePage() {
           })}
         </div>
       )}
-    </AppLayout>
+
 
       {/* ── New Bon Modal ── */}
       {newModal && (
@@ -434,28 +477,21 @@ export default function BonCommandePage() {
                 <label className="form-label" style={{ margin: 0 }}>{fr ? 'Produits' : 'المنتجات'}</label>
                 <button onClick={() => setNewLignes(l => [...l, { ...EMPTY_LIGNE }])} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(0,96,69,0.3)', background: 'rgba(0,96,69,0.06)', color: 'var(--brand-primary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}><Plus size={11} /> {fr ? 'Ligne' : 'سطر'}</button>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px 28px', gap: '6px', marginBottom: '4px', padding: '0 2px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 28px', gap: '6px', marginBottom: '4px', padding: '0 2px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{fr ? 'Produit' : 'المنتج'}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center' }}>Ctn</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#6366f1', textAlign: 'center' }}>Pal</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#006045', textAlign: 'center' }}>{fr ? 'Palettes' : 'باليت'}</span>
                 <span />
               </div>
-              {newLignes.map((l, i) => {
-                const { palettes: p, reste: r } = getPalettes(Number(l.quantite) || 0);
-                return (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px 28px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
-                    <select className="form-control" value={l.produit_nom} onChange={e => setNewLignes(prev => prev.map((li, j) => j === i ? { ...li, produit_nom: e.target.value } : li))} style={{ fontSize: '12px', height: 34 }}>
-                      <option value="">{fr ? '— Produit —' : '— منتج —'}</option>
-                      {products.map((p: any) => <option key={p.id} value={p.nom}>{p.nom}</option>)}
-                    </select>
-                    <input type="number" className="form-control" min="0" placeholder="0" value={l.quantite} onChange={e => setNewLignes(prev => prev.map((li, j) => j === i ? { ...li, quantite: e.target.value } : li))} style={{ fontSize: '13px', fontWeight: 700, textAlign: 'center', height: 34 }} />
-                    <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px', height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#6366f1' }}>
-                      {Number(l.quantite) > 0 ? `${p}p${r > 0 ? `+${r}` : ''}` : '—'}
-                    </div>
-                    <button onClick={() => setNewLignes(prev => prev.filter((_, j) => j !== i))} disabled={newLignes.length === 1} style={{ width: 28, height: 28, borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', background: newLignes.length === 1 ? 'transparent' : 'rgba(239,68,68,0.06)', color: newLignes.length === 1 ? 'var(--border)' : '#ef4444', cursor: newLignes.length === 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}><X size={12} /></button>
-                  </div>
-                );
-              })}
+              {newLignes.map((l, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 28px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                  <select className="form-control" value={l.produit_nom} onChange={e => setNewLignes(prev => prev.map((li, j) => j === i ? { ...li, produit_nom: e.target.value } : li))} style={{ fontSize: '12px', height: 34 }}>
+                    <option value="">{fr ? '— Produit —' : '— منتج —'}</option>
+                    {products.map((p: any) => <option key={p.id} value={p.nom}>{p.nom}</option>)}
+                  </select>
+                  <input type="number" className="form-control" min="0" placeholder="0" value={l.quantite} onChange={e => setNewLignes(prev => prev.map((li, j) => j === i ? { ...li, quantite: e.target.value } : li))} style={{ fontSize: '14px', fontWeight: 800, textAlign: 'center', height: 34, color: '#006045' }} />
+                  <button onClick={() => setNewLignes(prev => prev.filter((_, j) => j !== i))} disabled={newLignes.length === 1} style={{ width: 28, height: 28, borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', background: newLignes.length === 1 ? 'transparent' : 'rgba(239,68,68,0.06)', color: newLignes.length === 1 ? 'var(--border)' : '#ef4444', cursor: newLignes.length === 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}><X size={12} /></button>
+                </div>
+              ))}
             </div>
 
             <div className="form-group" style={{ marginBottom: '18px' }}>
@@ -466,13 +502,12 @@ export default function BonCommandePage() {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setNewModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
               <button onClick={generateNew} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', border: 'none', background: 'var(--brand-primary)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Printer size={16} /> {fr ? 'Générer PDF & Imprimer' : 'إنشاء PDF وطباعة'}
+                <Package size={16} /> {fr ? 'Enregistrer & Imprimer' : 'حفظ وطباعة'}
               </button>
             </div>
           </div>
         </div>
       )}
-      </>
     </AppLayout>
   );
 }
