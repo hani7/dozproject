@@ -1,0 +1,21 @@
+Options -MultiViews
+RewriteEngine On
+
+# 1. Serve real files and directories directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 2. SPA routing: rewrite all other paths to root index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+
+# 3. Cache static assets (1 year)
+<FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp)$">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# 4. Security headers
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-Content-Type-Options "nosniff"
