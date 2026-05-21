@@ -385,6 +385,18 @@ function VentesPageContent({ type }: Props) {
           </table>
         </div>
 
+        <!-- Section Signatures -->
+        <div style="margin-top: 60px; display: flex; justify-content: space-around; text-align: center;">
+          <div>
+            <p style="font-weight: bold; font-size: 14px; margin-bottom: 60px;">${fr ? 'Le Responsable' : 'المسؤول'}</p>
+            <p>__________________________</p>
+          </div>
+          <div>
+            <p style="font-weight: bold; font-size: 14px; margin-bottom: 60px;">${fr ? 'Le Gérant' : 'المدير'}</p>
+            <p>__________________________</p>
+          </div>
+        </div>
+
       </body>
       </html>
     `;
