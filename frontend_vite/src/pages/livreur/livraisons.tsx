@@ -78,6 +78,7 @@ export default function LivraisonsPage() {
       const endpoint = order.is_vente ? `/ventes/${order.id}/livrer/` : `/commandes/${order.id}/livrer/`;
       await api.post(endpoint);
       toast.success(fr ? '✅ Livraison confirmée!' : '✅ تم تأكيد التوصيل!');
+      printOrder(order);
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.error || 'Erreur');
