@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, ChevronDown, ChevronUp, CheckCircle, Clock, X } from 'lucide-react';
+import { Plus, Search, ChevronDown, ChevronUp, CheckCircle, Clock, X, Printer } from 'lucide-react';
 
 const todayStr = new Date().toISOString().split('T')[0];
 
@@ -127,6 +127,101 @@ export default function PaiementsPage() {
     termine:  plans.filter(p => p.statut === 'termine').length,
   }), [plans]);
 
+  const exportPlanPDF = (plan: Plan) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const nom = plan.client_nom || plan.fournisseur_nom;
+    const typeLabel = plan.type_plan === 'client' ? (fr ? 'Client' : 'عميل') : (fr ? 'Fournisseur' : 'مورد');
+
+    const html = `
+      <html dir="${fr ? 'ltr' : 'rtl'}">
+      <head>
+        <title>État de Paiement - ${plan.reference}</title>
+        <style>
+          body { font-family: sans-serif; font-size: 13px; padding: 20px; color: #333; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+          .info-block { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .info-box { background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; width: 45%; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: ${fr ? 'left' : 'right'}; }
+          th { background: #f4f4f4; }
+          .right { text-align: ${fr ? 'right' : 'left'}; }
+          h2, h3, h4 { margin-top: 0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>${fr ? 'État de Paiement' : 'حالة الدفع'}</h2>
+          <p><strong>${fr ? 'Référence :' : 'المرجع:'}</strong> ${plan.reference}</p>
+        </div>
+
+        <div class="info-block">
+          <div class="info-box">
+            <h3>${fr ? 'Informations' : 'معلومات'}</h3>
+            <p><strong>${typeLabel} :</strong> ${nom}</p>
+            <p><strong>${fr ? 'Date de début :' : 'تاريخ البدء:'}</strong> ${new Date(plan.date_debut).toLocaleDateString(fr ? 'fr-DZ' : 'ar-DZ')}</p>
+            <p><strong>${fr ? 'Statut :' : 'الحالة:'}</strong> ${plan.statut === 'termine' ? (fr ? 'Terminé' : 'مكتمل') : (fr ? 'En cours' : 'جارية')}</p>
+          </div>
+          <div class="info-box">
+            <h3>${fr ? 'Bilan' : 'الحصيلة'}</h3>
+            <p><strong>${fr ? 'Montant Total :' : 'المبلغ الإجمالي:'}</strong> ${fmtDA(plan.montant_total)}</p>
+            <p style="color: #10b981;"><strong>${fr ? 'Déjà Payé :' : 'المدفوع:'}</strong> ${fmtDA(plan.montant_paye)} (${plan.pct_paye}%)</p>
+            <p style="color: #ef4444;"><strong>${fr ? 'Reste à Payer :' : 'المتبقي:'}</strong> ${fmtDA(plan.montant_restant)}</p>
+          </div>
+        </div>
+
+        <h3>${fr ? 'Historique des Versements' : 'سجل الدفعات'}</h3>
+        ${plan.versements.length === 0 ? `<p>${fr ? 'Aucun versement enregistré.' : 'لم يتم تسجيل أي دفعة.'}</p>` : `
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>${fr ? 'Date' : 'التاريخ'}</th>
+              <th>${fr ? 'Mode' : 'الطريقة'}</th>
+              <th>${fr ? 'Note' : 'ملاحظة'}</th>
+              <th class="right">${fr ? 'Montant' : 'المبلغ'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${plan.versements.map((v, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${new Date(v.date).toLocaleDateString(fr ? 'fr-DZ' : 'ar-DZ')}</td>
+                <td>${v.mode}</td>
+                <td>${v.notes || '-'}</td>
+                <td class="right" style="font-weight: bold; color: #10b981;">${fmtDA(v.montant)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        `}
+
+        <div style="margin-top: 60px; display: flex; justify-content: space-around; text-align: center;">
+          <div>
+            <p style="font-weight: bold; font-size: 14px; margin-bottom: 60px;">${fr ? 'Le Client / Fournisseur' : 'العميل / المورد'}</p>
+            <p>__________________________</p>
+          </div>
+          <div>
+            <p style="font-weight: bold; font-size: 14px; margin-bottom: 60px;">${fr ? 'Le Responsable' : 'المسؤول'}</p>
+            <p>__________________________</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    iframe.contentDocument?.write(html);
+    iframe.contentDocument?.close();
+    
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    };
+  };
+
   return (
     <AppLayout allowedRoles={['admin']}>
       <div className="page-header">
@@ -228,6 +323,9 @@ export default function PaiementsPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button className="btn btn-secondary btn-icon" title="Imprimer" onClick={e => { e.stopPropagation(); exportPlanPDF(plan); }} style={{ color: '#6366f1', borderColor: 'rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.05)' }}>
+                      <Printer size={12} />
+                    </button>
                     <button className="btn btn-danger btn-icon" onClick={e => { e.stopPropagation(); deletePlan(plan.id); }}>
                       <X size={12} />
                     </button>

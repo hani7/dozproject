@@ -219,8 +219,18 @@ export default function ProduitsPage() {
                   <span style={{ color: 'var(--text-muted)' }}> = {p.cartons_par_palette} cartons</span>
                 </td>
                 <td style={{ fontWeight: 600, color: '#8b5cf6' }}>{Number(p.prix_achat).toLocaleString('fr-DZ')} DA</td>
-                <td style={{ fontWeight: 600, color: '#06b6d4' }}>{Number(p.prix_detail).toLocaleString('fr-DZ')} DA</td>
-                <td style={{ fontWeight: 600, color: '#6366f1' }}>{Number(p.prix_gros).toLocaleString('fr-DZ')} DA</td>
+                <td>
+                  <div style={{ fontWeight: 600, color: '#06b6d4' }}>{Number(p.prix_detail).toLocaleString('fr-DZ')} DA</div>
+                  {(() => { const m = marge(String(p.prix_detail), String(p.prix_achat), String(p.cartons_par_palette)); return m ? (
+                    <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>+{m.pct}% {fr ? 'bénéfice' : 'فائدة'}</div>
+                  ) : null; })()}
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600, color: '#6366f1' }}>{Number(p.prix_gros).toLocaleString('fr-DZ')} DA</div>
+                  {(() => { const m = marge(String(p.prix_gros), String(p.prix_achat), String(p.cartons_par_palette)); return m ? (
+                    <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>+{m.pct}% {fr ? 'bénéfice' : 'فائدة'}</div>
+                  ) : null; })()}
+                </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     {p.stock_faible && <AlertTriangle size={12} color="#ef4444" />}
