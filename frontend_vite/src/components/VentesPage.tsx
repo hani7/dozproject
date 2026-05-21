@@ -108,15 +108,29 @@ function VentesPageContent({ type }: Props) {
     return () => clearInterval(iv);
   }, [load]);
   useEffect(() => {
-    // Load all clients without filtering by type so no client is missing
-    api.get('/clients/', { params: { page_size: 1000 } })
-      .then(r => {
-        const list = r.data.results || r.data;
-        setClients(list);
-      })
-      .catch(() => {
-        console.error('Erreur chargement clients');
-      });
+    // Load all clients, fetching all pages if paginated (bulletproof fallback)
+    const fetchAllClients = async () => {
+      try {
+        let allClients: any[] = [];
+        let nextUrl: string | null = '/clients/?page_size=500';
+        while (nextUrl) {
+          const r = await api.get(nextUrl);
+          const data = r.data.results || r.data;
+          allClients = [...allClients, ...data];
+          
+          // Check if there's a next page
+          if (r.data.next) {
+            nextUrl = r.data.next;
+          } else {
+            nextUrl = null;
+          }
+        }
+        setClients(allClients);
+      } catch (e) {
+        console.error('Erreur chargement clients', e);
+      }
+    };
+    fetchAllClients();
     
     api.get('/products/', { params: { actif: true, page_size: 1000 } })
       .then(r => setProducts(r.data.results || r.data));
