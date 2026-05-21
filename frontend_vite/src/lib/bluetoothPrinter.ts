@@ -351,41 +351,66 @@ export function printTicketHTML(ticket: TicketData): void {
   
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      // Inject temporary CSS to format the screen perfectly for Android's Image Capture
-      const style = document.createElement('style');
-      style.id = 'android-print-temp-style';
-      style.innerHTML = `
-        body > *:not(#ticket-print-overlay) { display: none !important; }
-        #ticket-print-overlay { 
-          background: white !important; 
-          padding: 0 !important; 
-          align-items: flex-start !important; 
-          justify-content: flex-start !important; 
-        }
-        .no-print { display: none !important; }
-        .print-ticket-container { 
-          box-shadow: none !important; 
-          margin: 0 !important; 
-          padding: 10px !important;
-          max-width: 384px !important; 
-          width: 384px !important; 
-          max-height: none !important; 
-          overflow: visible !important; 
-          border-radius: 0 !important; 
-        }
-      `;
-      document.head.appendChild(style);
+      // Direct DOM manipulation to ensure styles are applied immediately
+      const overlay = document.getElementById('ticket-print-overlay');
+      const container = document.querySelector('.print-ticket-container') as HTMLElement;
+      const noPrint = document.querySelector('.no-print') as HTMLElement;
+      
+      // Save original styles
+      const origOverlayBg = overlay?.style.background;
+      const origOverlayAlign = overlay?.style.alignItems;
+      const origOverlayJustify = overlay?.style.justifyContent;
+      const origOverlayPadding = overlay?.style.padding;
+      
+      const origContainerShadow = container?.style.boxShadow;
+      const origContainerMargin = container?.style.margin;
+      const origContainerMaxW = container?.style.maxWidth;
+      const origContainerW = container?.style.width;
+      
+      const origNoPrintDisplay = noPrint?.style.display;
+
+      // Apply clean print styles
+      if (overlay) {
+        overlay.style.background = 'white';
+        overlay.style.alignItems = 'flex-start';
+        overlay.style.justifyContent = 'flex-start';
+        overlay.style.padding = '0';
+      }
+      if (container) {
+        container.style.boxShadow = 'none';
+        container.style.margin = '0';
+        container.style.maxWidth = '384px';
+        container.style.width = '384px';
+        container.style.padding = '0';
+      }
+      if (noPrint) {
+        noPrint.style.display = 'none';
+      }
 
       // Wait a tiny bit for the browser to render the clean ticket
       setTimeout(() => {
         window.print();
         
-        // Restore the normal UI after Android has finished capturing (2 seconds is safe)
+        // Restore the normal UI after Android has finished capturing
         setTimeout(() => {
-          const s = document.getElementById('android-print-temp-style');
-          if (s) s.remove();
+          if (overlay) {
+            overlay.style.background = origOverlayBg || '';
+            overlay.style.alignItems = origOverlayAlign || '';
+            overlay.style.justifyContent = origOverlayJustify || '';
+            overlay.style.padding = origOverlayPadding || '';
+          }
+          if (container) {
+            container.style.boxShadow = origContainerShadow || '';
+            container.style.margin = origContainerMargin || '';
+            container.style.maxWidth = origContainerMaxW || '';
+            container.style.width = origContainerW || '';
+            container.style.padding = '20px';
+          }
+          if (noPrint) {
+            noPrint.style.display = origNoPrintDisplay || '';
+          }
         }, 2000);
-      }, 100);
+      }, 300); // 300ms ensures DOM is fully updated before Android captures
     });
   }
 
