@@ -8,7 +8,7 @@ import Topbar from '@/components/Topbar';
 import type { UserRole } from '@/lib/types';
 import {
   Package, Users, ShoppingBag, ShoppingCart, ClipboardList,
-  Truck, Clock, Home, User
+  Truck, Clock, Home, User, MapPin
 } from 'lucide-react';
 
 interface Props {
@@ -58,6 +58,7 @@ export default function AppLayout({ children, allowedRoles }: Props) {
       if (sp === 'gros'   || sp === 'les_deux')
         items.push({ href: '/prevendeur/commande-gros',   icon: ShoppingCart,  label: t('nav.order_gros') });
       items.push({ href: '/prevendeur/mes-commandes', icon: ClipboardList, label: t('nav.my_orders') });
+      items.push({ href: '/prevendeur/tournee',       icon: MapPin,        label: t('nav.tournee') });
       return items;
     }
     if (user.role === 'livreur') {

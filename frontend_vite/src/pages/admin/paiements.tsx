@@ -3,478 +3,371 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, CreditCard, ArrowRightLeft, Wallet, BadgeCheck, Search } from 'lucide-react';
+import { Plus, Search, ChevronDown, ChevronUp, CheckCircle, Clock, X } from 'lucide-react';
 
-const today = new Date().toISOString().split('T')[0];
-const EMPTY_P = { type_paiement: 'vente', mode: 'especes', montant: '', date: today, client_nom: '', fournisseur_nom: '', notes: '' };
-const EMPTY_V = { employe: '', montant: '', date: today, banque: '', motif: 'Salaire', statut: 'en_attente' };
+const todayStr = new Date().toISOString().split('T')[0];
 
-// Solde info panel
-function SoldePanel({ items }: { items: { icon: string; label: string; value: number; color: string }[] }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: '1px', background: 'var(--border)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: '16px' }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ background: 'var(--bg-elevated)', padding: '14px', textAlign: 'center' }}>
-          <div style={{ fontSize: '18px', marginBottom: '4px' }}>{item.icon}</div>
-          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '6px' }}>{item.label}</div>
-          <div style={{ fontSize: '15px', fontWeight: 900, color: item.color }}>{item.value.toLocaleString()} DA</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+type Plan = {
+  id: number; reference: string; type_plan: string;
+  client_nom: string; fournisseur_nom: string;
+  montant_total: number; montant_paye: number; montant_restant: number;
+  pct_paye: number; statut: string; date_debut: string; notes: string;
+  versements: Versement[];
+};
+type Versement = { id: number; plan: number; montant: number; date: string; mode: string; notes: string };
 
-// Versement toggle
-function VersementToggle({ mode, onSelect, resteLabel }: { mode: string; onSelect: (m: 'versement' | 'total') => void; resteLabel: string }) {
-  return (
-    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-      {([['versement', '🪙', 'Versement partiel'] as const, ['total', '✅', resteLabel] as const]).map(([val, icon, label]) => (
-        <button key={val} type="button" onClick={() => onSelect(val)} style={{
-          flex: 1, padding: '10px 8px', borderRadius: '10px', cursor: 'pointer',
-          border: `2px solid ${mode === val ? (val === 'total' ? '#10b981' : 'var(--brand-primary)') : 'var(--border)'}`,
-          background: mode === val ? (val === 'total' ? 'rgba(16,185,129,0.08)' : 'rgba(0,96,69,0.08)') : 'var(--bg-elevated)',
-          color: mode === val ? (val === 'total' ? '#10b981' : 'var(--brand-primary)') : 'var(--text-secondary)',
-          fontWeight: 700, fontSize: '13px', transition: 'all 0.15s',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        }}>
-          {icon} {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+const fmtDA = (n: number) => Number(n).toLocaleString('fr-DZ') + ' DA';
+const MODE_OPTIONS = ['especes', 'virement', 'cheque', 'mobile'];
 
 export default function PaiementsPage() {
   const { lang } = useLang();
-  const [paiements, setPaiements] = useState<any[]>([]);
-  const [virements, setVirements] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [fournisseurs, setFournisseurs] = useState<any[]>([]);
-  const [employes, setEmployes] = useState<any[]>([]);
-  const [tab, setTab] = useState<'paiements' | 'virements'>('paiements');
-  const [modal, setModal] = useState(false);
-  const [pMode, setPMode] = useState<'versement' | 'total'>('versement');
-  const [vMode, setVMode] = useState<'versement' | 'total'>('versement');
-  const [search, setSearch] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState('');
-  const [selectedFournisseurId, setSelectedFournisseurId] = useState('');
-  const [pForm, setPForm] = useState({ ...EMPTY_P });
-  const [vForm, setVForm] = useState({ ...EMPTY_V });
-  const [multiVirements, setMultiVirements] = useState([{ montant: '', date: today }]);
-  const [montantGlobalFourn, setMontantGlobalFourn] = useState('');
-
-  const loadData = () => {
-    api.get('/paiements/paiements/').then(r => setPaiements(r.data.results || r.data));
-    api.get('/paiements/virements/').then(r => setVirements(r.data.results || r.data));
-    api.get('/clients/').then(r => setClients(r.data.results || r.data));
-    api.get('/fournisseurs/').then(r => setFournisseurs(r.data.results || r.data));
-    api.get('/hr/employes/').then(r => setEmployes(r.data.results || r.data));
-  };
-  useEffect(() => { loadData(); }, []);
-
-  // Client/Fournisseur solde
-  const selClient = useMemo(() => clients.find(c => String(c.id) === selectedClientId), [clients, selectedClientId]);
-  const selFourn = useMemo(() => fournisseurs.find(f => String(f.id) === selectedFournisseurId), [fournisseurs, selectedFournisseurId]);
-  const clientDette = selClient ? Math.max(0, -Number(selClient.solde)) : 0;   // negative solde = owes us
-  const fournDette = selFourn ? Math.max(0, -Number(selFourn.solde)) : 0;       // negative solde = we owe them
-
-  const resteP = pForm.type_paiement === 'vente' ? clientDette : fournDette;
-
-  const handlePModeToggle = (m: 'versement' | 'total') => {
-    setPMode(m);
-    if (m === 'total') setPForm(f => ({ ...f, montant: String(resteP) }));
-    else setPForm(f => ({ ...f, montant: '' }));
-  };
-
-  const handleClientChange = (id: string) => {
-    setSelectedClientId(id);
-    setPForm(f => ({ ...f, client_nom: clients.find(c => String(c.id) === id)?.nom || '', montant: '' }));
-    setPMode('versement');
-  };
-
-  const handleFournChange = (id: string) => {
-    setSelectedFournisseurId(id);
-    setPForm(f => ({ ...f, fournisseur_nom: fournisseurs.find(f => String(f.id) === id)?.nom || '', montant: '' }));
-    setPMode('versement');
-  };
-
-  // Virement employee
-  const selEmploye = useMemo(() => employes.find(e => String(e.id) === String(vForm.employe)), [employes, vForm.employe]);
-  const salaire = Number(selEmploye?.salaire_base || 0);
-  const currentMonth = today.slice(0, 7);
-  const totalPaye = useMemo(() =>
-    virements.filter(v => String(v.employe) === String(vForm.employe) && v.date?.startsWith(currentMonth)).reduce((s, v) => s + Number(v.montant), 0),
-    [virements, vForm.employe, currentMonth]);
-  const resteV = Math.max(0, salaire - totalPaye);
-
-  const handleVModeToggle = (m: 'versement' | 'total') => {
-    setVMode(m);
-    if (m === 'total') setVForm(f => ({ ...f, montant: String(resteV) }));
-    else setVForm(f => ({ ...f, montant: '' }));
-  };
-
-  const savePaiement = async () => {
-    // Cas spécial: Paiement fournisseur (achat) en virement multiple
-    if (pForm.type_paiement === 'achat') {
-      const vValid = multiVirements.filter(v => Number(v.montant) > 0);
-      if (vValid.length === 0) { toast.error('Veuillez ajouter au moins un virement valide'); return; }
-      
-      const totalMulti = vValid.reduce((s, v) => s + Number(v.montant), 0);
-      if (resteP > 0 && totalMulti > resteP) { toast.error(`Total des virements dépasse la dette (${resteP.toLocaleString()} DA)`); return; }
-
-      try {
-        await Promise.all(vValid.map(v => 
-          api.post('/paiements/paiements/', {
-            ...pForm,
-            montant: Number(v.montant),
-            date: v.date,
-            mode: 'virement' // On force le virement
-          })
-        ));
-        toast.success(`${vValid.length} paiement(s) enregistré(s) ✓`);
-        setModal(false); setPForm({ ...EMPTY_P }); setSelectedFournisseurId('');
-        setMultiVirements([{ montant: '', date: today }]); setMontantGlobalFourn('');
-        loadData();
-      } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur lors de l\'enregistrement')); }
-      return;
-    }
-
-    if (!pForm.montant || Number(pForm.montant) <= 0) { toast.error('Montant invalide'); return; }
-    if (resteP > 0 && Number(pForm.montant) > resteP) { toast.error(`Max: ${resteP.toLocaleString()} DA`); return; }
-    try {
-      await api.post('/paiements/paiements/', { ...pForm, montant: Number(pForm.montant) });
-      toast.success('Paiement enregistré ✓');
-      setModal(false); setPForm({ ...EMPTY_P }); setSelectedClientId(''); setSelectedFournisseurId('');
-      loadData();
-    } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur')); }
-  };
-
-  const saveVirement = async () => {
-    if (!vForm.employe) { toast.error('Sélectionner un employé'); return; }
-    if (!vForm.montant || Number(vForm.montant) <= 0) { toast.error('Montant invalide'); return; }
-    if (resteV > 0 && Number(vForm.montant) > resteV) { toast.error(`Max: ${resteV.toLocaleString()} DA`); return; }
-    try {
-      await api.post('/paiements/virements/', { ...vForm, montant: Number(vForm.montant), employe: Number(vForm.employe) });
-      toast.success('Virement enregistré ✓');
-      setModal(false); setVForm({ ...EMPTY_V }); loadData();
-    } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur')); }
-  };
-
-  const sc: Record<string, string> = { en_attente: 'badge-warning', valide: 'badge-success', execute: 'badge-success', rejete: 'badge-danger' };
   const fr = lang === 'fr';
 
-  const filteredPaiements = paiements.filter(p => {
-    const q = search.toLowerCase();
-    return !q || p.client_nom?.toLowerCase().includes(q) || p.fournisseur_nom?.toLowerCase().includes(q);
-  });
+  const [plans, setPlans]       = useState<Plan[]>([]);
+  const [clients, setClients]   = useState<any[]>([]);
+  const [fournisseurs, setFournisseurs] = useState<any[]>([]);
+  const [search, setSearch]     = useState('');
+  const [filterStatut, setFilterStatut] = useState<'all' | 'en_cours' | 'termine'>('all');
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
-  const filteredVirements = virements.filter(v => {
-    const q = search.toLowerCase();
-    return !q || v.employe_nom?.toLowerCase().includes(q) || v.banque?.toLowerCase().includes(q) || v.motif?.toLowerCase().includes(q);
+  // Create plan form
+  const [form, setForm] = useState({
+    type_plan: 'client', client_nom: '', fournisseur_nom: '',
+    montant_total: '', date_debut: todayStr, notes: '',
   });
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedFournId, setSelectedFournId]   = useState('');
+
+  // Add versement form per plan
+  const [versForm, setVersForm] = useState<Record<number, { montant: string; date: string; mode: string; notes: string }>>({});
+
+  const load = () => {
+    api.get('/paiements/plans/').then(r => setPlans(r.data.results || r.data));
+  };
+
+  useEffect(() => {
+    load();
+    api.get('/clients/', { params: { page_size: 500 } }).then(r => setClients(r.data.results || r.data));
+    api.get('/fournisseurs/', { params: { page_size: 200 } }).then(r => setFournisseurs(r.data.results || r.data));
+  }, []);
+
+  const filtered = useMemo(() => plans.filter(p => {
+    const q = search.toLowerCase();
+    const matchQ = !q || p.client_nom.toLowerCase().includes(q) || p.fournisseur_nom.toLowerCase().includes(q) || p.reference.toLowerCase().includes(q);
+    const matchS = filterStatut === 'all' || p.statut === filterStatut;
+    return matchQ && matchS;
+  }), [plans, search, filterStatut]);
+
+  const createPlan = async () => {
+    const nom = form.type_plan === 'client' ? form.client_nom : form.fournisseur_nom;
+    if (!nom) { toast.error(fr ? 'Sélectionner un client/fournisseur' : 'اختر عميلاً/مورداً'); return; }
+    if (!form.montant_total || Number(form.montant_total) <= 0) { toast.error(fr ? 'Montant requis' : 'المبلغ مطلوب'); return; }
+    try {
+      await api.post('/paiements/plans/', {
+        type_plan: form.type_plan,
+        client_nom: form.type_plan === 'client' ? form.client_nom : '',
+        fournisseur_nom: form.type_plan === 'fournisseur' ? form.fournisseur_nom : '',
+        montant_total: Number(form.montant_total),
+        date_debut: form.date_debut,
+        notes: form.notes,
+      });
+      toast.success('✅ ' + (fr ? 'Plan créé' : 'تم إنشاء الخطة'));
+      setShowCreate(false);
+      setForm({ type_plan: 'client', client_nom: '', fournisseur_nom: '', montant_total: '', date_debut: todayStr, notes: '' });
+      setSelectedClientId(''); setSelectedFournId('');
+      load();
+    } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur')); }
+  };
+
+  const addVersement = async (plan: Plan) => {
+    const vf = versForm[plan.id];
+    if (!vf?.montant || Number(vf.montant) <= 0) { toast.error(fr ? 'Montant invalide' : 'مبلغ غير صالح'); return; }
+    if (plan.montant_restant > 0 && Number(vf.montant) > plan.montant_restant) {
+      toast.error(`Max: ${fmtDA(plan.montant_restant)}`); return;
+    }
+    try {
+      await api.post('/paiements/versements-plan/', {
+        plan: plan.id, montant: Number(vf.montant),
+        date: vf.date || todayStr, mode: vf.mode || 'especes', notes: vf.notes || '',
+      });
+      toast.success('✅ ' + (fr ? 'Versement ajouté' : 'تمت إضافة الدفعة'));
+      setVersForm(f => ({ ...f, [plan.id]: { montant: '', date: todayStr, mode: 'especes', notes: '' } }));
+      load();
+    } catch (e: any) { toast.error(JSON.stringify(e?.response?.data || 'Erreur')); }
+  };
+
+  const deletePlan = async (id: number) => {
+    if (!confirm(fr ? 'Supprimer ce plan ?' : 'حذف هذه الخطة؟')) return;
+    await api.delete(`/paiements/plans/${id}/`);
+    toast.success(fr ? 'Supprimé' : 'تم الحذف');
+    load();
+  };
+
+  const vf = (planId: number) => versForm[planId] || { montant: '', date: todayStr, mode: 'especes', notes: '' };
+  const setVf = (planId: number, patch: Partial<typeof versForm[0]>) =>
+    setVersForm(f => ({ ...f, [planId]: { ...vf(planId), ...patch } }));
+
+  const totals = useMemo(() => ({
+    total: plans.reduce((s, p) => s + p.montant_total, 0),
+    paye:  plans.reduce((s, p) => s + p.montant_paye, 0),
+    en_cours: plans.filter(p => p.statut === 'en_cours').length,
+    termine:  plans.filter(p => p.statut === 'termine').length,
+  }), [plans]);
 
   return (
     <AppLayout allowedRoles={['admin']}>
       <div className="page-header">
         <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Wallet size={20} color="var(--brand-primary)" />
-            {fr ? 'Paiements & Virements' : 'المدفوعات والتحويلات'}
-          </h1>
+          <h1>💳 {fr ? 'Plans de Paiement' : 'خطط الدفع'}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-            {filteredPaiements.length} {fr ? 'paiements' : 'مدفوعات'} · {filteredVirements.length} {fr ? 'virements' : 'تحويلات'}
+            {totals.en_cours} {fr ? 'en cours' : 'جارية'} · {totals.termine} {fr ? 'terminés' : 'مكتملة'}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal(true)}><Plus size={15} /> {fr ? 'Nouveau' : 'جديد'}</button>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          <Plus size={15} /> {fr ? 'Nouveau plan' : 'خطة جديدة'}
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
-        <button className={`btn ${tab === 'paiements' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }} onClick={() => setTab('paiements')}><CreditCard size={14} /> {fr ? 'Paiements' : 'مدفوعات'}</button>
-        <button className={`btn ${tab === 'virements' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none' }} onClick={() => setTab('virements')}><ArrowRightLeft size={14} /> {fr ? 'Virements' : 'تحويلات'}</button>
+      {/* Summary KPIs */}
+      <div className="grid-4" style={{ marginBottom: '20px' }}>
+        {[
+          { label: fr ? 'Total à recevoir' : 'المجموع', value: fmtDA(totals.total), color: '#6366f1' },
+          { label: fr ? 'Déjà payé'       : 'تم دفعه',  value: fmtDA(totals.paye),  color: '#10b981' },
+          { label: fr ? 'Restant'          : 'المتبقي',  value: fmtDA(totals.total - totals.paye), color: '#f59e0b' },
+          { label: fr ? 'Plans actifs'     : 'خطط نشطة', value: String(totals.en_cours), color: '#06b6d4' },
+        ].map((k, i) => (
+          <div key={i} className="kpi-card">
+            <div className="kpi-label">{k.label}</div>
+            <div className="kpi-value" style={{ fontSize: '18px', color: k.color }}>{k.value}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="search-bar" style={{ marginBottom: '16px' }}>
-        <div className="search-input-wrap" style={{ maxWidth: 360 }}>
-          <Search size={18} />
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="search-input-wrap" style={{ maxWidth: 300 }}>
+          <Search size={16} />
           <input className="form-control" placeholder={fr ? 'Rechercher...' : 'بحث...'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        {(['all', 'en_cours', 'termine'] as const).map(s => (
+          <button key={s} onClick={() => setFilterStatut(s)} style={{
+            padding: '7px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '12px',
+            border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit',
+            background: filterStatut === s ? 'var(--brand-primary)' : 'var(--bg-elevated)',
+            color: filterStatut === s ? '#fff' : 'var(--text-muted)',
+          }}>
+            {s === 'all' ? (fr ? 'Tous' : 'الكل') : s === 'en_cours' ? (fr ? 'En cours' : 'جارية') : (fr ? 'Terminés' : 'مكتملة')}
+          </button>
+        ))}
       </div>
 
-      <div className="table-container">
-        {tab === 'paiements' && (
-          <table>
-            <thead><tr>
-              <th>{fr ? 'Date' : 'التاريخ'}</th><th>{fr ? 'Type' : 'النوع'}</th><th>{fr ? 'Mode' : 'الطريقة'}</th>
-              <th>{fr ? 'Client/Fournisseur' : 'العميل/المورد'}</th><th>{fr ? 'Montant' : 'المبلغ'}</th><th>Statut</th>
-            </tr></thead>
-            <tbody>{filteredPaiements.map(p => (
-              <tr key={p.id}>
-                <td style={{ fontSize: '12px' }}>{new Date(p.created_at).toLocaleDateString()}</td>
-                <td><span className="badge badge-info">{p.type_paiement}</span></td>
-                <td>{p.mode}</td>
-                <td>{p.client_nom || p.fournisseur_nom || '-'}</td>
-                <td style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{Number(p.montant).toLocaleString()} DA</td>
-                <td><span className={`badge ${sc[p.statut] || 'badge-gray'}`}>{p.statut}</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        )}
-
-        {tab === 'virements' && (
-          <table>
-            <thead><tr>
-              <th>{fr ? 'Date' : 'التاريخ'}</th><th>{fr ? 'Employé' : 'الموظف'}</th><th>{fr ? 'Montant' : 'المبلغ'}</th>
-              <th>{fr ? 'Banque' : 'البنك'}</th><th>{fr ? 'Motif' : 'السبب'}</th><th>Statut</th>
-            </tr></thead>
-            <tbody>{filteredVirements.map(v => (
-              <tr key={v.id}>
-                <td style={{ fontSize: '12px' }}>{new Date(v.created_at).toLocaleDateString()}</td>
-                <td style={{ fontWeight: 600 }}>{v.employe_nom}</td>
-                <td style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{Number(v.montant).toLocaleString()} DA</td>
-                <td>{v.banque || '-'}</td><td>{v.motif || '-'}</td>
-                <td><span className={`badge ${sc[v.statut] || 'badge-gray'}`}>{v.statut}</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
-        )}
-      </div>
-
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            {/* Tab */}
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '8px' }}>
-              <button className={`btn ${tab === 'paiements' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none', flex: 1 }} onClick={() => setTab('paiements')}>{fr ? 'Paiement Client/Fourn.' : 'دفع'}</button>
-              <button className={`btn ${tab === 'virements' ? 'btn-primary' : 'btn-secondary'}`} style={{ border: 'none', flex: 1 }} onClick={() => setTab('virements')}>{fr ? 'Virement Employé' : 'تحويل'}</button>
-            </div>
-
-            {/* ── PAIEMENT FORM ─────────────────────────────── */}
-            {tab === 'paiements' && (
-              <>
-                <div className="modal-title">💳 {fr ? 'Nouveau paiement' : 'دفعة جديدة'}</div>
-                <div className="grid-2" style={{ marginBottom: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Type' : 'النوع'}</label>
-                    <select className="form-control" value={pForm.type_paiement}
-                      onChange={e => { 
-                        const isAchat = e.target.value === 'achat';
-                        setPForm(f => ({ ...EMPTY_P, type_paiement: e.target.value, date: f.date, mode: isAchat ? 'virement' : f.mode })); 
-                        setSelectedClientId(''); 
-                        if (isAchat) {
-                          // Auto-select the first (or SARL VERY NET)
-                          const sarl = fournisseurs.find(f => f.nom.toUpperCase().includes('SARL VERY NET'));
-                          if (sarl) setSelectedFournisseurId(String(sarl.id));
-                          else if (fournisseurs.length > 0) setSelectedFournisseurId(String(fournisseurs[0].id));
-                        } else {
-                          setSelectedFournisseurId(''); 
-                        }
-                        setPMode('versement'); 
-                      }}>
-                      <option value="vente">{fr ? 'Règlement client' : 'تسوية عميل'}</option>
-                      <option value="achat">{fr ? 'Paiement fournisseur (SARL VERY NET)' : 'دفع للمورد'}</option>
-                      <option value="autre">Autre</option>
-                    </select>
+      {/* Plans list */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+          <p>💳 {fr ? 'Aucun plan trouvé.' : 'لا توجد خطط.'}</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filtered.map(plan => {
+            const isOpen = expanded === plan.id;
+            const isDone = plan.statut === 'termine';
+            const restant = plan.montant_restant;
+            const cvf = vf(plan.id);
+            const nom = plan.client_nom || plan.fournisseur_nom;
+            return (
+              <div key={plan.id} style={{
+                background: 'var(--bg-elevated)', borderRadius: '14px',
+                border: `1px solid ${isDone ? '#10b98140' : 'var(--border)'}`,
+                overflow: 'hidden',
+              }}>
+                {/* Header row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', cursor: 'pointer' }}
+                  onClick={() => setExpanded(isOpen ? null : plan.id)}>
+                  {/* Status icon */}
+                  <div style={{ flexShrink: 0 }}>
+                    {isDone
+                      ? <CheckCircle size={22} color="#10b981" />
+                      : <Clock size={22} color="#f59e0b" />
+                    }
                   </div>
-                  {pForm.type_paiement !== 'achat' && (
-                    <div className="form-group">
-                      <label className="form-label">{fr ? 'Mode' : 'الطريقة'}</label>
-                      <select className="form-control" value={pForm.mode} onChange={e => setPForm(f => ({ ...f, mode: e.target.value }))}>
-                        <option value="especes">{fr ? 'Espèces' : 'نقداً'}</option>
-                        <option value="virement">{fr ? 'Virement' : 'تحويل'}</option>
-                        <option value="cheque">{fr ? 'Chèque' : 'شيك'}</option>
-                      </select>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px' }}>{nom}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{plan.reference}</span>
+                      <span style={{ fontSize: '10px', padding: '1px 8px', borderRadius: '10px', fontWeight: 700,
+                        background: isDone ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                        color: isDone ? '#10b981' : '#f59e0b' }}>
+                        {isDone ? (fr ? 'Terminé' : 'مكتمل') : (fr ? 'En cours' : 'جارية')}
+                      </span>
                     </div>
-                  )}
+                    {/* Progress bar */}
+                    <div style={{ marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                        <span>{fmtDA(plan.montant_paye)} / {fmtDA(plan.montant_total)}</span>
+                        <span style={{ fontWeight: 700, color: isDone ? '#10b981' : '#6366f1' }}>{plan.pct_paye}%</span>
+                      </div>
+                      <div style={{ height: 8, background: 'var(--border)', borderRadius: 4 }}>
+                        <div style={{ height: 8, width: `${plan.pct_paye}%`, background: isDone ? '#10b981' : '#6366f1', borderRadius: 4, transition: 'width 0.4s' }} />
+                      </div>
+                      {!isDone && <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '3px', fontWeight: 600 }}>
+                        {fr ? 'Restant :' : 'المتبقي:'} {fmtDA(restant)}
+                      </div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button className="btn btn-danger btn-icon" onClick={e => { e.stopPropagation(); deletePlan(plan.id); }}>
+                      <X size={12} />
+                    </button>
+                    {isOpen ? <ChevronUp size={18} color="var(--text-muted)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
+                  </div>
                 </div>
 
-                {/* Client or Fournisseur selector */}
-                {pForm.type_paiement === 'vente' && (
-                  <div className="form-group">
-                    <label className="form-label">👤 {fr ? 'Client' : 'العميل'}</label>
-                    <select className="form-control" value={selectedClientId} onChange={e => handleClientChange(e.target.value)}>
-                      <option value="">{fr ? '-- Sélectionner client --' : '-- اختر عميلاً --'}</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.nom} {Number(c.solde) < 0 ? `· دين ${Math.abs(Number(c.solde)).toLocaleString()} DA` : ''}</option>)}
-                    </select>
-                  </div>
-                )}
-                {pForm.type_paiement === 'achat' && (
-                  <div className="form-group">
-                    <label className="form-label">🏭 {fr ? 'Fournisseur' : 'المورد'}</label>
-                    <select className="form-control" value={selectedFournisseurId} onChange={e => handleFournChange(e.target.value)}>
-                      <option value="">{fr ? '-- Sélectionner fournisseur --' : '-- اختر مورداً --'}</option>
-                      {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom} {Number(f.solde) < 0 ? `· dette ${Math.abs(Number(f.solde)).toLocaleString()} DA` : ''}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                {/* Solde panel for client */}
-                {pForm.type_paiement === 'vente' && selClient && (
-                  <SoldePanel items={[
-                    { icon: '💰', label: fr ? 'Solde client' : 'رصيد العميل', value: Number(selClient.solde), color: Number(selClient.solde) < 0 ? '#ef4444' : '#10b981' },
-                    { icon: '⏳', label: fr ? 'Dette (reste à payer)' : 'الدين المتبقي', value: clientDette, color: clientDette > 0 ? '#ef4444' : '#10b981' },
-                  ]} />
-                )}
-
-                {/* Solde panel for fournisseur */}
-                {pForm.type_paiement === 'achat' && selFourn && (
-                  <SoldePanel items={[
-                    { icon: '🏭', label: fr ? 'Solde fournisseur' : 'رصيد المورد', value: Number(selFourn.solde), color: Number(selFourn.solde) < 0 ? '#ef4444' : '#10b981' },
-                    { icon: '⏳', label: fr ? 'Notre dette' : 'ديننا', value: fournDette, color: fournDette > 0 ? '#ef4444' : '#10b981' },
-                  ]} />
-                )}
-
-                {/* Versement toggle (Client only) */}
-                {pForm.type_paiement === 'vente' && resteP > 0 && (
-                  <VersementToggle mode={pMode} onSelect={handlePModeToggle}
-                    resteLabel={fr ? `Tout régler · ${resteP.toLocaleString()} DA` : `تسوية كاملة · ${resteP.toLocaleString()} DA`} />
-                )}
-                {pForm.type_paiement === 'vente' && resteP === 0 && selClient && (
-                  <div className="alert alert-success">✅ {fr ? 'Aucune dette — solde à jour.' : 'لا يوجد دين — الرصيد محدّث.'}</div>
-                )}
-                {pForm.type_paiement === 'achat' && resteP === 0 && selFourn && (
-                  <div className="alert alert-success" style={{ marginBottom: '16px' }}>✅ {fr ? 'Aucune dette — solde fournisseur à jour.' : 'لا يوجد دين — الرصيد محدّث.'}</div>
-                )}
-
-                {/* Form fields */}
-                {pForm.type_paiement === 'achat' ? (
-                  // ACHAT : DYNAMIC VIREMENTS
-                  <div style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                    <div style={{ marginBottom: '16px', display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-                      <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{fr ? 'Montant Global Estimé' : 'المبلغ الإجمالي'}</span>
-                          <span style={{ color: 'var(--brand-primary)', fontWeight: 800 }}>
-                            {multiVirements.reduce((s, v) => s + Number(v.montant), 0).toLocaleString()} DA
-                          </span>
-                        </label>
-                        <input className="form-control" type="number" min="0" value={montantGlobalFourn}
-                          onChange={e => setMontantGlobalFourn(e.target.value)}
-                          placeholder="Ex: 500000" style={{ fontWeight: 700, fontSize: '16px' }} />
-                      </div>
-                    </div>
-                    
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {fr ? 'Détails des virements' : 'تفاصيل التحويلات'}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {multiVirements.map((v, i) => (
-                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <input className="form-control" type="number" min="0" placeholder="Montant"
-                            value={v.montant} onChange={e => {
-                              const newV = [...multiVirements]; newV[i].montant = e.target.value; setMultiVirements(newV);
-                            }}
-                            style={{ flex: 1, fontWeight: 600 }} />
-                          <input className="form-control" type="date" value={v.date}
-                            onChange={e => {
-                              const newV = [...multiVirements]; newV[i].date = e.target.value; setMultiVirements(newV);
-                            }}
-                            style={{ width: '140px' }} />
-                          <button className="btn btn-danger" style={{ padding: '8px' }} 
-                            onClick={() => setMultiVirements(multiVirements.filter((_, idx) => idx !== i))}
-                            disabled={multiVirements.length === 1}>
-                            ✕
-                          </button>
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
+                    {/* Versements history */}
+                    {plan.versements.length > 0 && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                          {fr ? 'Historique des versements' : 'سجل الدفعات'}
                         </div>
-                      ))}
-                      <button className="btn btn-secondary" style={{ width: 'fit-content', padding: '6px 12px', fontSize: '12px' }}
-                        onClick={() => setMultiVirements([...multiVirements, { montant: '', date: today }])}>
-                        <Plus size={14} /> {fr ? 'Ajouter un virement' : 'إضافة تحويل'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // VENTE / AUTRE : SINGLE PAYMENT
-                  <div className="grid-2">
-                    <div className="form-group">
-                      <label className="form-label">
-                        {fr ? 'Montant (DA)' : 'المبلغ (DA)'}
-                        {resteP > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px', textTransform: 'none' }}>max {resteP.toLocaleString()} DA</span>}
-                      </label>
-                      <input className="form-control" type="number" min="0" value={pForm.montant}
-                        onChange={e => { setPMode('versement'); setPForm(f => ({ ...f, montant: e.target.value })); }}
-                        style={{ fontWeight: 700, fontSize: '16px' }} placeholder="0" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">{fr ? 'Date' : 'التاريخ'}</label>
-                      <input className="form-control" type="date" value={pForm.date} onChange={e => setPForm(f => ({ ...f, date: e.target.value }))} />
-                    </div>
-                    {pForm.type_paiement === 'autre' && (
-                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                        <label className="form-label">{fr ? 'Nom client/fourn.' : 'اسم العميل/المورد'}</label>
-                        <input className="form-control" value={pForm.client_nom} onChange={e => setPForm(f => ({ ...f, client_nom: e.target.value }))} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {plan.versements.map((v, i) => (
+                            <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-base)', borderRadius: '8px', fontSize: '13px' }}>
+                              <span style={{ color: 'var(--text-muted)', minWidth: 24 }}>#{i + 1}</span>
+                              <span style={{ fontWeight: 700, color: '#10b981' }}>{fmtDA(v.montant)}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{new Date(v.date).toLocaleDateString(fr ? 'fr-DZ' : 'ar-DZ')}</span>
+                              <span style={{ fontSize: '11px', padding: '1px 8px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>{v.mode}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add versement */}
+                    {!isDone && (
+                      <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '14px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '12px', color: '#6366f1', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          ➕ {fr ? 'Ajouter un versement' : 'إضافة دفعة'}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                          <div>
+                            <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                              {fr ? `Montant (max ${fmtDA(restant)})` : `المبلغ (أقصى ${fmtDA(restant)})`}
+                            </label>
+                            <input className="form-control" type="number" min="1" max={restant}
+                              value={cvf.montant} onChange={e => setVf(plan.id, { montant: e.target.value })}
+                              style={{ fontWeight: 700 }} placeholder="0" />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{fr ? 'Date' : 'التاريخ'}</label>
+                            <input className="form-control" type="date" value={cvf.date}
+                              onChange={e => setVf(plan.id, { date: e.target.value })} />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{fr ? 'Mode' : 'الطريقة'}</label>
+                            <select className="form-control" value={cvf.mode} onChange={e => setVf(plan.id, { mode: e.target.value })}>
+                              {MODE_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input className="form-control" placeholder={fr ? 'Note (optionnel)' : 'ملاحظة (اختياري)'} value={cvf.notes}
+                            onChange={e => setVf(plan.id, { notes: e.target.value })} style={{ flex: 1, fontSize: '12px' }} />
+                          <button className="btn btn-primary" onClick={() => addVersement(plan)} style={{ whiteSpace: 'nowrap' }}>
+                            💾 {fr ? 'Enregistrer' : 'حفظ'}
+                          </button>
+                          {restant > 0 && (
+                            <button className="btn btn-secondary" onClick={() => setVf(plan.id, { montant: String(restant) })} style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
+                              ✅ {fr ? 'Tout régler' : 'تسوية كاملة'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {isDone && (
+                      <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(16,185,129,0.08)', borderRadius: '10px', color: '#10b981', fontWeight: 700, fontSize: '13px' }}>
+                        ✅ {fr ? 'Plan entièrement payé — solde à zéro.' : 'تم السداد الكامل.'}
                       </div>
                     )}
                   </div>
                 )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={() => setModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-                  <button className="btn btn-primary" onClick={savePaiement}>💳 {fr ? 'Enregistrer' : 'حفظ'}</button>
-                </div>
-              </>
-            )}
+      {/* Create Plan Modal */}
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">💳 {fr ? 'Nouveau plan de paiement' : 'خطة دفع جديدة'}</div>
 
-            {/* ── VIREMENT FORM ─────────────────────────────── */}
-            {tab === 'virements' && (
-              <>
-                <div className="modal-title">💸 {fr ? 'Virement employé' : 'تحويل للموظف'}</div>
-                <div className="form-group">
-                  <label className="form-label">{fr ? 'Employé' : 'الموظف'}</label>
-                  <select className="form-control" value={vForm.employe}
-                    onChange={e => { setVForm(f => ({ ...f, employe: e.target.value, montant: '' })); setVMode('versement'); }}>
-                    <option value="">{fr ? '-- Sélectionner --' : '-- اختر --'}</option>
-                    {employes.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom} — {Number(e.salaire_base).toLocaleString()} DA</option>)}
-                  </select>
-                </div>
-
-                {selEmploye && (
-                  <SoldePanel items={[
-                    { icon: '💰', label: fr ? 'Salaire' : 'الراتب', value: salaire, color: 'var(--text-primary)' },
-                    { icon: '✅', label: fr ? 'Payé ce mois' : 'مدفوع', value: totalPaye, color: '#10b981' },
-                    { icon: '⏳', label: fr ? 'Reste' : 'المتبقي', value: resteV, color: resteV > 0 ? '#ef4444' : '#10b981' },
-                  ]} />
-                )}
-
-                {selEmploye && resteV > 0 && (
-                  <VersementToggle mode={vMode} onSelect={handleVModeToggle}
-                    resteLabel={fr ? `Tout payer · ${resteV.toLocaleString()} DA` : `دفع الكل · ${resteV.toLocaleString()} DA`} />
-                )}
-                {selEmploye && resteV === 0 && (
-                  <div className="alert alert-success">✅ {fr ? 'Salaire entièrement payé ce mois.' : 'تم دفع الراتب كاملاً.'}</div>
-                )}
-
-                <div className="grid-2">
-                  <div className="form-group">
-                    <label className="form-label">
-                      {fr ? 'Montant (DA)' : 'المبلغ (DA)'}
-                      {selEmploye && resteV > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '6px', textTransform: 'none' }}>max {resteV.toLocaleString()} DA</span>}
-                    </label>
-                    <input className="form-control" type="number" min="0" value={vForm.montant}
-                      onChange={e => { setVMode('versement'); setVForm(f => ({ ...f, montant: e.target.value })); }}
-                      style={{ fontWeight: 700, fontSize: '16px' }} placeholder="0" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Date' : 'التاريخ'}</label>
-                    <input className="form-control" type="date" value={vForm.date} onChange={e => setVForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Banque' : 'البنك'}</label>
-                    <input className="form-control" value={vForm.banque} onChange={e => setVForm(f => ({ ...f, banque: e.target.value }))} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{fr ? 'Motif' : 'السبب'}</label>
-                    <input className="form-control" value={vForm.motif} onChange={e => setVForm(f => ({ ...f, motif: e.target.value }))} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={() => setModal(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-                  <button className="btn btn-primary" onClick={saveVirement} disabled={!!selEmploye && resteV === 0}>
-                    💸 {fr ? 'Enregistrer' : 'تسجيل'}
+            <div className="form-group">
+              <label className="form-label">{fr ? 'Type' : 'النوع'}</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {(['client', 'fournisseur'] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type_plan: t, client_nom: '', fournisseur_nom: '' }))}
+                    style={{ flex: 1, padding: '9px', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '13px',
+                      border: `2px solid ${form.type_plan === t ? 'var(--brand-primary)' : 'var(--border)'}`,
+                      background: form.type_plan === t ? 'rgba(0,96,69,0.08)' : 'var(--bg-elevated)',
+                      color: form.type_plan === t ? 'var(--brand-primary)' : 'var(--text-muted)' }}>
+                    {t === 'client' ? '👤 ' + (fr ? 'Client' : 'عميل') : '🏭 ' + (fr ? 'Fournisseur' : 'مورد')}
                   </button>
-                </div>
-              </>
+                ))}
+              </div>
+            </div>
+
+            {form.type_plan === 'client' ? (
+              <div className="form-group">
+                <label className="form-label">👤 {fr ? 'Client' : 'العميل'}</label>
+                <select className="form-control" value={selectedClientId} onChange={e => {
+                  setSelectedClientId(e.target.value);
+                  setForm(f => ({ ...f, client_nom: clients.find(c => String(c.id) === e.target.value)?.nom || '' }));
+                }}>
+                  <option value="">{fr ? '-- Sélectionner --' : '-- اختر --'}</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">🏭 {fr ? 'Fournisseur' : 'المورد'}</label>
+                <select className="form-control" value={selectedFournId} onChange={e => {
+                  setSelectedFournId(e.target.value);
+                  setForm(f => ({ ...f, fournisseur_nom: fournisseurs.find(x => String(x.id) === e.target.value)?.nom || '' }));
+                }}>
+                  <option value="">{fr ? '-- Sélectionner --' : '-- اختر --'}</option>
+                  {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+                </select>
+              </div>
             )}
+
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">💰 {fr ? 'Montant total (DA)' : 'المبلغ الإجمالي'}</label>
+                <input className="form-control" type="number" min="1"
+                  value={form.montant_total} onChange={e => setForm(f => ({ ...f, montant_total: e.target.value }))}
+                  style={{ fontWeight: 700, fontSize: '16px' }} placeholder="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{fr ? 'Date début' : 'تاريخ البدء'}</label>
+                <input className="form-control" type="date" value={form.date_debut}
+                  onChange={e => setForm(f => ({ ...f, date_debut: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{fr ? 'Notes (optionnel)' : 'ملاحظات (اختياري)'}</label>
+              <textarea className="form-control" rows={2} value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+              <button className="btn btn-primary" onClick={createPlan}>💳 {fr ? 'Créer le plan' : 'إنشاء الخطة'}</button>
+            </div>
           </div>
         </div>
       )}

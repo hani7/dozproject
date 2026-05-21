@@ -72,16 +72,14 @@ export default function PrevendeurStockPage() {
                 </div>
 
                 <div style={{ marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{fr ? 'Stock actuel' : 'المخزون'}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--brand-primary)' }}>
-                      <span style={{ color: '#8b5cf6' }}>{p.stock_palettes} pal.</span>
-                      {p.stock_cartons_restants > 0 && <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}> + {p.stock_cartons_restants} ctn</span>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{fr ? 'Stock (ctn)' : 'المخزون (كرتون)'}</span>
+                    <span style={{ fontSize: '24px', fontWeight: 900, color: p.stock_faible ? '#ef4444' : 'var(--brand-primary)' }}>
+                      {p.stock_actuel}
+                      <span style={{ fontSize: '11px', fontWeight: 600, marginLeft: '2px', color: 'var(--text-muted)' }}>ctn</span>
                     </span>
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    {p.stock_actuel} {fr ? 'ctn total' : 'إجمالي كرتون'}
-                  </div>
+                  {p.stock_faible && <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 700, textAlign: 'right' }}>⚠ {fr ? 'Stock faible' : 'مخزون منخفض'}</div>}
                 </div>
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>

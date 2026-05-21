@@ -29,6 +29,7 @@ import CommandeGros from '@/pages/prevendeur/commande-gros'
 import MesCommandes from '@/pages/prevendeur/mes-commandes'
 import PrevendeurClients from '@/pages/prevendeur/clients'
 import PrevendeurStock from '@/pages/prevendeur/stock'
+import Tournee from '@/pages/prevendeur/tournee'
 
 export default function App() {
   return (
@@ -69,6 +70,7 @@ export default function App() {
               <Route path="/prevendeur/mes-commandes" element={<MesCommandes />} />
               <Route path="/prevendeur/clients" element={<PrevendeurClients />} />
               <Route path="/prevendeur/stock" element={<PrevendeurStock />} />
+              <Route path="/prevendeur/tournee" element={<Tournee />} />
 
               {/* 404 */}
               <Route path="*" element={<Navigate to="/login" replace />} />
