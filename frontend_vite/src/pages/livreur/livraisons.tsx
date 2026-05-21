@@ -406,14 +406,6 @@ export default function LivraisonsPage() {
                   {/* Livree: retour + paiement + ticket */}
                   {filter === 'livree' && (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <button onClick={() => openRetourModal(o)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 12px', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#d97706', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <RotateCcw size={14} /> {fr ? 'Retour' : 'إرجاع'}
-                      </button>
-                      <button onClick={() => openPayModal(o)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 12px', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.4)', background: isPaid ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <DollarSign size={14} /> {isPaid ? (fr ? 'Payé ✓' : 'مدفوع ✓') : (fr ? 'Paiement' : 'دفع')}
-                      </button>
                       <button onClick={() => printOrder(o)}
                         title={fr ? 'Imprimer ticket client' : 'طباعة التذكرة'}
                         style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 12px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.08)', color: '#6366f1', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -463,6 +455,23 @@ export default function LivraisonsPage() {
                 </div>
                 <button onClick={() => setPayModal(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}>
                   <X size={16} />
+                </button>
+              </div>
+
+              {/* ─ Actions Moved to Top */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, padding: '10px' }} onClick={() => setPayModal(null)}>
+                  {fr ? 'Annuler' : 'إلغاء'}
+                </button>
+                <button
+                  onClick={doPaiement}
+                  disabled={paying || totalVersements <= 0}
+                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', border: 'none', background: totalVersements > 0 ? '#10b981' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: paying || totalVersements <= 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                >
+                  {paying ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <DollarSign size={16} />}
+                  {fr
+                    ? `Valider ${versements.filter(v => Number(v.montant) > 0).length} versement(s)`
+                    : `تأكيد الدفع`}
                 </button>
               </div>
 
@@ -546,22 +555,7 @@ export default function LivraisonsPage() {
                 </button>
               )}
 
-              {/* ─ Actions */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setPayModal(null)}>
-                  {fr ? 'Annuler' : 'إلغاء'}
-                </button>
-                <button
-                  onClick={doPaiement}
-                  disabled={paying || totalVersements <= 0}
-                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', border: 'none', background: totalVersements > 0 ? '#10b981' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: paying || totalVersements <= 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
-                >
-                  {paying ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <DollarSign size={16} />}
-                  {fr
-                    ? `Valider ${versements.filter(v => Number(v.montant) > 0).length} versement(s) — ${totalVersements.toLocaleString('fr-DZ')} DA`
-                    : `تأكيد ${versements.filter(v => Number(v.montant) > 0).length} دفعة`}
-                </button>
-              </div>
+              {/* Removed old bottom actions */}
 
             </div>
           </div>
@@ -590,6 +584,19 @@ export default function LivraisonsPage() {
                   </div>
                 </div>
                 <button onClick={() => setRetourModal(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
+              </div>
+
+              {/* Actions Moved to Top */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, padding: '10px' }} onClick={() => setRetourModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+                <button
+                  disabled={doingRetour || totalRetourne === 0}
+                  onClick={doRetour}
+                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', border: 'none', background: totalRetourne > 0 ? '#d97706' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: totalRetourne === 0 || doingRetour ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                >
+                  {doingRetour ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <RotateCcw size={16} />}
+                  {fr ? `Confirmer retour` : 'تأكيد الإرجاع'}
+                </button>
               </div>
 
               {/* Per-product qty inputs */}
@@ -637,18 +644,7 @@ export default function LivraisonsPage() {
                 </div>
               )}
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRetourModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-                <button
-                  disabled={doingRetour || totalRetourne === 0}
-                  onClick={doRetour}
-                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', border: 'none', background: totalRetourne > 0 ? '#d97706' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: totalRetourne === 0 || doingRetour ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
-                >
-                  {doingRetour ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <RotateCcw size={16} />}
-                  {fr ? `Confirmer retour (${lignes.filter((l: any) => Number(retourQty[l.produit] || 0) > 0).length} produit(s))` : 'تأكيد الإرجاع'}
-                </button>
-              </div>
+              {/* Removed old bottom actions */}
             </div>
           </div>
         );
