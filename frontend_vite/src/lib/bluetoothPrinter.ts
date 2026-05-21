@@ -271,58 +271,67 @@ export function printTicketHTML(ticket: TicketData): void {
         </button>
       </div>
 
-      <div class="print-ticket-container" style="background: white; width: 100%; max-width: 320px; max-height: 80vh; overflow-y: auto; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-        <div class="center" style="text-align: center;">
-          <div class="xlarge bold" style="font-size: 20px; font-weight: bold;">ForCli</div>
-          <div style="font-size:10px">Distribution &amp; Commerce</div>
+      <div class="print-ticket-container" style="background: white; width: 100%; max-width: 384px; padding: 10px; font-family: 'Courier New', Courier, monospace; color: #000; font-size: 13px; line-height: 1.3; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div style="text-align: center; font-weight: bold; font-size: 20px;">ForCli</div>
+        <div style="text-align: center; font-size: 12px;">Distribution &amp; Commerce</div>
+        <div style="text-align: center; font-size: 11px; margin-bottom: 12px;">doz.baitul.tech</div>
+
+        <div style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Ref. ${ticket.reference}</span>
+            <span>${ticket.date}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+            <span>Client: <b>${ticket.client_nom}</b></span>
+          </div>
+          ${ticket.client_phone ? `<div style="margin-top: 2px;">Tel: ${ticket.client_phone}</div>` : ''}
+          ${ticket.livreur_nom ? `<div style="margin-top: 2px;">Livreur: ${ticket.livreur_nom}</div>` : ''}
         </div>
 
-        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
 
-        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Ref:</span><span class="bold" style="font-weight: bold;">${ticket.reference}</span></div>
-        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Date:</span><span>${ticket.date}</span></div>
-        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Client:</span><span class="bold" style="font-weight: bold;">${ticket.client_nom}</span></div>
-        ${ticket.client_phone ? `<div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Tel:</span><span>${ticket.client_phone}</span></div>` : ''}
-        ${ticket.livreur_nom ? `<div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>Livreur:</span><span>${ticket.livreur_nom}</span></div>` : ''}
+        <div style="margin-bottom: 5px;">
+          ${ticket.lignes.map(l => `
+            <div style="margin-bottom: 6px;">
+              <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>${l.quantite}x ${l.produit_nom.substring(0, 22)}</span>
+                <span>${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+              </div>
+              <div style="font-size: 11px; color: #333;">
+                à ${l.prix_unitaire.toLocaleString('fr-DZ')} DA
+              </div>
+            </div>
+          `).join('')}
+        </div>
 
-        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
 
-        ${ticket.lignes.map(l => `
-        <div class="product" style="margin-bottom: 6px;">
-          <div class="name" style="font-weight: bold; font-size: 12px;">${l.produit_nom}</div>
-          <div class="detail" style="display: flex; justify-content: space-between; font-size: 11px; padding-left: 8px; color: #444;">
-            <span>x${l.quantite} ctn @ ${l.prix_unitaire.toLocaleString('fr-DZ')} DA</span>
-            <span class="bold" style="font-weight: bold; color: #000;">${l.sous_total.toLocaleString('fr-DZ')} DA</span>
-          </div>
-        </div>`).join('')}
-
-        <div class="divider" style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-
-        <div class="row total-line" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
-          <span>TOTAL</span>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin: 8px 0;">
+          <span>Total :</span>
           <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
         </div>
-        <div class="row" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-          <span>Payé</span>
+
+        <div style="display: flex; justify-content: space-between; font-size: 14px;">
+          <span>Payé :</span>
           <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
         </div>
 
-        ${reste > 0 ? `
-        <div class="reste-box" style="border: 2px solid #000; padding: 6px; margin-top: 8px;">
-          <div class="row" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
-            <span>RESTE A PAYER</span>
-            <span style="color: #ef4444;">${reste.toLocaleString('fr-DZ')} DA</span>
-          </div>
-        </div>` : `
-        <div class="solde-box" style="text-align: center; font-weight: bold; margin-top: 8px;">
-          <span class="tag" style="display: inline-block; border: 1px solid #10b981; color: #10b981; padding: 4px 8px; font-size: 11px;">✓ SOLDE COMPLET</span>
-        </div>`}
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
 
-        <div class="divider" style="border-top: 1px dashed #000; margin: 12px 0;"></div>
-        <div class="footer" style="text-align: center; font-size: 10px; color: #666;">
-          <div>Merci pour votre commande!</div>
-          <div>ForCli — doz.baitul.tech</div>
-          <div>${new Date().toLocaleString('fr-DZ')}</div>
+        ${reste > 0 ? `
+          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 8px;">
+            <span>RESTE A PAYER :</span>
+            <span>${reste.toLocaleString('fr-DZ')} DA</span>
+          </div>
+        ` : `
+          <div style="text-align: center; font-weight: bold; margin-top: 8px; font-size: 14px;">
+            *** SOLDE COMPLET ***
+          </div>
+        `}
+
+        <div style="border-top: 1px dashed #000; margin: 15px 0 8px 0;"></div>
+        <div style="text-align: center; font-size: 11px;">
+          Merci pour votre commande!
         </div>
       </div>
     </div>
