@@ -257,10 +257,10 @@ export function printTicketHTML(ticket: TicketData): void {
     <div style="background: rgba(0,0,0,0.75); position: fixed; inset: 0; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
       
       <div class="no-print" style="display: flex; gap: 10px; margin-bottom: 15px; width: 100%; max-width: 320px;">
-        <button onclick="document.body.removeChild(this.parentElement.parentElement);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+        <button id="ticket-close-btn" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
           Fermer (إغلاق)
         </button>
-        <button onclick="window.print();" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
+        <button id="ticket-print-btn" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 16px; cursor: pointer;">
           🖨 Imprimer
         </button>
       </div>
@@ -326,6 +326,23 @@ export function printTicketHTML(ticket: TicketData): void {
   printOverlay.id = 'ticket-print-overlay';
   printOverlay.innerHTML = html;
   document.body.appendChild(printOverlay);
+  
+  // Attach events using JS to bypass CSP limits on inline onclick
+  const closeBtn = document.getElementById('ticket-close-btn');
+  const printBtn = document.getElementById('ticket-print-btn');
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      const overlay = document.getElementById('ticket-print-overlay');
+      if (overlay) document.body.removeChild(overlay);
+    });
+  }
+  
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
 }
 
 function toast_fallback() {
