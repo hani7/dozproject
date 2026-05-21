@@ -48,7 +48,19 @@ export default function PaiementsPage() {
 
   useEffect(() => {
     load();
-    api.get('/clients/', { params: { page_size: 500 } }).then(r => setClients(r.data.results || r.data));
+    const fetchClients = async () => {
+      let all: any[] = [];
+      let url: string | null = '/clients/?page_size=500';
+      while (url) {
+        try {
+          const r = await api.get(url);
+          all = [...all, ...(r.data.results || r.data)];
+          url = r.data.next || null;
+        } catch { url = null; }
+      }
+      setClients(all);
+    };
+    fetchClients();
     api.get('/fournisseurs/', { params: { page_size: 200 } }).then(r => setFournisseurs(r.data.results || r.data));
   }, []);
 

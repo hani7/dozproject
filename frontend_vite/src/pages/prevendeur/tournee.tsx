@@ -33,8 +33,23 @@ export default function TourneePage() {
   const [loading, setLoading]     = useState(false);
 
   useEffect(() => {
-    api.get('/clients/', { params: { page_size: 500 } })
-      .then(r => setClients(r.data.results || r.data));
+    const fetchAll = async () => {
+      try {
+        let all: any[] = [];
+        let url: string | null = '/clients/?page_size=500';
+        while (url) {
+          const r = await api.get(url);
+          const data = r.data.results || r.data;
+          all = [...all, ...data];
+          if (r.data.next) url = r.data.next;
+          else url = null;
+        }
+        setClients(all);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchAll();
   }, []);
 
   const visitedIds = new Set(visits.map(v => v.clientId));

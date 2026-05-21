@@ -22,7 +22,22 @@ export default function ClientsPage() {
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(EMPTY);
 
-  const load = () => api.get('/clients/', { params: { search: search || undefined, type_client: typeFilter || undefined } }).then(r => setClients(r.data.results || r.data));
+  const load = async () => {
+    try {
+      let all: any[] = [];
+      let nextUrl: string | null = `/clients/?page_size=500${search ? `&search=${search}` : ''}${typeFilter ? `&type_client=${typeFilter}` : ''}`;
+      while (nextUrl) {
+        const r = await api.get(nextUrl);
+        const data = r.data.results || r.data;
+        all = [...all, ...data];
+        if (r.data.next) nextUrl = r.data.next;
+        else nextUrl = null;
+      }
+      setClients(all);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   useEffect(() => { load(); }, [search, typeFilter]);
 
   // Close on Escape
