@@ -323,6 +323,7 @@ function VentesPageContent({ type }: Props) {
             <tr>
               <th>{fr ? 'Référence' : 'المرجع'}</th>
               <th>{fr ? 'Client' : 'العميل'}</th>
+              <th>{fr ? 'Prévendeur / Vendeur' : 'المندوب / البائع'}</th>
               <th>{fr ? 'Date' : 'التاريخ'}</th>
               <th>{fr ? 'Produits' : 'المنتجات'}</th>
               <th>{fr ? 'Total' : 'المجموع'}</th>
@@ -343,10 +344,12 @@ function VentesPageContent({ type }: Props) {
                   </span>
                 </td>
                 <td>
-                  <div>{v.client_nom}</div>
-                  {v._source === 'commande' && v.prevendeur_nom && (
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>👤 {v.prevendeur_nom}</div>
-                  )}
+                  <div style={{ fontWeight: 600 }}>{v.client_nom}</div>
+                </td>
+                <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    👤 {v.prevendeur_nom || v.cree_par_nom || '—'}
+                  </span>
                 </td>
                 <td style={{ fontSize: '12px' }}>{v.date}</td>
                 <td style={{ fontSize: '12px', minWidth: '150px' }}>
