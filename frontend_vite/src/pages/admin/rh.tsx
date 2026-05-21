@@ -26,8 +26,17 @@ export default function RHPage() {
   const [editing, setEditing] = useState<Employe | null>(null);
   const [form, setForm] = useState({ nom: '', prenom: '', poste: 'prevendeur_gros', phone: '', salaire_base: '', date_embauche: '', actif: true });
 
+  const [virements, setVirements] = useState<any[]>([]);
+  const [paieModal, setPaieModal] = useState(false);
+  const [paieForm, setPaieForm] = useState({ employe: '', montant: '', date: new Date().toISOString().split('T')[0], motif: 'Salaire' });
+
   const load = () => api.get('/hr/employes/').then(r => setEmployes(r.data.results || r.data));
-  useEffect(() => { load(); }, []);
+  const loadVirements = () => api.get('/paiements/virements/').then(r => setVirements(r.data.results || r.data));
+  
+  useEffect(() => { 
+    load(); 
+    loadVirements();
+  }, []);
 
   const save = async () => {
     try {
@@ -47,6 +56,27 @@ export default function RHPage() {
       toast.success(lang === 'fr' ? 'Supprimé!' : 'تم الحذف!');
       load();
     } catch { }
+  };
+
+  const savePaie = async () => {
+    if (!paieForm.employe || !paieForm.montant) {
+      toast.error(lang === 'fr' ? 'Veuillez remplir les champs obligatoires' : 'يرجى ملء الحقول الإلزامية');
+      return;
+    }
+    try {
+      await api.post('/paiements/virements/', {
+        employe: paieForm.employe,
+        montant: Number(paieForm.montant),
+        date: paieForm.date,
+        motif: paieForm.motif,
+        statut: 'execute',
+      });
+      toast.success(lang === 'fr' ? 'Paiement effectué!' : 'تم الدفع!');
+      setPaieModal(false);
+      loadVirements();
+    } catch (e: any) {
+      toast.error(JSON.stringify(e?.response?.data || 'Erreur'));
+    }
   };
 
   return (
@@ -127,9 +157,44 @@ export default function RHPage() {
         </div>
       )}
 
-      {tab !== 'employes' && (
+      {tab === 'presences' && (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
           {lang === 'fr' ? 'Module en cours de développement' : 'الوحدة قيد التطوير'}
+        </div>
+      )}
+
+      {tab === 'paies' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px' }}>{lang === 'fr' ? 'Historique des Salaires' : 'سجل الرواتب'}</h2>
+            <button className="btn btn-primary" onClick={() => { setPaieForm({ employe: '', montant: '', date: new Date().toISOString().split('T')[0], motif: 'Salaire' }); setPaieModal(true); }}>
+              <DollarSign size={15} /> {lang === 'fr' ? 'Payer un salaire' : 'دفع راتب'}
+            </button>
+          </div>
+          <div className="card" style={{ overflowX: 'auto', padding: 0 }}>
+            <table className="table" style={{ width: '100%', minWidth: '600px', margin: 0 }}>
+              <thead>
+                <tr>
+                  <th>{lang === 'fr' ? 'Employé' : 'الموظف'}</th>
+                  <th>{lang === 'fr' ? 'Date' : 'التاريخ'}</th>
+                  <th>{lang === 'fr' ? 'Motif' : 'السبب'}</th>
+                  <th>{lang === 'fr' ? 'Montant' : 'المبلغ'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {virements.length === 0 ? (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>{lang === 'fr' ? 'Aucun paiement enregistré.' : 'لا يوجد دفع مسجل.'}</td></tr>
+                ) : virements.map(v => (
+                  <tr key={v.id}>
+                    <td style={{ fontWeight: 600 }}>{v.employe_nom}</td>
+                    <td>{new Date(v.date).toLocaleDateString(lang === 'ar' ? 'ar-DZ' : 'fr-FR')}</td>
+                    <td>{v.motif}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--brand-primary)' }}>{Number(v.montant).toLocaleString()} DA</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -168,6 +233,42 @@ export default function RHPage() {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={() => setModal(false)}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
               <button className="btn btn-primary" onClick={save}>{lang === 'fr' ? 'Enregistrer' : 'حفظ'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paieModal && (
+        <div className="modal-overlay" onClick={() => setPaieModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">{lang === 'fr' ? 'Paiement de Salaire' : 'دفع راتب'}</div>
+            <div className="form-group">
+              <label className="form-label">{lang === 'fr' ? 'Employé' : 'الموظف'}</label>
+              <select className="form-control" value={paieForm.employe} onChange={e => {
+                const emp = employes.find(x => String(x.id) === e.target.value);
+                setPaieForm(f => ({ ...f, employe: e.target.value, montant: emp ? String(emp.salaire_base) : '' }));
+              }}>
+                <option value="">{lang === 'fr' ? '-- Sélectionner --' : '-- اختر --'}</option>
+                {employes.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
+              </select>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">{lang === 'fr' ? 'Montant (DA)' : 'المبلغ (DA)'}</label>
+                <input className="form-control" type="number" value={paieForm.montant} onChange={e => setPaieForm(f => ({ ...f, montant: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{lang === 'fr' ? 'Date' : 'التاريخ'}</label>
+                <input className="form-control" type="date" value={paieForm.date} onChange={e => setPaieForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">{lang === 'fr' ? 'Motif' : 'السبب'}</label>
+              <input className="form-control" value={paieForm.motif} onChange={e => setPaieForm(f => ({ ...f, motif: e.target.value }))} />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setPaieModal(false)}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
+              <button className="btn btn-primary" onClick={savePaie}>{lang === 'fr' ? 'Payer' : 'دفع'}</button>
             </div>
           </div>
         </div>

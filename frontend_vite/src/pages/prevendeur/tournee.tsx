@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { MapPin, Plus, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { MapPin, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 const today = new Date().toISOString().split('T')[0];
 
