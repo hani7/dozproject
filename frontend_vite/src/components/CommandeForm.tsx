@@ -58,7 +58,7 @@ export function CommandeForm({ type }: Props) {
     const fetchAllClients = async () => {
       try {
         let all: any[] = [];
-        let url: string | null = `/clients/?type_client=${type}&page_size=500`;
+        let url: string | null = `/clients/?page_size=500`;
         while (url) {
           const r = await api.get(url);
           all = [...all, ...(r.data.results || r.data)];
