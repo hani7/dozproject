@@ -48,6 +48,7 @@ function VentesPageContent({ type }: Props) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [retourFilter, setRetourFilter] = useState<'all' | 'avec' | 'sans'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'non_paye'>('all');
 
   // Searchable client dropdown state
   const [clientSearch, setClientSearch] = useState('');
@@ -241,6 +242,7 @@ function VentesPageContent({ type }: Props) {
     if (statusFilter && v.statut !== statusFilter) return false;
     if (retourFilter === 'avec' && !v.has_retour) return false;
     if (retourFilter === 'sans' && v.has_retour) return false;
+    if (paymentFilter === 'non_paye' && Number(v.reste_a_payer) <= 0) return false;
     return true;
   });
 
@@ -271,6 +273,7 @@ function VentesPageContent({ type }: Props) {
   }, [filtered]);
 
   const statusOptions = [
+    { value: 'en_attente',   label: fr ? 'En attente' : 'قيد الانتظار' },
     { value: 'confirmee',    label: fr ? 'Confirmée' : 'مؤكدة' },
     { value: 'en_livraison', label: fr ? 'En livraison' : 'قيد التوصيل' },
     { value: 'livree',       label: fr ? 'Livrée' : 'مُسلَّمة' },
@@ -397,10 +400,10 @@ function VentesPageContent({ type }: Props) {
       </div>
 
       {/* ── Filters bar — grid layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '20% 20% 20% 1fr', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
 
-        {/* 20% — Search */}
-        <div style={{ position: 'relative' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '150px' }}>
           <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px', pointerEvents: 'none' }}>🔍</span>
           <input type="text" className="form-control"
             placeholder={fr ? 'Réf. ou client...' : 'مرجع أو عميل...'}
@@ -408,15 +411,15 @@ function VentesPageContent({ type }: Props) {
             style={{ paddingLeft: 30, fontSize: '13px', height: '36px', width: '100%' }} />
         </div>
 
-        {/* 20% — Status dropdown */}
+        {/* Status dropdown */}
         <select className="form-control" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          style={{ fontSize: '13px', height: '36px', width: '100%', cursor: 'pointer' }}>
+          style={{ fontSize: '13px', height: '36px', flex: '1 1 150px', minWidth: '120px', cursor: 'pointer' }}>
           <option value="">{fr ? 'Tous les états' : 'جميع الحالات'}</option>
           {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
 
-        {/* 20% — Retour segmented */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', height: '36px', width: '100%' }}>
+        {/* Retour segmented */}
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', height: '36px', flex: '1 1 180px', minWidth: '160px' }}>
           {(['all', 'avec', 'sans'] as const).map(val => (
             <button key={val} onClick={() => setRetourFilter(val)} style={{
               flex: 1, fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -429,21 +432,35 @@ function VentesPageContent({ type }: Props) {
           ))}
         </div>
 
-        {/* 40% (1fr) — Date range + count + reset */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        {/* Payment segmented */}
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', height: '36px', flex: '0 0 160px' }}>
+          {(['all', 'non_paye'] as const).map(val => (
+            <button key={val} onClick={() => setPaymentFilter(val)} style={{
+              flex: 1, fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+              borderRight: val !== 'non_paye' ? '1px solid var(--border)' : 'none',
+              background: paymentFilter === val ? (val === 'non_paye' ? 'rgba(239,68,68,0.18)' : 'var(--brand-primary)') : 'var(--bg-elevated)',
+              color: paymentFilter === val ? (val === 'non_paye' ? '#ef4444' : '#fff') : 'var(--text-muted)',
+            }}>
+              {val === 'all' ? (fr ? 'Tous Pay.' : 'الكل') : (fr ? 'Non Payé' : 'غير مدفوع')}
+            </button>
+          ))}
+        </div>
+
+        {/* Date range + count + reset */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flex: '1 1 300px', minWidth: '280px' }}>
           <span style={{ fontSize: '13px', color: 'var(--text-muted)', flexShrink: 0 }}>📅</span>
           <input type="date" className="form-control" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             style={{ flex: 1, fontSize: '13px', height: '36px', minWidth: 0 }} />
           <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>→</span>
           <input type="date" className="form-control" value={dateTo} onChange={e => setDateTo(e.target.value)}
             style={{ flex: 1, fontSize: '13px', height: '36px', minWidth: 0 }} />
-          {(search || statusFilter || retourFilter !== 'all' || dateFrom || dateTo) && <>
+          {(search || statusFilter || retourFilter !== 'all' || paymentFilter !== 'all' || dateFrom || dateTo) && <>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
               {filtered.length}
             </span>
             <button className="btn btn-secondary btn-sm" title="Réinitialiser"
               style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.35)', flexShrink: 0, padding: '4px 8px' }}
-              onClick={() => { setSearch(''); setStatusFilter(''); setRetourFilter('all'); setDateFrom(''); setDateTo(''); }}>
+              onClick={() => { setSearch(''); setStatusFilter(''); setRetourFilter('all'); setPaymentFilter('all'); setDateFrom(''); setDateTo(''); }}>
               ✕
             </button>
           </>}
