@@ -377,31 +377,31 @@ export default function LivraisonsPage() {
                   </div>
 
                   {filter === 'en_livraison' && (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '12px' }}>
                       {/* Retour */}
                       <button onClick={() => openRetourModal(o)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 14px', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#d97706', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <RotateCcw size={14} /> {fr ? 'Retour' : 'إرجاع'}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 2px', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)', color: '#d97706', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <RotateCcw size={16} /> {fr ? 'Retour' : 'إرجاع'}
                       </button>
 
                       {/* Paiement */}
                       <button onClick={() => openPayModal(o)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 14px', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.4)', background: isPaid ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <DollarSign size={15} /> {isPaid ? (fr ? 'Payé ✓' : 'مدفوع ✓') : (fr ? 'Paiement' : 'دفع')}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 2px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.4)', background: isPaid ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <DollarSign size={16} /> {isPaid ? (fr ? 'Payé' : 'مدفوع') : (fr ? 'Paiement' : 'دفع')}
                       </button>
 
                       {/* Print ticket */}
                       <button onClick={() => printOrder(o)}
                         title={fr ? 'Imprimer ticket client' : 'طباعة التذكرة'}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 14px', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.08)', color: '#6366f1', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <Printer size={15} /> {fr ? 'Ticket' : 'تذكرة'}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 2px', borderRadius: '8px', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.08)', color: '#6366f1', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <Printer size={16} /> {fr ? 'Ticket' : 'تذكرة'}
                       </button>
 
                       {/* Livrer */}
                       <button className="btn btn-success"
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 16px', fontSize: '13px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 2px', fontSize: '11px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(16,185,129,0.2)' }}
                         onClick={() => deliver(o)} disabled={confirmingId === o.id}>
-                        {confirmingId === o.id ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <CheckCircle size={16} />}
+                        {confirmingId === o.id ? <div className="spinner" style={{ width: 16, height: 16, borderColor: 'white', borderTopColor: 'transparent' }} /> : <CheckCircle size={16} />}
                         {fr ? 'Livrer' : 'تسليم'}
                       </button>
                     </div>
@@ -575,7 +575,7 @@ export default function LivraisonsPage() {
         const nouveauTotal = Math.max(0, Number(retourModal.montant_total) - totalRetourne);
         return (
           <div className="modal-overlay" onClick={() => setRetourModal(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', paddingBottom: '60px' }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

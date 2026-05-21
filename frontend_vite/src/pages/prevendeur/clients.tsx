@@ -36,7 +36,15 @@ export default function PrevendeurClientsPage() {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { loadClients(); }, []);
+  useEffect(() => { 
+    loadClients(); 
+    setTimeout(() => {
+      toast(fr ? "🔔 N'oubliez pas d'activer votre GPS (Localisation)" : "🔔 يرجى تفعيل الـ GPS (الموقع)", { duration: 5000 });
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 2000, maximumAge: 0 });
+      }
+    }, 1500);
+  }, []);
 
   // Init Leaflet map when modal opens in map mode
   useEffect(() => {

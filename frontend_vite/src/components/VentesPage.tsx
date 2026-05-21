@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
@@ -228,6 +228,32 @@ function VentesPageContent({ type }: Props) {
     return true;
   });
 
+  const stats = useMemo(() => {
+    let totalMontant = 0;
+    let totalCartons = 0;
+    const cartonsParProduit: Record<string, number> = {};
+
+    filtered.forEach(v => {
+      // Exclure les annulations / brouillons si besoin, mais comme c'est "commande sortie"
+      // on peut calculer sur tout ce qui est filtré (les brouillons/annulés ne sont pas "sortis", mais l'admin peut filtrer).
+      // On exclut juste 'annulee' et 'brouillon' pour avoir de vraies "sorties".
+      if (v.statut === 'annulee' || v.statut === 'brouillon') return;
+      
+      totalMontant += Number(v.montant_total || 0);
+      
+      (v.lignes || []).forEach((l: any) => {
+        const qty = Number(l.quantite || 0);
+        totalCartons += qty;
+        
+        const nom = l.produit_nom || `Produit #${l.produit}`;
+        if (!cartonsParProduit[nom]) cartonsParProduit[nom] = 0;
+        cartonsParProduit[nom] += qty;
+      });
+    });
+
+    return { totalMontant, totalCartons, cartonsParProduit };
+  }, [filtered]);
+
   const statusOptions = [
     { value: 'confirmee',    label: fr ? 'Confirmée' : 'مؤكدة' },
     { value: 'en_livraison', label: fr ? 'En livraison' : 'قيد التوصيل' },
@@ -316,6 +342,42 @@ function VentesPageContent({ type }: Props) {
           </>}
         </div>
       </div>
+
+      {/* DASHBOARD TILES */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div className="card" style={{ padding: '20px', background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.02))', border: '1px solid rgba(139,92,246,0.2)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+            {fr ? 'Montant Total (Sorties)' : 'إجمالي المخرجات'}
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: '#8b5cf6' }}>
+            {stats.totalMontant.toLocaleString('fr-DZ')} DA
+          </div>
+        </div>
+        <div className="card" style={{ padding: '20px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+            {fr ? 'Total Cartons Sortis' : 'إجمالي الكرتون'}
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: '#10b981' }}>
+            {stats.totalCartons} ctn
+          </div>
+        </div>
+      </div>
+
+      {Object.keys(stats.cartonsParProduit).length > 0 && (
+        <div className="card" style={{ padding: '16px', marginBottom: '20px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>
+            {fr ? 'Cartons Sortis par Produit' : 'الكرتون حسب المنتج'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            {Object.entries(stats.cartonsParProduit).map(([nom, qty]) => (
+              <div key={nom} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{nom}</span>
+                <span style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontWeight: 800, fontSize: '12px' }}>{qty as number} ctn</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="table-container">
         <table>
