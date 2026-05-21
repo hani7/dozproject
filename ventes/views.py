@@ -190,22 +190,26 @@ class VenteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def payer(self, request, pk=None):
         from paiements.models import Paiement
+        from django.utils import timezone
+        from decimal import Decimal
         vente = self.get_object()
-        montant = float(request.data.get('montant', 0))
+        montant = Decimal(str(request.data.get('montant', 0)))
         if montant <= 0:
             return Response({'error': 'Montant invalide.'}, status=400)
 
         with transaction.atomic():
-            vente.montant_paye = float(vente.montant_paye) + montant
+            vente.montant_paye = vente.montant_paye + montant
             vente.save(update_fields=['montant_paye', 'updated_at'])
 
             Paiement.objects.create(
-                vente=vente,
-                client=vente.client,
+                type_paiement='vente',
+                mode=request.data.get('mode_paiement', 'especes'),
                 montant=montant,
-                mode_paiement=request.data.get('mode_paiement', 'especes'),
-                enregistre_par=request.user,
-                notes=request.data.get('notes', '')
+                vente_ref=vente.reference,
+                client_nom=vente.client.nom if vente.client else '',
+                date=timezone.now().date(),
+                notes=request.data.get('notes', ''),
+                cree_par=request.user,
             )
-            
+
         return Response(VenteSerializer(vente).data)

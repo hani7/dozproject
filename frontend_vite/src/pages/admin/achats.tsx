@@ -17,6 +17,9 @@ export default function AchatsPage() {
   const [viewModal, setViewModal] = useState<any | null>(null);
   const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
   const [form, setForm] = useState({ reference: '', fournisseur: '', date: '', mode_paiement: 'especes', notes: '' });
+  const [editModal, setEditModal] = useState<any | null>(null); // achat being edited
+  const [editRef, setEditRef] = useState('');                   // N° facture value
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = () => api.get('/achats/').then(r => setAchats(r.data.results || r.data));
   useEffect(() => {
@@ -46,6 +49,25 @@ export default function AchatsPage() {
     await api.post(`/achats/${id}/recevoir/`);
     toast.success(lang === 'fr' ? 'Stock mis à jour!' : 'تم تحديث المخزون!');
     load();
+  };
+
+  const openEditFacture = (a: any) => {
+    setEditRef(a.reference);
+    setEditModal(a);
+  };
+
+  const saveFacture = async () => {
+    if (!editModal || !editRef.trim()) return;
+    setEditSaving(true);
+    try {
+      await api.patch(`/achats/${editModal.id}/`, { reference: editRef.trim() });
+      toast.success(lang === 'fr' ? 'N° Facture mis à jour ✓' : 'تم تحديث رقم الفاتورة ✓');
+      setEditModal(null);
+      load();
+    } catch (e: any) {
+      const msg = e?.response?.data?.reference?.[0] || e?.response?.data?.detail || 'Erreur';
+      toast.error(msg, { duration: 5000 });
+    } finally { setEditSaving(false); }
   };
 
   const statusLabels: Record<string, Record<string, string>> = {
@@ -110,7 +132,15 @@ export default function AchatsPage() {
                 <td><span className={`badge ${STATUS_COLORS[a.statut]}`}>{statusLabels[a.statut]?.[lang]}</span></td>
                 <td>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-secondary btn-icon" onClick={() => setViewModal(a)}><Eye size={12} /></button>
+                    <button className="btn btn-secondary btn-icon" title={lang === 'fr' ? 'Voir' : 'عرض'} onClick={() => setViewModal(a)}><Eye size={12} /></button>
+                    <button
+                      className="btn btn-secondary btn-icon"
+                      title={lang === 'fr' ? 'Modifier N° Facture' : 'تعديل رقم الفاتورة'}
+                      onClick={() => openEditFacture(a)}
+                      style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1' }}
+                    >
+                      ✏️
+                    </button>
                     {a.statut !== 'recu' && a.statut !== 'annule' && (
                       <button className="btn btn-success btn-sm" onClick={() => recevoir(a.id)}>
                         <CheckCircle size={12} /> {lang === 'fr' ? 'Recevoir' : 'استلام'}
@@ -218,6 +248,64 @@ export default function AchatsPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <button className="btn btn-secondary" onClick={() => setViewModal(null)}>{lang === 'fr' ? 'Fermer' : 'إغلاق'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Edit N° Facture Modal ── */}
+      {editModal && (
+        <div className="modal-overlay" onClick={() => setEditModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+                  ✏️
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>{lang === 'fr' ? 'Modifier N° Facture' : 'تعديل رقم الفاتورة'}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{editModal.fournisseur_nom}</div>
+                </div>
+              </div>
+              <button onClick={() => setEditModal(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px' }}>
+                ×
+              </button>
+            </div>
+
+            {/* Current reference info */}
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <span>{lang === 'fr' ? 'Référence actuelle :' : 'الرقم الحالي :'}</span>
+              <strong style={{ marginLeft: '8px', color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '13px' }}>{editModal.reference}</strong>
+            </div>
+
+            {/* Input */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label">{lang === 'fr' ? 'N° Facture fournisseur' : 'رقم فاتورة المورد'}</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder={lang === 'fr' ? 'Ex: F-2026-0045' : 'مثال: F-2026-0045'}
+                value={editRef}
+                onChange={e => setEditRef(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveFacture()}
+                autoFocus
+                style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.5px' }}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setEditModal(null)}>
+                {lang === 'fr' ? 'Annuler' : 'إلغاء'}
+              </button>
+              <button
+                onClick={saveFacture}
+                disabled={editSaving || !editRef.trim() || editRef.trim() === editModal.reference}
+                style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '10px', border: 'none', background: editRef.trim() && editRef.trim() !== editModal.reference ? '#6366f1' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: editSaving || !editRef.trim() || editRef.trim() === editModal.reference ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+              >
+                {editSaving ? <div className="spinner" style={{ width: 14, height: 14 }} /> : '✏️'}
+                {lang === 'fr' ? 'Enregistrer' : 'حفظ'}
+              </button>
             </div>
           </div>
         </div>

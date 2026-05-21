@@ -38,6 +38,7 @@ function VentesPageContent({ type }: Props) {
   const [isNonConforme, setIsNonConforme] = useState(false);
   const [paiementModal, setPaiementModal] = useState<any | null>(null);
   const [paiementAmount, setPaiementAmount] = useState('');
+  const [paiementMode, setPaiementMode] = useState('especes');
   const [retourQty, setRetourQty] = useState<Record<number, string>>({});
   const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
   const [form, setForm] = useState({ reference: '', client: '', date: '', mode_paiement: 'especes', remise: '0', notes: '' });
@@ -150,7 +151,9 @@ function VentesPageContent({ type }: Props) {
   };
 
   const openPaiement = (v: any) => {
-    setPaiementAmount('');
+    const reste = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
+    setPaiementAmount(String(reste));
+    setPaiementMode('especes');
     setPaiementModal(v);
   };
 
@@ -166,7 +169,13 @@ function VentesPageContent({ type }: Props) {
       await api.post(`${endpoint}/${action}/`, { lignes: lignesRetour });
       toast.success(fr ? 'Opération effectuée ✓' : 'تمت العملية ✓');
       setRetourModal(null); load();
-    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
+    } catch (e: any) {
+      const data = e?.response?.data;
+      const msg = data?.error || data?.detail || (typeof data === 'string' ? data : null)
+        || (data ? JSON.stringify(data) : null)
+        || `Erreur ${e?.response?.status || ''}`.trim();
+      toast.error(msg, { duration: 6000 });
+    }
   };
 
   const approuver = async (v: any) => {
@@ -176,19 +185,31 @@ function VentesPageContent({ type }: Props) {
       await api.post(`${endpoint}/approuver/`);
       toast.success(fr ? 'Livraison clôturée ✓' : 'تم إغلاق التسليم ✓');
       load();
-    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
+    } catch (e: any) {
+      const data = e?.response?.data;
+      const msg = data?.error || data?.detail || (typeof data === 'string' ? data : null)
+        || (data ? JSON.stringify(data) : null)
+        || `Erreur ${e?.response?.status || ''}`.trim();
+      toast.error(msg, { duration: 6000 });
+    }
   };
 
   const doPaiement = async () => {
     if (!paiementModal) return;
     const m = Number(paiementAmount);
-    if (m <= 0) { toast.error('Montant invalide'); return; }
+    if (m <= 0) { toast.error(fr ? 'Montant invalide' : 'مبلغ غير صالح'); return; }
     try {
       const endpoint = paiementModal._source === 'commande' ? `/commandes/${paiementModal.id}` : `/ventes/${paiementModal.id}`;
-      await api.post(`${endpoint}/payer/`, { montant: m, mode_paiement: 'especes' });
+      await api.post(`${endpoint}/payer/`, { montant: m, mode_paiement: paiementMode });
       toast.success(fr ? 'Paiement enregistré ✓' : 'تم تسجيل الدفع ✓');
       setPaiementModal(null); load();
-    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur'); }
+    } catch (e: any) {
+      const data = e?.response?.data;
+      const msg = data?.error || data?.detail || (typeof data === 'string' ? data : null)
+        || (data ? JSON.stringify(data) : null)
+        || `Erreur ${e?.response?.status || ''}`.trim();
+      toast.error(msg, { duration: 6000 });
+    }
   };
 
   const title = type === 'gros' ? (fr ? 'Vente Gros' : 'بيع الجملة') : (fr ? 'Vente Détail' : 'بيع التجزئة');
@@ -245,6 +266,7 @@ function VentesPageContent({ type }: Props) {
               <th>{fr ? 'Payé' : 'المدفوع'}</th>
               <th>{fr ? 'Reste' : 'المتبقي'}</th>
               <th>{fr ? 'Statut' : 'الحالة'}</th>
+              <th style={{ textAlign: 'center' }}>{fr ? 'Retour' : 'إرجاع'}</th>
               <th>{fr ? 'Actions' : 'الإجراءات'}</th>
             </tr>
           </thead>
@@ -277,6 +299,22 @@ function VentesPageContent({ type }: Props) {
                 <td style={{ color: 'var(--text-muted)' }}>{Number(v.montant_paye || 0).toLocaleString()} DA</td>
                 <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
                 <td><span className={`badge ${STATUS_COLORS[v.statut]}`}>{statusLabels[v.statut]?.[lang]}</span></td>
+                <td style={{ textAlign: 'center' }}>
+                  {v.has_retour ? (
+                    <span title={fr ? 'Retour effectué' : 'تم الإرجاع'} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      background: 'rgba(245,158,11,0.13)', color: '#d97706',
+                      border: '1.5px solid rgba(245,158,11,0.4)', borderRadius: '20px',
+                      padding: '3px 10px', fontSize: '11px', fontWeight: 700,
+                      letterSpacing: '0.3px', whiteSpace: 'nowrap',
+                    }}>
+                      <RotateCcw size={11} strokeWidth={2.5} />
+                      {fr ? 'Retour' : 'إرجاع'}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>—</span>
+                  )}
+                </td>
                 <td>
                   <div style={{ display: 'flex', gap: '5px' }}>
                     <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
@@ -431,6 +469,74 @@ function VentesPageContent({ type }: Props) {
                 📝 {viewModal.notes}
               </div>
             )}
+
+            {/* Retour breakdown */}
+            {viewModal.retours && viewModal.retours.length > 0 && (() => {
+              const totalRetourne = viewModal.retours.reduce((s: number, r: any) => s + Number(r.montant_retourne || 0), 0);
+              const totalOriginal = Number(viewModal.montant_total) + totalRetourne;
+              return (
+                <div style={{ background: 'rgba(245,158,11,0.05)', border: '2px solid rgba(245,158,11,0.3)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <RotateCcw size={14} color="#f59e0b" />
+                    <span style={{ fontWeight: 700, fontSize: '13px', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {fr ? 'Retours effectués' : 'الإرجاعات المنجزة'}
+                    </span>
+                  </div>
+
+                  {/* Per-product retour lines */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {viewModal.retours.map((r: any, i: number) => {
+                      // Find original ligne for this product
+                      const ligne = viewModal.lignes?.find((l: any) => l.produit_nom === r.produit_nom);
+                      const qteOriginale = ligne ? Number(ligne.quantite) + Number(r.quantite_retournee) : Number(r.quantite_retournee);
+                      const montantOriginal = qteOriginale * Number(r.prix_unitaire);
+                      return (
+                        <div key={i} style={{ background: 'var(--bg-base)', borderRadius: '8px', padding: '10px 12px', border: '1px solid rgba(245,158,11,0.15)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '13px' }}>{r.produit_nom}</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{r.created_at}</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                            <div style={{ textAlign: 'center', background: 'var(--bg-elevated)', borderRadius: '6px', padding: '6px' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '3px' }}>{fr ? 'QTÉ RETOURNÉE' : 'الكمية المرجعة'}</div>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#f59e0b' }}>- {r.quantite_retournee} ctn</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>× {Number(r.prix_unitaire).toLocaleString('fr-DZ')} DA</div>
+                            </div>
+                            <div style={{ textAlign: 'center', background: 'var(--bg-elevated)', borderRadius: '6px', padding: '6px' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '3px' }}>{fr ? 'QTÉ AVANT' : 'الكمية قبل'}</div>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'line-through' }}>{qteOriginale} ctn</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{montantOriginal.toLocaleString('fr-DZ')} DA</div>
+                            </div>
+                            <div style={{ textAlign: 'center', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', padding: '6px' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '3px' }}>{fr ? 'QTÉ APRÈS' : 'الكمية بعد'}</div>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#10b981' }}>{ligne ? Number(ligne.quantite) : 0} ctn</div>
+                              <div style={{ fontSize: '11px', color: '#10b981' }}>{(ligne ? Number(ligne.sous_total) : 0).toLocaleString('fr-DZ')} DA</div>
+                            </div>
+                          </div>
+                          {r.notes && <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>📝 {r.notes}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Total impact */}
+                  <div style={{ borderTop: '1px dashed rgba(245,158,11,0.3)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Total avant retour' : 'الإجمالي قبل الإرجاع'}</span>
+                      <span style={{ fontWeight: 600, textDecoration: 'line-through', color: 'var(--text-muted)' }}>{totalOriginal.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>{fr ? 'Valeur retournée' : 'قيمة الإرجاع'}</span>
+                      <span style={{ fontWeight: 700, color: '#f59e0b' }}>- {totalRetourne.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderTop: '1px solid rgba(245,158,11,0.2)', paddingTop: '8px', marginTop: '2px' }}>
+                      <span style={{ fontWeight: 700 }}>{fr ? '✅ Nouveau total' : '✅ الإجمالي الجديد'}</span>
+                      <span style={{ fontWeight: 900, color: 'var(--brand-primary)', fontSize: '17px' }}>{Number(viewModal.montant_total).toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button className="btn btn-warning btn-sm" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
                 onClick={() => { setViewModal(null); openRetour(viewModal); }}>
@@ -473,101 +579,212 @@ function VentesPageContent({ type }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {retourModal.lignes?.map((l: any) => (
-                    <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{l.produit_nom}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>{l.quantite} ctn</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                        <input
-                          type="number" min="0" max={l.quantite}
-                          className="form-control"
-                          style={{ width: 80, textAlign: 'center', margin: '0 auto' }}
-                          value={retourQty[l.produit] ?? '0'}
-                          onChange={e => setRetourQty(q => ({ ...q, [l.produit]: e.target.value }))}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {retourModal.lignes?.map((l: any) => {
+                      const qte = Number(retourQty[l.produit] || 0);
+                      const hasReturn = qte > 0;
+                      return (
+                        <tr key={l.id} style={{ borderTop: '1px solid var(--border)', background: hasReturn ? (isNonConforme ? 'rgba(239,68,68,0.04)' : 'rgba(245,158,11,0.04)') : 'transparent' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                            <div>{l.produit_nom}</div>
+                            {hasReturn && (
+                              <div style={{ fontSize: '10px', color: isNonConforme ? '#ef4444' : '#f59e0b', fontWeight: 700, marginTop: '2px' }}>
+                                {qte} × {Number(l.prix_unitaire).toLocaleString('fr-DZ')} = {(qte * Number(l.prix_unitaire)).toLocaleString('fr-DZ')} DA
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>{l.quantite} ctn</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>{Number(l.prix_unitaire).toLocaleString('fr-DZ')} DA</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                            <input
+                              type="number" min="0" max={l.quantite}
+                              className="form-control"
+                              style={{ width: 80, textAlign: 'center', margin: '0 auto', borderColor: hasReturn ? (isNonConforme ? '#ef4444' : '#f59e0b') : undefined }}
+                              value={retourQty[l.produit] ?? '0'}
+                              onChange={e => setRetourQty(q => ({ ...q, [l.produit]: e.target.value }))}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
+            {/* Live recap */}
+            {(() => {
+              const ancienTotal = Number(retourModal.montant_total || 0);
+              const valeurRetour = (retourModal.lignes || []).reduce((acc: number, l: any) => acc + Number(retourQty[l.produit] || 0) * Number(l.prix_unitaire || 0), 0);
+              const nouveauTotal = Math.max(0, ancienTotal - valeurRetour);
+              const lignesRet = (retourModal.lignes || []).filter((l: any) => Number(retourQty[l.produit] || 0) > 0);
+              if (lignesRet.length === 0) return null;
+              return (
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: '12px', padding: '14px 16px', marginBottom: '14px', border: `2px solid ${isNonConforme ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
+                    📋 {fr ? 'Récapitulatif du retour' : 'ملخص الإرجاع'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '12px' }}>
+                    {lignesRet.map((l: any) => {
+                      const qte = Number(retourQty[l.produit] || 0);
+                      const val = qte * Number(l.prix_unitaire || 0);
+                      return (
+                        <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                            <span style={{ background: isNonConforme ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)', color: isNonConforme ? '#ef4444' : '#f59e0b', borderRadius: '4px', padding: '1px 7px', fontWeight: 700, fontSize: '12px' }}>{qte} ctn</span>
+                            {l.produit_nom}
+                          </span>
+                          <span style={{ fontWeight: 700, color: isNonConforme ? '#ef4444' : '#f59e0b' }}>- {val.toLocaleString('fr-DZ')} DA</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Total actuel' : 'الإجمالي الحالي'}</span>
+                      <span style={{ fontWeight: 600, textDecoration: 'line-through', color: 'var(--text-muted)' }}>{ancienTotal.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: isNonConforme ? '#ef4444' : '#f59e0b', fontWeight: 600 }}>{fr ? 'Valeur retournée' : 'قيمة الإرجاع'}</span>
+                      <span style={{ fontWeight: 700, color: isNonConforme ? '#ef4444' : '#f59e0b' }}>- {valeurRetour.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '2px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '14px' }}>{fr ? '✅ Nouveau total' : '✅ الإجمالي الجديد'}</span>
+                      <span style={{ fontWeight: 900, color: 'var(--brand-primary)', fontSize: '18px' }}>{nouveauTotal.toLocaleString('fr-DZ')} DA</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
-            <div style={{ 
-                background: isNonConforme ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)', 
-                border: `1px solid ${isNonConforme ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`, 
-                borderRadius: '10px', padding: '12px', marginBottom: '20px', fontSize: '12px', 
-                color: isNonConforme ? '#ef4444' : '#f59e0b' 
-              }}>
-              ⚠️ {isNonConforme 
-                    ? (fr ? 'La quantité sera déduite du total mais NE SERA PAS remise en stock (Produit perdu).' : 'سيتم خصم الكمية من الإجمالي ولكن لن يتم إعادتها إلى المخزون (منتج مفقود).')
-                    : (fr ? 'Le stock sera réintégré et le montant total de la vente sera réduit automatiquement.' : 'سيتم إعادة المخزون وتخفيض إجمالي البيع تلقائياً.')}
+            <div style={{ background: isNonConforme ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${isNonConforme ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`, borderRadius: '10px', padding: '10px 12px', marginBottom: '16px', fontSize: '12px', color: isNonConforme ? '#ef4444' : '#f59e0b' }}>
+              ⚠️ {isNonConforme
+                ? (fr ? 'La quantité sera déduite du total mais NE SERA PAS remise en stock (Produit perdu).' : 'سيتم خصم الكمية من الإجمالي ولكن لن يتم إعادتها إلى المخزون (منتج مفقود).')
+                : (fr ? 'Le stock sera réintégré et le montant total de la vente sera réduit automatiquement.' : 'سيتم إعادة المخزون وتخفيض إجمالي البيع تلقائياً.')}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={() => setRetourModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-              <button className="btn btn-primary" onClick={doRetour} style={{ background: isNonConforme ? '#ef4444' : '#f59e0b', border: 'none' }}>
-                {fr ? 'Confirmer' : 'تأكيد'}
+              <button className="btn btn-primary" onClick={doRetour}
+                style={{ background: isNonConforme ? '#ef4444' : '#f59e0b', border: 'none' }}>
+                {fr ? 'Confirmer le retour' : 'تأكيد الإرجاع'}
               </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* ── Paiement Modal ── */}
-      {paiementModal && (
-        <div className="modal-overlay" onClick={() => setPaiementModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <div className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <DollarSign size={20} color="#10b981" />
-                  {fr ? 'Paiement' : 'دفع'}
+      {paiementModal && (() => {
+        const reste = Math.max(0, Number(paiementModal.montant_total) - Number(paiementModal.montant_paye || 0));
+        const isPaid = reste <= 0;
+        return (
+          <div className="modal-overlay" onClick={() => setPaiementModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <DollarSign size={20} color="#10b981" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '15px' }}>{fr ? 'Confirmer Paiement' : 'تأكيد الدفع'}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{paiementModal.reference} · {paiementModal.client_nom}</div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{paiementModal.reference} · {paiementModal.client_nom}</div>
+                <CloseBtn onClick={() => setPaiementModal(null)} />
               </div>
-              <CloseBtn onClick={() => setPaiementModal(null)} />
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', background: 'var(--bg-elevated)', padding: '10px', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Montant Total' : 'المبلغ الإجمالي'} :</span>
-                <span style={{ fontWeight: 600 }}>{Number(paiementModal.montant_total).toLocaleString()} DA</span>
+              {/* Amounts summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{fr ? 'Total' : 'المجموع'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--brand-primary)' }}>{Number(paiementModal.montant_total).toLocaleString('fr-DZ')}</div>
+                </div>
+                <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{fr ? 'Versé' : 'المدفوع'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#10b981' }}>{Number(paiementModal.montant_paye || 0).toLocaleString('fr-DZ')}</div>
+                </div>
+                <div style={{ background: isPaid ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${isPaid ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px', padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{fr ? 'Reste' : 'المتبقي'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '14px', color: isPaid ? '#10b981' : '#ef4444' }}>{reste.toLocaleString('fr-DZ')}</div>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', background: 'rgba(16,185,129,0.05)', padding: '10px', borderRadius: '8px' }}>
-                <span style={{ color: '#10b981' }}>{fr ? 'Déjà Versé' : 'المدفوع'} :</span>
-                <span style={{ fontWeight: 600, color: '#10b981' }}>{Number(paiementModal.montant_paye).toLocaleString()} DA</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', background: 'rgba(239,68,68,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.1)' }}>
-                <span style={{ color: '#ef4444', fontWeight: 600 }}>{fr ? 'Reste à Payer' : 'المتبقي'} :</span>
-                <span style={{ fontWeight: 800, color: '#ef4444' }}>{Number(paiementModal.reste_a_payer).toLocaleString()} DA</span>
-              </div>
-            </div>
 
-            <div className="form-group">
-              <label>{fr ? 'Nouveau Versement (DA)' : 'دفعة جديدة (دج)'}</label>
-              <input
-                type="number" className="form-control"
-                placeholder={fr ? 'Saisir le montant...' : 'أدخل المبلغ...'}
-                value={paiementAmount}
-                onChange={e => setPaiementAmount(e.target.value)}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-              <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setPaiementAmount(String(paiementModal.reste_a_payer))}>
-                {fr ? 'Montant Complet' : 'المبلغ كاملاً'}
-              </button>
-            </div>
+              {isPaid ? (
+                <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '10px', padding: '14px', marginBottom: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 700, color: '#10b981' }}>
+                  ✅ {fr ? 'Cette vente est entièrement payée.' : 'هذه الصفقة مدفوعة بالكامل.'}
+                </div>
+              ) : (
+                <>
+                  {/* Amount input */}
+                  <div className="form-group" style={{ marginBottom: '10px' }}>
+                    <label className="form-label">{fr ? 'Montant à encaisser (DA)' : 'المبلغ المحصَّل (دج)'}</label>
+                    <input
+                      type="number" className="form-control" min="0"
+                      placeholder={fr ? 'Saisir le montant...' : 'أدخل المبلغ...'}
+                      value={paiementAmount}
+                      onChange={e => setPaiementAmount(e.target.value)}
+                      style={{ fontSize: '18px', fontWeight: 700, textAlign: 'center' }}
+                      autoFocus
+                    />
+                  </div>
+                  {/* Quick-fill */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                    <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setPaiementAmount(String(reste))}>
+                      {fr ? 'Montant exact' : 'المبلغ كاملاً'} ({reste.toLocaleString('fr-DZ')} DA)
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setPaiementAmount(String(Math.ceil(reste / 2)))}>
+                      {fr ? 'Acompte 50%' : 'دفعة 50%'}
+                    </button>
+                  </div>
+                </>
+              )}
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setPaiementModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
-              <button className="btn btn-primary" onClick={doPaiement} style={{ background: '#10b981', border: 'none' }}>
-                {fr ? 'Valider le paiement' : 'تأكيد الدفع'}
-              </button>
+              {/* Mode de paiement */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>{fr ? 'Mode de paiement' : 'طريقة الدفع'}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px' }}>
+                  {[
+                    { value: 'especes', label: fr ? '💵 Espèces' : '💵 نقداً' },
+                    { value: 'virement', label: fr ? '🏦 Virement' : '🏦 تحويل' },
+                    { value: 'cheque', label: fr ? '📝 Chèque' : '📝 شيك' },
+                    { value: 'credit', label: fr ? '⏳ Crédit' : '⏳ آجل' },
+                  ].map(m => (
+                    <button key={m.value} onClick={() => setPaiementMode(m.value)}
+                      style={{ padding: '7px 4px', borderRadius: '8px', border: `2px solid ${paiementMode === m.value ? '#10b981' : 'var(--border)'}`, background: paiementMode === m.value ? 'rgba(16,185,129,0.1)' : 'var(--bg-elevated)', color: paiementMode === m.value ? '#10b981' : 'var(--text-secondary)', fontWeight: 600, fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', textAlign: 'center' }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ borderTop: '1px solid var(--border)', marginBottom: '14px' }} />
+
+              {/* Retour shortcut */}
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600 }}>↩ {fr ? 'Faire un retour avant de confirmer ?' : 'إرجاع منتج قبل التأكيد؟'}</span>
+                <button className="btn btn-secondary btn-sm"
+                  style={{ color: '#f59e0b', borderColor: '#f59e0b', background: 'rgba(245,158,11,0.08)', fontSize: '11px', padding: '4px 10px' }}
+                  onClick={() => { setPaiementModal(null); openRetour(paiementModal, false); }}>
+                  {fr ? 'Retour produit' : 'إرجاع منتج'}
+                </button>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button className="btn btn-secondary" onClick={() => setPaiementModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+                {!isPaid && (
+                  <button className="btn btn-primary" onClick={doPaiement}
+                    disabled={Number(paiementAmount) <= 0}
+                    style={{ background: '#10b981', border: 'none', opacity: Number(paiementAmount) <= 0 ? 0.5 : 1 }}>
+                    <DollarSign size={14} /> {fr ? 'Confirmer encaissement' : 'تأكيد التحصيل'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </AppLayout>
   );
 }

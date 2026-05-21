@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import transaction
 from django.utils import timezone
 from .models import Commande, LigneCommande
 from .serializers import CommandeSerializer, CommandeCreateSerializer
@@ -95,11 +96,10 @@ class CommandeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def approuver(self, request, pk=None):
-        from django.db import transaction
         from stock.models import MouvementStock
         from django.db.models import F
         from products.models import Produit
-        
+
         commande = self.get_object()
         if commande.statut == 'cloturee':
             return Response({'error': 'Commande déjà clôturée'}, status=400)
@@ -228,24 +228,27 @@ class CommandeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def payer(self, request, pk=None):
         from paiements.models import Paiement
+        from decimal import Decimal
         commande = self.get_object()
-        montant = float(request.data.get('montant', 0))
+        montant = Decimal(str(request.data.get('montant', 0)))
         if montant <= 0:
             return Response({'error': 'Montant invalide.'}, status=400)
 
         with transaction.atomic():
-            commande.montant_paye = float(commande.montant_paye) + montant
+            commande.montant_paye = commande.montant_paye + montant
             commande.save(update_fields=['montant_paye', 'updated_at'])
 
             Paiement.objects.create(
-                commande=commande,
-                client=commande.client,
+                type_paiement='vente',
+                mode=request.data.get('mode_paiement', 'especes'),
                 montant=montant,
-                mode_paiement=request.data.get('mode_paiement', 'especes'),
-                enregistre_par=request.user,
-                notes=request.data.get('notes', '')
+                vente_ref=commande.reference,
+                client_nom=commande.client.nom if commande.client else '',
+                date=timezone.now().date(),
+                notes=request.data.get('notes', ''),
+                cree_par=request.user,
             )
-            
+
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=False, methods=['get'])
