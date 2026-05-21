@@ -194,9 +194,9 @@ export default function LivraisonsPage() {
     const lat = order.client_latitude;
     const lng = order.client_longitude;
     if (lat && lng) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+      window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     } else if (order.client_adresse) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.client_adresse)}`, '_blank');
+      window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.client_adresse)}`;
     } else {
       toast.error(fr ? 'Aucune position GPS disponible' : 'لا يوجد موقع GPS');
     }

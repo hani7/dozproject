@@ -239,7 +239,7 @@ export default function PrevendeurClientsPage() {
                   </button>
                 )}
                 {c.latitude && c.longitude && (
-                  <button onClick={() => window.open(`https://www.google.com/maps?q=${c.latitude},${c.longitude}`, '_blank')} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <button onClick={() => window.location.href = `https://www.google.com/maps?q=${c.latitude},${c.longitude}`} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
                     <Navigation size={14} /> GPS
                   </button>
                 )}
