@@ -21,6 +21,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import android.webkit.WebChromeClient;
+import android.webkit.GeolocationPermissions;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -72,6 +78,11 @@ public class MainActivity extends AppCompatActivity {
             splashLayout.setVisibility(View.GONE);
         }, 2000);
 
+        // Request location permissions if not granted
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 100);
+        }
+
         // Configure WebView
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -80,6 +91,16 @@ public class MainActivity extends AppCompatActivity {
         settings.setUseWideViewPort(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setGeolocationEnabled(true);
+
+        // Add WebChromeClient to handle Geolocation permission
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                // Always grant permission inside WebView if Android permission is granted
+                callback.invoke(origin, true, false);
+            }
+        });
 
         // Add Javascript Interface for printing
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidInterface");
