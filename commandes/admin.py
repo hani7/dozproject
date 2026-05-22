@@ -10,6 +10,7 @@ class CommandeAdmin(admin.ModelAdmin):
     list_display = ['reference', 'client', 'type_commande', 'statut', 'montant_total', 'etat_paiement', 'created_at']
     search_fields = ['reference', 'client__nom']
     list_filter = ['statut', 'type_commande']
+    fields = ['reference', 'type_commande', 'client', 'prevendeur', 'livreur', 'statut', 'montant_total', 'montant_paye', 'etat_paiement', 'notes', 'date_livraison_souhaitee', 'photo']
     readonly_fields = ['etat_paiement']
     inlines = [LigneCommandeInline]
 

@@ -10,6 +10,7 @@ class VenteAdmin(admin.ModelAdmin):
     list_display = ['reference', 'client', 'type_vente', 'statut', 'montant_total', 'etat_paiement', 'date']
     search_fields = ['reference', 'client__nom']
     list_filter = ['statut', 'type_vente', 'mode_paiement']
+    fields = ['reference', 'type_vente', 'client', 'date', 'statut', 'mode_paiement', 'montant_total', 'montant_paye', 'etat_paiement', 'remise', 'notes', 'cree_par', 'livreur']
     readonly_fields = ['etat_paiement']
     inlines = [LigneVenteInline]
 
