@@ -453,11 +453,10 @@ function VentesPageContent({ type }: Props) {
 
         {/* Search */}
         <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '150px' }}>
-          <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px', pointerEvents: 'none' }}>🔍</span>
           <input type="text" className="form-control"
             placeholder={fr ? 'Réf. ou client...' : 'مرجع أو عميل...'}
             value={search} onChange={e => setSearch(e.target.value)}
-            style={{ paddingLeft: 30, fontSize: '13px', height: '36px', width: '100%' }} />
+            style={{ paddingLeft: 13, fontSize: '13px', height: '36px', width: '100%' }} />
         </div>
 
         {/* Status dropdown */}
