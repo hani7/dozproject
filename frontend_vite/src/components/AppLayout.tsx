@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import api from '@/lib/api';
+import toast from 'react-hot-toast';
 import type { UserRole } from '@/lib/types';
 import {
   Package, Users, ShoppingBag, ShoppingCart, ClipboardList,
@@ -50,13 +51,33 @@ export default function AppLayout({ children, allowedRoles }: Props) {
       }
     };
 
+    let hasShownSuccess = false;
+    let hasShownError = false;
+
     const requestPosition = () => {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
-          sendLocation,
-          (err) => console.warn('GPS Request Error:', err),
+          (position) => {
+            if (!hasShownSuccess) {
+              toast.success(user.role === 'prevendeur' ? 'GPS Connecté' : 'متصل بـ GPS');
+              hasShownSuccess = true;
+            }
+            sendLocation(position);
+          },
+          (err) => {
+            console.warn('GPS Request Error:', err);
+            if (!hasShownError) {
+              toast.error('Erreur GPS: ' + err.message + ' (Activez la position)');
+              hasShownError = true;
+            }
+          },
           { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
         );
+      } else {
+        if (!hasShownError) {
+          toast.error('GPS non supporté sur ce navigateur');
+          hasShownError = true;
+        }
       }
     };
 
