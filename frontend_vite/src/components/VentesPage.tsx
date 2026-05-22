@@ -283,13 +283,14 @@ function VentesPageContent({ type }: Props) {
 
   const exportExcel = () => {
     let tsv = '\uFEFF';
-    tsv += (fr ? 'Référence\tClient\tDate\tPaiement\tMontant Total\tMontant Payé\tReste\tStatut\n' : 'المرجع\tالعميل\tالتاريخ\tالدفع\tالمبلغ الإجمالي\tالمبلغ المدفوع\tالباقي\tالحالة\n');
+    tsv += (fr ? 'Référence\tClient\tDate\tPaiement\tMontant Total\tMontant Payé\tReste\tÉtat Paiement\tStatut\n' : 'المرجع\tالعميل\tالتاريخ\tالدفع\tالمبلغ الإجمالي\tالمبلغ المدفوع\tالباقي\tحالة الدفع\tالحالة\n');
     filtered.forEach(v => {
       const rest = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
       const statusLabel = statusOptions.find(o => o.value === v.statut)?.label || v.statut;
+      const etat = Number(v.montant_paye || 0) === 0 ? (fr ? 'Non payé' : 'غير مدفوع') : rest > 0 ? (fr ? 'Versé' : 'مقدم') : (fr ? 'Payé' : 'مدفوع');
       // Nettoyer les sauts de ligne ou tabulations accidentels dans le nom du client
       const nomClient = (v.client_nom || '').replace(/[\t\n\r]/g, ' ');
-      tsv += `${v.reference}\t${nomClient}\t${v.date}\t${v.mode_paiement}\t${v.montant_total}\t${v.montant_paye || 0}\t${rest}\t${statusLabel}\n`;
+      tsv += `${v.reference}\t${nomClient}\t${v.date}\t${v.mode_paiement}\t${v.montant_total}\t${v.montant_paye || 0}\t${rest}\t${etat}\t${statusLabel}\n`;
     });
     const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -330,6 +331,7 @@ function VentesPageContent({ type }: Props) {
               <th class="right">${fr ? 'Total' : 'المجموع'}</th>
               <th class="right">${fr ? 'Payé' : 'المدفوع'}</th>
               <th class="right">${fr ? 'Reste' : 'الباقي'}</th>
+              <th>${fr ? 'État Paiement' : 'حالة الدفع'}</th>
               <th>${fr ? 'Statut' : 'الحالة'}</th>
             </tr>
           </thead>
@@ -337,6 +339,7 @@ function VentesPageContent({ type }: Props) {
             ${filtered.map(v => {
               const rest = Math.max(0, Number(v.montant_total) - Number(v.montant_paye || 0));
               const statusLabel = statusOptions.find(o => o.value === v.statut)?.label || v.statut;
+              const etat = Number(v.montant_paye || 0) === 0 ? (fr ? 'Non payé' : 'غير مدفوع') : rest > 0 ? (fr ? 'Versé' : 'مقدم') : (fr ? 'Payé' : 'مدفوع');
               return `
                 <tr>
                   <td>${v.reference}</td>
@@ -346,6 +349,7 @@ function VentesPageContent({ type }: Props) {
                   <td class="right">${Number(v.montant_total).toLocaleString()} DA</td>
                   <td class="right">${Number(v.montant_paye || 0).toLocaleString()} DA</td>
                   <td class="right">${rest.toLocaleString()} DA</td>
+                  <td>${etat}</td>
                   <td>${statusLabel}</td>
                 </tr>
               `;
@@ -560,6 +564,7 @@ function VentesPageContent({ type }: Props) {
               <th>{fr ? 'Total' : 'المجموع'}</th>
               <th>{fr ? 'Payé' : 'المدفوع'}</th>
               <th>{fr ? 'Reste' : 'المتبقي'}</th>
+              <th>{fr ? 'État Paiement' : 'حالة الدفع'}</th>
               <th>{fr ? 'Statut' : 'الحالة'}</th>
               <th style={{ textAlign: 'center' }}>{fr ? 'Retour' : 'إرجاع'}</th>
               <th>{fr ? 'Actions' : 'الإجراءات'}</th>
@@ -595,7 +600,16 @@ function VentesPageContent({ type }: Props) {
                 <td style={{ fontWeight: 600 }}>{Number(v.montant_total || 0).toLocaleString()} DA</td>
                 <td style={{ color: 'var(--text-muted)' }}>{Number(v.montant_paye || 0).toLocaleString()} DA</td>
                 <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
-                <td><span className={`badge ${STATUS_COLORS[v.statut]}`}>{statusLabels[v.statut]?.[lang]}</span></td>
+                <td>
+                  {Number(v.montant_paye || 0) === 0 ? (
+                    <span className="badge badge-danger" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Non payé' : 'غير مدفوع'}</span>
+                  ) : Number(v.reste_a_payer) > 0 ? (
+                    <span className="badge badge-warning" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Versé' : 'مقدم'}</span>
+                  ) : (
+                    <span className="badge badge-success" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Payé' : 'مدفوع'}</span>
+                  )}
+                </td>
+                <td><span className={`badge ${STATUS_COLORS[v.statut]}`} style={{ whiteSpace: 'nowrap' }}>{statusLabels[v.statut]?.[lang]}</span></td>
                 <td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
                     {v.has_retour && (

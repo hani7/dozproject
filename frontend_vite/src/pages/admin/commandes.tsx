@@ -148,7 +148,7 @@ export default function CommandesLivePage() {
   const active  = orders.filter(o => ['confirmee', 'en_livraison'].includes(o.statut)).length;
 
   const compatibleLivreurs = assignOrder
-    ? livreurs.filter((l: any) => l.specialite === 'les_deux' || l.specialite === assignOrder.type_commande)
+    ? livreurs.filter((l: any) => !l.specialite || l.specialite === 'les_deux' || l.specialite === (assignOrder.type_commande || (assignOrder as any).type_vente))
     : [];
 
   const age = (created_at: string) => {

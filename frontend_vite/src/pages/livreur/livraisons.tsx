@@ -545,12 +545,21 @@ export default function LivraisonsPage() {
                 </div>
               </div>
 
-              {/* ─ Quick fill */}
+              {/* ─ Quick fill and Non payé */}
               {resteApres > 0 && versements.length === 1 && (
-                <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginBottom: '14px' }}
-                  onClick={() => setVersements([{ montant: String(Math.max(0, total - dejaPaye)), mode: versements[0].mode }])}>
-                  {fr ? '⇨ Montant exact' : '⇨ المبلغ كاملاً'} ({(total - dejaPaye).toLocaleString('fr-DZ')} DA)
-                </button>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  <button className="btn btn-secondary btn-sm" style={{ flex: 1 }}
+                    onClick={() => setVersements([{ montant: String(Math.max(0, total - dejaPaye)), mode: versements[0].mode }])}>
+                    {fr ? '⇨ Montant exact' : '⇨ المبلغ كاملاً'} ({(total - dejaPaye).toLocaleString('fr-DZ')} DA)
+                  </button>
+                  <button className="btn btn-danger btn-sm" style={{ flex: 1, background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                    onClick={() => {
+                      setPayModal(null);
+                      toast.success(fr ? 'Commande marquée comme Non payée' : 'تم التعليم كغير مدفوع');
+                    }}>
+                    {fr ? 'Non payé' : 'غير مدفوع'}
+                  </button>
+                </div>
               )}
 
               {/* Removed old bottom actions */}
