@@ -683,16 +683,12 @@ tbody tr:last-child td { border-bottom: none; }
 .search-input-wrap { position: relative; flex: 1; }
 
 .search-input-wrap svg {
-  position: absolute;
-  left: 12px; top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  width: 15px; height: 15px;
+  display: none; /* User requested removal of search icon */
 }
 
-[dir="rtl"] .search-input-wrap svg { left: auto; right: 12px; }
-.search-input-wrap input { padding-left: 38px; }
-[dir="rtl"] .search-input-wrap input { padding-left: 13px; padding-right: 38px; }
+[dir="rtl"] .search-input-wrap svg { display: none; }
+.search-input-wrap input { padding-left: 13px; }
+[dir="rtl"] .search-input-wrap input { padding-left: 13px; padding-right: 13px; }
 
 /* ══════════════════════════════════════════
    LANG BUTTON
