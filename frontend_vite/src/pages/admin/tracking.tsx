@@ -62,8 +62,8 @@ export default function TrackingPage() {
       
       const mobileUsers = userData.filter((u: any) => 
         (u.role === 'prevendeur' || u.role === 'livreur') && 
-        u.latitude !== null && 
-        u.longitude !== null
+        u.latitude != null && u.latitude !== "" && !isNaN(Number(u.latitude)) &&
+        u.longitude != null && u.longitude !== "" && !isNaN(Number(u.longitude))
       );
       setUsers(mobileUsers);
     } catch (err) {
