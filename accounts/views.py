@@ -20,7 +20,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         # Allow any authenticated user to list/retrieve (for livreur picker, etc.)
-        if self.action in ['list', 'retrieve']:
+        # Also allow them to update their own location
+        if self.action in ['list', 'retrieve', 'update_location']:
             return [permissions.IsAuthenticated()]
         return [IsAdmin()]
 
