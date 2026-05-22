@@ -13,7 +13,6 @@ import {
 
 const adminNav = [
   { label: 'nav.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
   { label: 'nav.products', href: '/admin/produits', icon: Package },
   { label: 'nav.stock', href: '/admin/stock', icon: Warehouse },
   { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },
@@ -28,6 +27,7 @@ const adminNav = [
   { label: 'nav.hr', href: '/admin/rh', icon: UserCircle },
   { label: 'nav.payments', href: '/admin/paiements', icon: CreditCard },
   { label: 'nav.comptes', href: '/admin/comptes', icon: KeyRound },
+  { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
 ];
 
 // Prévendeur nav is dynamic based on specialite

@@ -96,7 +96,16 @@ export default function TrackingPage() {
         </button>
       </div>
 
-      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', zIndex: 1 }}>
+      <div style={{ 
+        flex: 1, 
+        position: 'relative', 
+        borderRadius: '16px', 
+        overflow: 'hidden', 
+        border: '6px solid var(--bg-surface)', 
+        boxShadow: '0 12px 32px rgba(0,0,0,0.15)', 
+        zIndex: 0,
+        background: '#e5e7eb'
+      }}>
         <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
