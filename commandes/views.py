@@ -7,8 +7,38 @@ from django.db import transaction
 from django.utils import timezone
 from .models import Commande, LigneCommande
 from .serializers import CommandeSerializer, CommandeCreateSerializer
+from stock.models import MouvementStock
+from products.models import Produit
+from django.db.models import F
 
+def deduct_stock_if_needed_commande(commande, user):
+    """
+    Deducts stock for an order only if its status is confirmed or later,
+    and guarantees it is never deducted twice by checking MouvementStock.
+    """
+    if commande.statut not in ['confirmee', 'en_livraison', 'livree', 'cloturee']:
+        return
 
+    if MouvementStock.objects.filter(reference=commande.reference, type_mouvement='sortie', motif='vente').exists():
+        return
+
+    for ligne in commande.lignes.all():
+        if ligne.quantite <= 0:
+            continue
+        Produit.objects.filter(pk=ligne.produit_id).update(
+            stock_actuel=F('stock_actuel') - ligne.quantite
+        )
+        produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+        MouvementStock.objects.create(
+            produit_id=ligne.produit_id,
+            type_mouvement='sortie',
+            motif='vente',
+            quantite=ligne.quantite,
+            stock_avant=produit.stock_actuel + ligne.quantite,
+            stock_apres=produit.stock_actuel,
+            reference=commande.reference,
+            cree_par=user,
+        )
 class CommandeViewSet(viewsets.ModelViewSet):
     # Use the fully-optimized base queryset everywhere (including custom actions)
     queryset = Commande.objects.select_related(
@@ -58,10 +88,12 @@ class CommandeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def confirmer(self, request, pk=None):
-        commande = self.get_object()
-        commande.statut = 'confirmee'
-        commande.confirmed_at = timezone.now()
-        commande.save(update_fields=['statut', 'confirmed_at', 'updated_at'])
+        with transaction.atomic():
+            commande = self.get_object()
+            commande.statut = 'confirmee'
+            commande.confirmed_at = timezone.now()
+            commande.save(update_fields=['statut', 'confirmed_at', 'updated_at'])
+            deduct_stock_if_needed_commande(commande, request.user)
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
@@ -81,25 +113,25 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 'error': f'Ce livreur est spécialisé "{livreur.specialite}" et ne peut pas livrer une commande "{commande.type_commande}".'
             }, status=400)
 
-        commande.livreur = livreur
-        commande.statut = 'en_livraison'
-        commande.save(update_fields=['livreur', 'statut', 'updated_at'])
+        with transaction.atomic():
+            commande.livreur = livreur
+            commande.statut = 'en_livraison'
+            commande.save(update_fields=['livreur', 'statut', 'updated_at'])
+            deduct_stock_if_needed_commande(commande, request.user)
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
     def livrer(self, request, pk=None):
-        commande = self.get_object()
-        commande.statut = 'livree'
-        commande.delivered_at = timezone.now()
-        commande.save(update_fields=['statut', 'delivered_at', 'updated_at'])
+        with transaction.atomic():
+            commande = self.get_object()
+            commande.statut = 'livree'
+            commande.delivered_at = timezone.now()
+            commande.save(update_fields=['statut', 'delivered_at', 'updated_at'])
+            deduct_stock_if_needed_commande(commande, request.user)
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
     def approuver(self, request, pk=None):
-        from stock.models import MouvementStock
-        from django.db.models import F
-        from products.models import Produit
-
         commande = self.get_object()
         if commande.statut == 'cloturee':
             return Response({'error': 'Commande déjà clôturée'}, status=400)
@@ -107,25 +139,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             commande.statut = 'cloturee'
             commande.save(update_fields=['statut', 'updated_at'])
-            
-            # Déduire définitivement les quantités du stock
-            for ligne in commande.lignes.all():
-                if ligne.quantite <= 0:
-                    continue
-                Produit.objects.filter(pk=ligne.produit_id).update(
-                    stock_actuel=F('stock_actuel') - ligne.quantite
-                )
-                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
-                MouvementStock.objects.create(
-                    produit_id=ligne.produit_id,
-                    type_mouvement='sortie',
-                    motif='vente',
-                    quantite=ligne.quantite,
-                    stock_avant=produit.stock_actuel + ligne.quantite,
-                    stock_apres=produit.stock_actuel,
-                    reference=commande.reference,
-                    cree_par=request.user,
-                )
+            deduct_stock_if_needed_commande(commande, request.user)
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
