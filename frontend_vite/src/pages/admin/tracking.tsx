@@ -57,7 +57,10 @@ export default function TrackingPage() {
   const fetchLocations = async () => {
     try {
       const res = await api.get('/auth/users/');
-      const mobileUsers = res.data.filter((u: any) => 
+      // Handle paginated response (DRF returns { results: [...] })
+      const userData = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      
+      const mobileUsers = userData.filter((u: any) => 
         (u.role === 'prevendeur' || u.role === 'livreur') && 
         u.latitude !== null && 
         u.longitude !== null
