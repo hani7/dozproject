@@ -39,25 +39,46 @@ export default function AppLayout({ children, allowedRoles }: Props) {
   useEffect(() => {
     if (!user || (user.role !== 'prevendeur' && user.role !== 'livreur')) return;
 
-    let watchId: number;
+    const sendLocation = async (position: GeolocationPosition) => {
+      try {
+        await api.post('/auth/users/update_location/', {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      } catch (e) {
+        console.error('Error sending GPS location', e);
+      }
+    };
+
+    const requestPosition = () => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          sendLocation,
+          (err) => console.warn('GPS Request Error:', err),
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+        );
+      }
+    };
+
+    // First request
+    requestPosition();
+
+    // Fallback interval every 20 seconds (useful if permission was delayed)
+    const interval = setInterval(requestPosition, 20000);
+
+    // Watch position for continuous updates
+    let watchId: number | undefined;
     if ('geolocation' in navigator) {
       watchId = navigator.geolocation.watchPosition(
-        async (position) => {
-          try {
-            await api.post('/auth/users/update_location/', {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          } catch (e) {
-            console.error('Error sending GPS location', e);
-          }
-        },
-        (error) => console.warn('GPS Error:', error),
-        { enableHighAccuracy: true, maximumAge: 60000, timeout: 10000 }
+        sendLocation,
+        (error) => console.warn('GPS Watch Error:', error),
+        { enableHighAccuracy: true, maximumAge: 20000, timeout: 20000 }
       );
     }
+
     return () => {
       if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+      clearInterval(interval);
     };
   }, [user]);
 
