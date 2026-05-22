@@ -87,7 +87,7 @@ export default function TrackingPage() {
 
   // Default center (Algiers) if no users are active, otherwise center on the first user
   const center: [number, number] = users.length > 0 
-    ? [users[0].latitude as number, users[0].longitude as number]
+    ? [Number(users[0].latitude), Number(users[0].longitude)]
     : [36.7525, 3.04197];
 
   return (
@@ -114,13 +114,13 @@ export default function TrackingPage() {
       }}>
         <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.google.com/intl/en_US/help/terms_maps.html">Google Maps</a>'
+            url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
           />
           {users.map(user => (
             <Marker 
               key={user.id} 
-              position={[user.latitude as number, user.longitude as number]}
+              position={[Number(user.latitude), Number(user.longitude)]}
               icon={user.role === 'livreur' ? livreurIcon : prevendeurIcon}
             >
               <Popup>
