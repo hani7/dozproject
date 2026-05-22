@@ -101,7 +101,12 @@ export default function StockPage() {
               return matchSearch && matchType && matchFrom && matchTo;
             }).map(m => (
               <tr key={m.id}>
-                <td style={{ fontSize: '12px' }}>{new Date(m.created_at).toLocaleDateString()}</td>
+                <td style={{ fontSize: '12px' }}>
+                  <div style={{ fontWeight: 600 }}>{new Date(m.created_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-DZ')}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {new Date(m.created_at).toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'ar-DZ', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </td>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.produit_nom}</td>
                 <td>
                   <span className={`badge ${typeColors[m.type_mouvement]}`}>
