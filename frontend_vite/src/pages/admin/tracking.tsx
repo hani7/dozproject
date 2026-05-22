@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import api from '@/lib/api';
@@ -48,37 +48,76 @@ interface UserLocation {
   last_location_update: string | null;
 }
 
+interface HistoryPoint {
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+}
+
 export default function TrackingPage() {
   const { lang } = useLang();
   const fr = lang === 'fr';
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // History Mode State
+  const [mode, setMode] = useState<'live' | 'history'>('live');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [historyPoints, setHistoryPoints] = useState<HistoryPoint[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchLocations = async () => {
     try {
       const res = await api.get('/auth/users/');
-      // Handle paginated response (DRF returns { results: [...] })
       const userData = Array.isArray(res.data) ? res.data : (res.data.results || []);
       
       const mobileUsers = userData.filter((u: any) => 
-        (u.role === 'prevendeur' || u.role === 'livreur') && 
+        (u.role === 'prevendeur' || u.role === 'livreur')
+      );
+      
+      const validLiveUsers = mobileUsers.filter((u: any) => 
         u.latitude != null && u.latitude !== "" && !isNaN(Number(u.latitude)) &&
         u.longitude != null && u.longitude !== "" && !isNaN(Number(u.longitude))
       );
-      setUsers(mobileUsers);
+      
+      setUsers(mode === 'live' ? validLiveUsers : mobileUsers); // Keep all mobileUsers in state for the dropdown
     } catch (err) {
-      console.error('Failed to fetch user locations', err);
+      console.error('Failed to fetch users', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchHistory = async () => {
+    if (!selectedUserId || !selectedDate) return;
+    setLoadingHistory(true);
+    try {
+      const res = await api.get(`/auth/users/${selectedUserId}/history/?date=${selectedDate}`);
+      setHistoryPoints(res.data);
+    } catch (err) {
+      console.error('Failed to fetch history', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     fetchLocations();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchLocations, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    let interval: any;
+    if (mode === 'live') {
+      interval = setInterval(fetchLocations, 30000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === 'history') {
+      fetchHistory();
+    }
+  }, [mode, selectedUserId, selectedDate]);
 
   if (loading) {
     return (
@@ -88,21 +127,79 @@ export default function TrackingPage() {
     );
   }
 
-  // Default center (Algiers) if no users are active, otherwise center on the first user
-  const center: [number, number] = users.length > 0 
-    ? [Number(users[0].latitude), Number(users[0].longitude)]
-    : [36.7525, 3.04197];
+  // Determine map center
+  let center: [number, number] = [36.7525, 3.04197];
+  if (mode === 'live' && users.length > 0) {
+    const liveU = users.find(u => u.latitude != null);
+    if (liveU) center = [Number(liveU.latitude), Number(liveU.longitude)];
+  } else if (mode === 'history' && historyPoints.length > 0) {
+    center = [Number(historyPoints[0].latitude), Number(historyPoints[0].longitude)];
+  }
 
   return (
     <AppLayout allowedRoles={['admin']}>
       <div className="p-4" style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
-      <div className="flex-between" style={{ marginBottom: '16px' }}>
+      
+      <div className="flex-between" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 800 }}>
-          {fr ? 'Suivi GPS en Temps Réel' : 'التتبع المباشر عبر نظام تحديد المواقع'}
+          {fr ? 'Suivi GPS' : 'التتبع المباشر'}
         </h1>
-        <button onClick={fetchLocations} className="btn btn-primary btn-sm">
-          {fr ? 'Actualiser' : 'تحديث'}
-        </button>
+        
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => setMode('live')}
+              style={{ 
+                padding: '6px 16px', border: 'none', fontSize: '13px', fontWeight: 600,
+                background: mode === 'live' ? '#6366f1' : 'transparent',
+                color: mode === 'live' ? 'white' : 'var(--text-secondary)',
+                cursor: 'pointer'
+              }}
+            >
+              {fr ? 'Temps Réel' : 'مباشر'}
+            </button>
+            <button 
+              onClick={() => setMode('history')}
+              style={{ 
+                padding: '6px 16px', border: 'none', fontSize: '13px', fontWeight: 600,
+                background: mode === 'history' ? '#6366f1' : 'transparent',
+                color: mode === 'history' ? 'white' : 'var(--text-secondary)',
+                cursor: 'pointer'
+              }}
+            >
+              {fr ? 'Historique' : 'سجل'}
+            </button>
+          </div>
+
+          {mode === 'history' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select 
+                className="form-control" 
+                value={selectedUserId} 
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                style={{ padding: '6px 12px', fontSize: '13px', height: 'auto' }}
+              >
+                <option value="">{fr ? '-- Choisir Utilisateur --' : '-- اختر المستخدم --'}</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.first_name} {u.last_name} ({u.role})</option>
+                ))}
+              </select>
+              <input 
+                type="date" 
+                className="form-control" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{ padding: '6px 12px', fontSize: '13px', height: 'auto' }}
+              />
+            </div>
+          )}
+
+          {mode === 'live' && (
+            <button onClick={fetchLocations} className="btn btn-primary btn-sm">
+              {fr ? 'Actualiser' : 'تحديث'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ 
@@ -120,7 +217,7 @@ export default function TrackingPage() {
             attribution='&copy; <a href="https://www.google.com/intl/en_US/help/terms_maps.html">Google Maps</a>'
             url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
           />
-          {users.map(user => (
+          {mode === 'live' && users.filter(u => u.latitude != null).map(user => (
             <Marker 
               key={user.id} 
               position={[Number(user.latitude), Number(user.longitude)]}
@@ -142,6 +239,29 @@ export default function TrackingPage() {
               </Popup>
             </Marker>
           ))}
+
+          {mode === 'history' && historyPoints.length > 0 && (
+            <>
+              <Polyline 
+                positions={historyPoints.map(p => [Number(p.latitude), Number(p.longitude)])} 
+                color="#6366f1" 
+                weight={5} 
+                opacity={0.7} 
+              />
+              <Marker 
+                position={[Number(historyPoints[0].latitude), Number(historyPoints[0].longitude)]}
+                icon={prevendeurIcon}
+              >
+                <Popup>Départ: {new Date(historyPoints[0].timestamp).toLocaleTimeString()}</Popup>
+              </Marker>
+              <Marker 
+                position={[Number(historyPoints[historyPoints.length - 1].latitude), Number(historyPoints[historyPoints.length - 1].longitude)]}
+                icon={livreurIcon}
+              >
+                <Popup>Dernière position: {new Date(historyPoints[historyPoints.length - 1].timestamp).toLocaleTimeString()}</Popup>
+              </Marker>
+            </>
+          )}
         </MapContainer>
       </div>
       
