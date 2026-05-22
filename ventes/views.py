@@ -9,6 +9,33 @@ from .serializers import VenteSerializer, VenteCreateSerializer
 from stock.models import MouvementStock
 from products.models import Produit
 
+def deduct_stock_if_needed(vente, user):
+    """
+    Deducts stock for a sale only if its status is confirmed or later,
+    and guarantees it is never deducted twice by checking MouvementStock.
+    """
+    if vente.statut not in ['confirmee', 'en_livraison', 'livree', 'cloturee']:
+        return
+
+    if MouvementStock.objects.filter(reference=vente.reference, type_mouvement='sortie', motif='vente').exists():
+        return
+
+    for ligne in vente.lignes.all():
+        Produit.objects.filter(pk=ligne.produit_id).update(
+            stock_actuel=F('stock_actuel') - ligne.quantite
+        )
+        produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+        MouvementStock.objects.create(
+            produit_id=ligne.produit_id,
+            type_mouvement='sortie',
+            motif='vente',
+            quantite=ligne.quantite,
+            stock_avant=produit.stock_actuel + ligne.quantite,
+            stock_apres=produit.stock_actuel,
+            reference=vente.reference,
+            cree_par=user,
+        )
+
 
 class VenteViewSet(viewsets.ModelViewSet):
     queryset = Vente.objects.select_related(
@@ -35,25 +62,12 @@ class VenteViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         with transaction.atomic():
             vente = serializer.save(cree_par=self.request.user)
-            # Use F() expressions for race-condition-safe stock update
-            for ligne in vente.lignes.all():
-                Produit.objects.filter(pk=ligne.produit_id).update(
-                    stock_actuel=F('stock_actuel') - ligne.quantite
-                )
-                # Read fresh stock values for the movement log
-                produit = Produit.objects.only(
-                    'stock_actuel'
-                ).get(pk=ligne.produit_id)
-                MouvementStock.objects.create(
-                    produit_id=ligne.produit_id,
-                    type_mouvement='sortie',
-                    motif='vente',
-                    quantite=ligne.quantite,
-                    stock_avant=produit.stock_actuel + ligne.quantite,
-                    stock_apres=produit.stock_actuel,
-                    reference=vente.reference,
-                    cree_par=self.request.user,
-                )
+            deduct_stock_if_needed(vente, self.request.user)
+
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            vente = serializer.save()
+            deduct_stock_if_needed(vente, self.request.user)
 
     @action(detail=True, methods=['post'])
     def retour(self, request, pk=None):
@@ -114,9 +128,11 @@ class VenteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def confirmer(self, request, pk=None):
-        vente = self.get_object()
-        vente.statut = 'confirmee'
-        vente.save(update_fields=['statut', 'updated_at'])
+        with transaction.atomic():
+            vente = self.get_object()
+            vente.statut = 'confirmee'
+            vente.save(update_fields=['statut', 'updated_at'])
+            deduct_stock_if_needed(vente, request.user)
         return Response(VenteSerializer(vente).data)
 
     @action(detail=True, methods=['post'])
@@ -131,23 +147,29 @@ class VenteViewSet(viewsets.ModelViewSet):
         except CustomUser.DoesNotExist:
             return Response({'error': 'Livreur introuvable'}, status=400)
 
-        vente.livreur = livreur
-        vente.statut = 'en_livraison'
-        vente.save(update_fields=['livreur', 'statut', 'updated_at'])
+        with transaction.atomic():
+            vente.livreur = livreur
+            vente.statut = 'en_livraison'
+            vente.save(update_fields=['livreur', 'statut', 'updated_at'])
+            deduct_stock_if_needed(vente, request.user)
         return Response(VenteSerializer(vente).data)
 
     @action(detail=True, methods=['post'])
     def livrer(self, request, pk=None):
-        vente = self.get_object()
-        vente.statut = 'livree'
-        vente.save(update_fields=['statut', 'updated_at'])
+        with transaction.atomic():
+            vente = self.get_object()
+            vente.statut = 'livree'
+            vente.save(update_fields=['statut', 'updated_at'])
+            deduct_stock_if_needed(vente, request.user)
         return Response(VenteSerializer(vente).data)
 
     @action(detail=True, methods=['post'])
     def approuver(self, request, pk=None):
-        vente = self.get_object()
-        vente.statut = 'cloturee'
-        vente.save(update_fields=['statut', 'updated_at'])
+        with transaction.atomic():
+            vente = self.get_object()
+            vente.statut = 'cloturee'
+            vente.save(update_fields=['statut', 'updated_at'])
+            deduct_stock_if_needed(vente, request.user)
         return Response(VenteSerializer(vente).data)
 
     @action(detail=True, methods=['post'])
