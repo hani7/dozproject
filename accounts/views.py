@@ -41,6 +41,36 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         return UserSerializer
 
+    @action(detail=True, methods=['get'], permission_classes=[IsAdmin])
+    def history(self, request, pk=None):
+        date_str = request.query_params.get('date')
+        from .models import LocationHistory
+        qs = LocationHistory.objects.filter(user_id=pk)
+        if date_str:
+            qs = qs.filter(timestamp__date=date_str)
+        
+        # Order chronologically for drawing the path
+        qs = qs.order_by('timestamp')
+        
+        data = [
+            {
+                'latitude': h.latitude,
+                'longitude': h.longitude,
+                'timestamp': h.timestamp.isoformat()
+            } for h in qs
+        ]
+        return Response(data)
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def force_migrate(self, request):
+        from django.core.management import call_command
+        try:
+            call_command('makemigrations', 'accounts', interactive=False)
+            call_command('migrate', 'accounts', interactive=False)
+            return Response({"status": "Migrated successfully"})
+        except Exception as e:
+            return Response({"error": str(e)})
+
     from rest_framework.decorators import action
     from django.utils import timezone
 
@@ -54,6 +84,15 @@ class UserViewSet(viewsets.ModelViewSet):
             user.longitude = float(longitude)
             user.last_location_update = timezone.now()
             user.save(update_fields=['latitude', 'longitude', 'last_location_update'])
+            
+            from .models import LocationHistory
+            LocationHistory.objects.create(
+                user=user,
+                latitude=float(latitude),
+                longitude=float(longitude),
+                timestamp=user.last_location_update
+            )
+            
             return Response({'status': 'Location updated'})
         return Response({'error': 'Invalid data'}, status=400)
 

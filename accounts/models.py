@@ -28,3 +28,18 @@ class CustomUser(AbstractUser):
     def __str__(self):
         spec = f' [{self.specialite}]' if self.role in ('prevendeur', 'livreur') else ''
         return f"{self.get_full_name() or self.username} ({self.get_role_display()}{spec})"
+
+class LocationHistory(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='location_history')
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} at {self.timestamp}"
