@@ -587,7 +587,14 @@ function VentesPageContent({ type }: Props) {
                     👤 {v.prevendeur_nom || v.cree_par_nom || '—'}
                   </span>
                 </td>
-                <td style={{ fontSize: '12px' }}>{v.date}</td>
+                <td style={{ fontSize: '12px' }}>
+                  <div style={{ fontWeight: 600 }}>{v.date}</div>
+                  {v.created_at && (
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {new Date(v.created_at).toLocaleTimeString(fr ? 'fr-FR' : 'ar-DZ', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+                </td>
                 <td style={{ fontSize: '12px', minWidth: '150px' }}>
                   {v.lignes?.slice(0, 2).map((l: any, i: number) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
