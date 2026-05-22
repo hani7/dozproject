@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import api from '@/lib/api';
 import { useLang } from '@/contexts/LangContext';
+import AppLayout from '@/components/AppLayout';
 
 // Fix Leaflet's default icon path issues with Vite
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -77,7 +78,11 @@ export default function TrackingPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-4"><div className="spinner" /></div>;
+    return (
+      <AppLayout allowedRoles={['admin']}>
+        <div className="p-4"><div className="spinner" /></div>
+      </AppLayout>
+    );
   }
 
   // Default center (Algiers) if no users are active, otherwise center on the first user
@@ -86,7 +91,8 @@ export default function TrackingPage() {
     : [36.7525, 3.04197];
 
   return (
-    <div className="p-4" style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
+    <AppLayout allowedRoles={['admin']}>
+      <div className="p-4" style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
       <div className="flex-between" style={{ marginBottom: '16px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 800 }}>
           {fr ? 'Suivi GPS en Temps Réel' : 'التتبع المباشر عبر نظام تحديد المواقع'}
@@ -147,5 +153,6 @@ export default function TrackingPage() {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }
