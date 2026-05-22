@@ -457,18 +457,25 @@ export default function LivraisonsPage() {
               </div>
 
               {/* ─ Actions Moved to Top */}
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
-                <button className="btn btn-secondary" style={{ flex: 1, padding: '10px' }} onClick={() => setPayModal(null)}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                <button className="btn btn-secondary" style={{ flex: 1, padding: '10px', fontSize: '13px' }} onClick={() => setPayModal(null)}>
                   {fr ? 'Annuler' : 'إلغاء'}
+                </button>
+                <button className="btn btn-danger" style={{ flex: 1, padding: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: '13px' }}
+                  onClick={() => {
+                    setPayModal(null);
+                    toast.success(fr ? 'Commande marquée comme Non payée' : 'تم التعليم كغير مدفوع');
+                  }}>
+                  {fr ? 'Non payé' : 'غير مدفوع'}
                 </button>
                 <button
                   onClick={doPaiement}
                   disabled={paying || totalVersements <= 0}
-                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', border: 'none', background: totalVersements > 0 ? '#10b981' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: paying || totalVersements <= 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                  style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', border: 'none', background: totalVersements > 0 ? '#10b981' : '#aaa', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: paying || totalVersements <= 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
                 >
                   {paying ? <div className="spinner" style={{ width: 16, height: 16 }} /> : <DollarSign size={16} />}
                   {fr
-                    ? `Valider ${versements.filter(v => Number(v.montant) > 0).length} versement(s)`
+                    ? `Valider ${versements.filter(v => Number(v.montant) > 0).length} vers.`
                     : `تأكيد الدفع`}
                 </button>
               </div>
@@ -545,21 +552,12 @@ export default function LivraisonsPage() {
                 </div>
               </div>
 
-              {/* ─ Quick fill and Non payé */}
+              {/* ─ Quick fill */}
               {resteApres > 0 && versements.length === 1 && (
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                  <button className="btn btn-secondary btn-sm" style={{ flex: 1 }}
-                    onClick={() => setVersements([{ montant: String(Math.max(0, total - dejaPaye)), mode: versements[0].mode }])}>
-                    {fr ? '⇨ Montant exact' : '⇨ المبلغ كاملاً'} ({(total - dejaPaye).toLocaleString('fr-DZ')} DA)
-                  </button>
-                  <button className="btn btn-danger btn-sm" style={{ flex: 1, background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
-                    onClick={() => {
-                      setPayModal(null);
-                      toast.success(fr ? 'Commande marquée comme Non payée' : 'تم التعليم كغير مدفوع');
-                    }}>
-                    {fr ? 'Non payé' : 'غير مدفوع'}
-                  </button>
-                </div>
+                <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginBottom: '14px' }}
+                  onClick={() => setVersements([{ montant: String(Math.max(0, total - dejaPaye)), mode: versements[0].mode }])}>
+                  {fr ? '⇨ Montant exact' : '⇨ المبلغ كاملاً'} ({(total - dejaPaye).toLocaleString('fr-DZ')} DA)
+                </button>
               )}
 
               {/* Removed old bottom actions */}
