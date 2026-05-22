@@ -39,6 +39,21 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         return UserSerializer
 
+    from rest_framework.decorators import action
+    from django.utils import timezone
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def update_location(self, request):
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
+        if latitude is not None and longitude is not None:
+            user = request.user
+            user.latitude = float(latitude)
+            user.longitude = float(longitude)
+            user.last_location_update = timezone.now()
+            user.save(update_fields=['latitude', 'longitude', 'last_location_update'])
+            return Response({'status': 'Location updated'})
+        return Response({'error': 'Invalid data'}, status=400)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

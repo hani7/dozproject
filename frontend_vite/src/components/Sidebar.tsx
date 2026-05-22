@@ -13,6 +13,7 @@ import {
 
 const adminNav = [
   { label: 'nav.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
   { label: 'nav.products', href: '/admin/produits', icon: Package },
   { label: 'nav.stock', href: '/admin/stock', icon: Warehouse },
   { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },

@@ -5,6 +5,7 @@ import { useLang } from '@/contexts/LangContext';
 import { Link } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import api from '@/lib/api';
 import type { UserRole } from '@/lib/types';
 import {
   Package, Users, ShoppingBag, ShoppingCart, ClipboardList,
@@ -33,6 +34,32 @@ export default function AppLayout({ children, allowedRoles }: Props) {
       else navigate('/livreur/livraisons');
     }
   }, [user, loading]);
+
+  // GPS Tracking Loop
+  useEffect(() => {
+    if (!user || (user.role !== 'prevendeur' && user.role !== 'livreur')) return;
+
+    let watchId: number;
+    if ('geolocation' in navigator) {
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          try {
+            await api.post('/auth/users/update_location/', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          } catch (e) {
+            console.error('Error sending GPS location', e);
+          }
+        },
+        (error) => console.warn('GPS Error:', error),
+        { enableHighAccuracy: true, maximumAge: 60000, timeout: 10000 }
+      );
+    }
+    return () => {
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [user]);
 
   if (loading || !user) {
     return (
