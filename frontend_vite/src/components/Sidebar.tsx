@@ -15,7 +15,6 @@ const adminNav = [
   { label: 'nav.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'nav.products', href: '/admin/produits', icon: Package },
   { label: 'nav.stock', href: '/admin/stock', icon: Warehouse },
-  { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },
   { label: 'nav.bon_commande', href: '/admin/bon-commande', icon: FileText },
   { label: 'nav.purchases', href: '/admin/achats', icon: ShoppingCart },
   { label: 'nav.clients', href: '/admin/clients', icon: Users },
@@ -28,6 +27,7 @@ const adminNav = [
   { label: 'nav.payments', href: '/admin/paiements', icon: CreditCard },
   { label: 'nav.comptes', href: '/admin/comptes', icon: KeyRound },
   { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
+  { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },
 ];
 
 // Prévendeur nav is dynamic based on specialite
