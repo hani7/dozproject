@@ -528,8 +528,9 @@ export function CommandeForm({ type }: Props) {
                         alt={p.nom}
                         style={{
                           width: "100%",
-                          height: "80px",
-                          objectFit: "cover",
+                          height: "100px",
+                          objectFit: "contain",
+                          background: "var(--bg-elevated)",
                           borderRadius: "8px",
                           marginBottom: "8px",
                           border: "1px solid var(--border)",
