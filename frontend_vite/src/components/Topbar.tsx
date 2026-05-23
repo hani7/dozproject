@@ -77,13 +77,13 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
   };
 
   return (
-    <header className="topbar" style={isMobileRole ? { justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', borderBottom: 'none', background: 'var(--brand-primary)', color: 'white' } : {}}>
+    <header className="topbar" style={isMobileRole ? { justifyContent: 'space-between', padding: '0 16px', borderBottom: 'none', background: 'var(--brand-primary)', color: 'white' } : {}}>
       {!isMobileRole && (
         <button className="mobile-menu-btn" onClick={onMenuClick} style={{ display: 'none', background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
           <Menu size={24} />
         </button>
       )}
-      <h2 className="topbar-title" style={isMobileRole ? { color: 'white', flex: 1, textAlign: 'center', fontSize: '16px', letterSpacing: '0.5px' } : {}}>{title}</h2>
+      <h2 className="topbar-title" style={isMobileRole ? { color: 'white', fontSize: '16px', letterSpacing: '0.5px', margin: 0 } : {}}>{title}</h2>
 
       {!isMobileRole && (
         <div className="topbar-right" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -160,17 +160,17 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
       )}
 
       {isMobileRole && (
-        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px' }}>
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
             {lang === 'fr' ? 'AR' : 'FR'}
           </button>
           <button onClick={toggleTheme}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
           </button>
           <button onClick={logout}
-            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <LogOut size={14} />
           </button>
         </div>
