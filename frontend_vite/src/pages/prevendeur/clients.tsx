@@ -53,9 +53,10 @@ export default function PrevendeurClientsPage() {
 
   useEffect(() => { 
     loadClients(); 
-    // Show GPS reminder only once per session
-    if (!sessionStorage.getItem('gps_notif_shown')) {
-      sessionStorage.setItem('gps_notif_shown', '1');
+    // Show GPS reminder only once per day
+    const today = new Date().toDateString();
+    if (localStorage.getItem('gps_notif_date') !== today) {
+      localStorage.setItem('gps_notif_date', today);
       setTimeout(() => {
         toast(fr ? "🔔 N'oubliez pas d'activer votre GPS (Localisation)" : "🔔 يرجى تفعيل الـ GPS (الموقع)", { duration: 5000 });
         if (navigator.geolocation) {

@@ -246,7 +246,130 @@ export async function printViaBluetoothRaw(ticket: TicketData): Promise<boolean>
   }
 }
 
-// ── HTML Fallback Print (window.print) ──────────────────────────────────────
+// ── Shared ticket HTML renderer (used by both modal and off-screen Eleph Label) ──
+function buildTicketInnerHTML(ticket: TicketData): string {
+  const reste = Math.max(0, ticket.montant_total - ticket.montant_paye);
+  return `
+    <div style="text-align:center;font-weight:bold;font-size:20px;margin-bottom:2px">ForCli</div>
+    <div style="text-align:center;font-size:12px">Distribution &amp; Commerce</div>
+    <div style="text-align:center;font-size:11px;margin-bottom:10px">doz.baitul.tech</div>
+    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    <div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span>Ref. ${ticket.reference}</span>
+        <span>${ticket.date}</span>
+      </div>
+      <div style="margin-top:4px">Client: <b>${ticket.client_nom}</b></div>
+      ${ticket.client_phone ? `<div style="margin-top:2px">Tel: ${ticket.client_phone}</div>` : ''}
+      ${ticket.livreur_nom  ? `<div style="margin-top:2px">Livreur: ${ticket.livreur_nom}</div>` : ''}
+    </div>
+    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    <div style="margin-bottom:6px">
+      ${ticket.lignes.map(l => `
+        <div style="margin-bottom:5px">
+          <div style="display:flex;justify-content:space-between;font-weight:bold">
+            <span>${l.quantite}x ${l.produit_nom.substring(0,22)}</span>
+            <span>${l.sous_total.toLocaleString('fr-DZ')} DA</span>
+          </div>
+          <div style="font-size:11px;color:#444">&agrave; ${l.prix_unitaire.toLocaleString('fr-DZ')} DA/ctn</div>
+        </div>`).join('')}
+    </div>
+    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin:6px 0">
+      <span>Total :</span><span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:13px">
+      <span>Pay&eacute; :</span><span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
+    </div>
+    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    ${reste > 0
+      ? `<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin-top:6px">
+           <span>RESTE &agrave; PAYER :</span><span>${reste.toLocaleString('fr-DZ')} DA</span>
+         </div>`
+      : `<div style="text-align:center;font-weight:bold;margin-top:6px;font-size:13px">*** SOLDE COMPLET ***</div>`}
+    <div style="border-top:1px dashed #000;margin:12px 0 6px 0"></div>
+    <div style="text-align:center;font-size:11px">Merci pour votre commande!</div>
+  `;
+}
+
+// ── Auto print to Eleph Label (off-screen render, no modal) ──
+// Returns true if sent successfully
+export async function printViaElephLabelAuto(ticket: TicketData): Promise<boolean> {
+  try {
+    // Create off-screen container at exact 384px (48mm @ 203 DPI)
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = [
+      'position:fixed',
+      'top:-9999px',
+      'left:-9999px',
+      'width:384px',
+      'background:#ffffff',
+      'padding:10px',
+      'font-family:Courier New,Courier,monospace',
+      'color:#000',
+      'font-size:13px',
+      'line-height:1.3',
+      'z-index:-1',
+      'pointer-events:none',
+    ].join(';');
+    wrapper.innerHTML = buildTicketInnerHTML(ticket);
+    document.body.appendChild(wrapper);
+
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(wrapper, {
+      scale: 1,           // 1:1 → 384px = 48mm print zone
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      width: 384,
+    });
+    document.body.removeChild(wrapper);
+
+    return new Promise<boolean>((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) { resolve(false); return; }
+
+        const fileName = `ticket_${ticket.reference}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        // ── Method A: Android WebView bridge (fastest, direct to Eleph Label) ──
+        if (typeof (window as any).AndroidInterface !== 'undefined') {
+          try {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
+            };
+            reader.readAsDataURL(file);
+            resolve(true);
+            return;
+          } catch { /* fall through */ }
+        }
+
+        // ── Method B: navigator.share (Chrome Android / PWA) ──
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: `Ticket ${ticket.reference}`,
+              files: [file],
+            });
+            resolve(true);
+            return;
+          } catch (e: any) {
+            if (e?.name === 'AbortError') { resolve(true); return; } // user cancelled = ok
+          }
+        }
+
+        resolve(false);
+      }, 'image/png');
+    });
+  } catch (e) {
+    console.error('Eleph Label auto print error:', e);
+    return false;
+  }
+}
+
+// ── HTML Fallback Print (modal with buttons — used on desktop/web only) ──
 export function printTicketHTML(ticket: TicketData): void {
   const reste = Math.max(0, ticket.montant_total - ticket.montant_paye);
   const html = `
@@ -269,7 +392,7 @@ export function printTicketHTML(ticket: TicketData): void {
           🖨 Imprimer
         </button>
         <button id="ticket-share-img-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #7c3aed; color: white; font-weight: bold; font-size: 14px; cursor: pointer; letter-spacing: 0.3px;">
-          🐘 Imprimer via Eleph Label
+          🐘 Eleph Label
         </button>
         <button id="ticket-share-txt-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           📝 Partager Texte (WhatsApp)
@@ -277,67 +400,7 @@ export function printTicketHTML(ticket: TicketData): void {
       </div>
 
       <div class="print-ticket-container" style="background: white; width: 100%; max-width: 384px; padding: 10px; font-family: 'Courier New', Courier, monospace; color: #000; font-size: 13px; line-height: 1.3; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-        <div style="text-align: center; font-weight: bold; font-size: 20px;">ForCli</div>
-        <div style="text-align: center; font-size: 12px;">Distribution &amp; Commerce</div>
-        <div style="text-align: center; font-size: 11px; margin-bottom: 12px;">doz.baitul.tech</div>
-
-        <div style="margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between;">
-            <span>Ref. ${ticket.reference}</span>
-            <span>${ticket.date}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
-            <span>Client: <b>${ticket.client_nom}</b></span>
-          </div>
-          ${ticket.client_phone ? `<div style="margin-top: 2px;">Tel: ${ticket.client_phone}</div>` : ''}
-          ${ticket.livreur_nom ? `<div style="margin-top: 2px;">Livreur: ${ticket.livreur_nom}</div>` : ''}
-        </div>
-
-        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-
-        <div style="margin-bottom: 5px;">
-          ${ticket.lignes.map(l => `
-            <div style="margin-bottom: 6px;">
-              <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>${l.quantite}x ${l.produit_nom.substring(0, 22)}</span>
-                <span>${l.sous_total.toLocaleString('fr-DZ')} DA</span>
-              </div>
-              <div style="font-size: 11px; color: #333;">
-                à ${l.prix_unitaire.toLocaleString('fr-DZ')} DA
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-
-        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin: 8px 0;">
-          <span>Total :</span>
-          <span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; font-size: 14px;">
-          <span>Payé :</span>
-          <span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
-        </div>
-
-        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-
-        ${reste > 0 ? `
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 8px;">
-            <span>RESTE A PAYER :</span>
-            <span>${reste.toLocaleString('fr-DZ')} DA</span>
-          </div>
-        ` : `
-          <div style="text-align: center; font-weight: bold; margin-top: 8px; font-size: 14px;">
-            *** SOLDE COMPLET ***
-          </div>
-        `}
-
-        <div style="border-top: 1px dashed #000; margin: 15px 0 8px 0;"></div>
-        <div style="text-align: center; font-size: 11px;">
-          Merci pour votre commande!
-        </div>
+        ${buildTicketInnerHTML(ticket)}
       </div>
     </div>
   `;
@@ -351,249 +414,90 @@ export function printTicketHTML(ticket: TicketData): void {
   printOverlay.innerHTML = html;
   document.body.appendChild(printOverlay);
   
-  // Attach events using querySelector to ensure we target the new overlay
-  const closeBtn = printOverlay.querySelector('#ticket-close-btn');
-  const printBtn = printOverlay.querySelector('#ticket-print-btn');
+  const closeBtn    = printOverlay.querySelector('#ticket-close-btn');
+  const printBtn    = printOverlay.querySelector('#ticket-print-btn');
   const shareImgBtn = printOverlay.querySelector('#ticket-share-img-btn');
   const shareTxtBtn = printOverlay.querySelector('#ticket-share-txt-btn');
   
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      printOverlay.remove();
-    });
-  }
+  if (closeBtn) closeBtn.addEventListener('click', () => printOverlay.remove());
   
   if (printBtn) {
     printBtn.addEventListener('click', () => {
-      // Direct DOM manipulation to ensure styles are applied immediately
-      const overlay = document.getElementById('ticket-print-overlay');
+      const overlay   = document.getElementById('ticket-print-overlay');
       const container = document.querySelector('.print-ticket-container') as HTMLElement;
-      const noPrint = document.querySelector('.no-print') as HTMLElement;
-      
-      // Save original styles
-      const origOverlayBg = overlay?.style.background;
-      const origOverlayAlign = overlay?.style.alignItems;
-      const origOverlayJustify = overlay?.style.justifyContent;
-      const origOverlayPadding = overlay?.style.padding;
-      
-      const origContainerShadow = container?.style.boxShadow;
-      const origContainerMargin = container?.style.margin;
-      const origContainerMaxW = container?.style.maxWidth;
-      const origContainerW = container?.style.width;
-      
-      const origNoPrintDisplay = noPrint?.style.display;
+      const noPrint   = document.querySelector('.no-print') as HTMLElement;
+      const origBg    = overlay?.style.background;
+      const origAlign = overlay?.style.alignItems;
+      const origJust  = overlay?.style.justifyContent;
+      const origPad   = overlay?.style.padding;
+      const origShadow = container?.style.boxShadow;
+      const origMaxW  = container?.style.maxWidth;
+      const origNP    = noPrint?.style.display;
 
-      // Apply clean print styles
-      if (overlay) {
-        overlay.style.background = 'white';
-        overlay.style.alignItems = 'flex-start';
-        overlay.style.justifyContent = 'flex-start';
-        overlay.style.padding = '0';
-      }
-      if (container) {
-        container.style.boxShadow = 'none';
-        container.style.margin = '0';
-        container.style.maxWidth = '384px';
-        container.style.width = '384px';
-        container.style.padding = '0';
-      }
-      if (noPrint) {
-        noPrint.style.display = 'none';
-      }
+      if (overlay)   { overlay.style.background = 'white'; overlay.style.alignItems = 'flex-start'; overlay.style.justifyContent = 'flex-start'; overlay.style.padding = '0'; }
+      if (container) { container.style.boxShadow = 'none'; container.style.maxWidth = '384px'; container.style.padding = '0'; }
+      if (noPrint)   { noPrint.style.display = 'none'; }
 
-      // Wait a tiny bit for the browser to render the clean ticket
       setTimeout(() => {
         window.print();
-        
-        // Restore the normal UI after Android has finished capturing
         setTimeout(() => {
-          if (overlay) {
-            overlay.style.background = origOverlayBg || '';
-            overlay.style.alignItems = origOverlayAlign || '';
-            overlay.style.justifyContent = origOverlayJustify || '';
-            overlay.style.padding = origOverlayPadding || '';
-          }
-          if (container) {
-            container.style.boxShadow = origContainerShadow || '';
-            container.style.margin = origContainerMargin || '';
-            container.style.maxWidth = origContainerMaxW || '';
-            container.style.width = origContainerW || '';
-            container.style.padding = '20px';
-          }
-          if (noPrint) {
-            noPrint.style.display = origNoPrintDisplay || '';
-          }
+          if (overlay)   { overlay.style.background = origBg || ''; overlay.style.alignItems = origAlign || ''; overlay.style.justifyContent = origJust || ''; overlay.style.padding = origPad || ''; }
+          if (container) { container.style.boxShadow = origShadow || ''; container.style.maxWidth = origMaxW || ''; container.style.padding = '10px'; }
+          if (noPrint)   { noPrint.style.display = origNP || ''; }
         }, 2000);
-      }, 300); // 300ms ensures DOM is fully updated before Android captures
+      }, 300);
     });
   }
 
-  // --- TEXT SHARE (100% WebView Compatible via Intent) ---
+  // --- TEXT SHARE ---
   if (shareTxtBtn) {
     shareTxtBtn.addEventListener('click', () => {
       let txt = `ForCli - Ticket\nRef: ${ticket.reference}\nClient: ${ticket.client_nom}\nDate: ${ticket.date}\n\n`;
-      ticket.lignes.forEach(l => {
-        txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`;
-      });
+      ticket.lignes.forEach(l => { txt += `${l.produit_nom}\nx${l.quantite} = ${l.sous_total.toLocaleString('fr-DZ')} DA\n`; });
       txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
-      if (reste > 0) txt += `RESTE A PAYER: ${reste.toLocaleString('fr-DZ')} DA\n`;
-      else txt += `SOLDE COMPLET\n`;
-
+      const r = Math.max(0, ticket.montant_total - ticket.montant_paye);
+      txt += r > 0 ? `RESTE A PAYER: ${r.toLocaleString('fr-DZ')} DA\n` : `SOLDE COMPLET\n`;
       try {
-        if (navigator.share) {
-          navigator.share({ title: 'Ticket ' + ticket.reference, text: txt }).catch(() => {
-            // Fallback to Intent if navigator.share fails
-            window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
-          });
-        } else {
-          // Fallback to Intent directly
-          window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
-        }
-      } catch (e) {
-        window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
-      }
+        if (navigator.share) navigator.share({ title: 'Ticket ' + ticket.reference, text: txt }).catch(() => {});
+        else window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
+      } catch { window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`; }
     });
   }
 
-  // --- ELEPH LABEL PRINT ---
+  // --- ELEPH LABEL BUTTON (in modal — for desktop / web fallback) ---
   if (shareImgBtn) {
     shareImgBtn.addEventListener('click', async () => {
       const btn = shareImgBtn as HTMLButtonElement;
-      btn.disabled = true;
-      btn.textContent = '⏳ Génération image...';
-      try {
-        const container = printOverlay.querySelector('.print-ticket-container') as HTMLElement;
-        if (!container) { btn.disabled = false; btn.textContent = '🐘 Imprimer via Eleph Label'; return; }
-
-        // ── 1. Render ticket at exact 384px (48mm @ 203 DPI = MTP II print zone) ──
-        const html2canvas = (await import('html2canvas')).default;
-
-        // Force exact 384px width for printer-accurate output
-        const savedMaxW = container.style.maxWidth;
-        const savedW = container.style.width;
-        container.style.maxWidth = '384px';
-        container.style.width = '384px';
-
-        const canvas = await html2canvas(container, {
-          scale: 1,            // 1:1 → 384px wide = 48mm zone
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          logging: false,
-          width: 384,
-        });
-
-        container.style.maxWidth = savedMaxW;
-        container.style.width = savedW;
-
-        btn.textContent = '⏳ Ouverture Eleph Label...';
-
-        // ── 2. Convert canvas → Blob → File ──
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            btn.disabled = false;
-            btn.textContent = '🐘 Imprimer via Eleph Label';
-            return;
-          }
-
-          const fileName = `ticket_${ticket.reference}.png`;
-          const file = new File([blob], fileName, { type: 'image/png' });
-
-          // ── 3. Try direct Eleph Label Intent (Android WebView / Chrome) ──
-          // Eleph Label / JxPrinter package names (ordered by priority)
-          const ELEPH_PACKAGES = [
-            'com.sandu.JxPrinter',      // Eleph Label / JX Printer (used in Android app)
-            'com.eleph.label',           // Alternative Eleph Label package
-            'com.elephant.label',
-            'com.eleph.labelprinter',
-          ];
-
-          let sentViaIntent = false;
-
-          // Method A: Android WebView bridge (forcli_android app — interface name = "AndroidInterface")
-          if (typeof (window as any).AndroidInterface !== 'undefined') {
-            try {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const base64 = (reader.result as string).split(',')[1];
-                // calls MainActivity.WebAppInterface.printImageEleph(base64, fileName)
-                (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
-              };
-              reader.readAsDataURL(file);
-              sentViaIntent = true;
-            } catch { /* fall through */ }
-          }
-
-          // Method B: navigator.share with files (Web Share API Level 2)
-          if (!sentViaIntent && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                title: `Ticket ${ticket.reference}`,
-                text: 'Imprimer ce ticket via Eleph Label',
-                files: [file],
-              });
-              sentViaIntent = true;
-            } catch (shareErr: any) {
-              if (shareErr?.name !== 'AbortError') {
-                console.warn('navigator.share failed, trying intent fallback', shareErr);
-              } else {
-                // User cancelled — that's fine
-                sentViaIntent = true;
-              }
-            }
-          }
-
-          // Method C: Android Intent URL → direct package targeting
-          if (!sentViaIntent) {
-            // Build a data URI to pass the image via intent
-            const dataUrl = canvas.toDataURL('image/png');
-            // Try each known package
-            for (const pkg of ELEPH_PACKAGES) {
-              try {
-                window.location.href =
-                  `intent:#Intent;action=android.intent.action.SEND;` +
-                  `type=image/png;` +
-                  `package=${pkg};` +
-                  `S.android.intent.extra.TEXT=Ticket+${encodeURIComponent(ticket.reference)};` +
-                  `end`;
-                sentViaIntent = true;
-                break;
-              } catch { /* try next package */ }
-            }
-          }
-
-          // Method D: download as PNG fallback (for desktop/unsupported)
-          if (!sentViaIntent) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-
-          btn.disabled = false;
-          btn.textContent = '🐘 Imprimer via Eleph Label';
-        }, 'image/png');
-
-      } catch (e) {
-        console.error('Eleph Label print error:', e);
-        btn.disabled = false;
-        btn.textContent = '🐘 Imprimer via Eleph Label';
-        alert('Erreur lors de la génération du ticket. Réessayez.');
-      }
+      btn.disabled = true; btn.textContent = '⏳ Génération...';
+      const ok = await printViaElephLabelAuto(ticket);
+      btn.disabled = false; btn.textContent = '🐘 Eleph Label';
+      if (ok) printOverlay.remove();
     });
   }
 }
 
-function toast_fallback() {
-  console.warn('Print failed');
+function toast_fallback() { console.warn('Print failed'); }
+
+/**
+ * Main print entry point:
+ * 1. Android WebView  → auto-render ticket image → Eleph Label (silent, no modal)
+ * 2. Bluetooth ESC/POS → direct to thermal printer
+ * 3. Desktop / web    → HTML modal with action buttons
+ */
+export async function printTicket(ticket: TicketData): Promise<void> {
+  // ── Priority 1: Android WebView → silent auto-print via Eleph Label ──
+  if (typeof (window as any).AndroidInterface !== 'undefined') {
+    const sent = await printViaElephLabelAuto(ticket);
+    if (sent) return; // success — Eleph Label opens automatically
+    // If it fails, fall through to BT or modal
+  }
+
+  // ── Priority 2: Bluetooth ESC/POS (desktop Chrome / paired device) ──
+  const btOk = await printViaBluetoothRaw(ticket);
+  if (btOk) return;
+
+  // ── Priority 3: HTML modal fallback (web browser) ──
+  console.info('Using HTML print modal fallback');
+  printTicketHTML(ticket);
 }
 
-/** Main print function — tries Bluetooth first, falls back to HTML print */
-export async function printTicket(ticket: TicketData): Promise<void> {
-  const btOk = await printViaBluetoothRaw(ticket);
-  if (!btOk) {
-    console.info('BT unavailable — using browser print');
-    printTicketHTML(ticket);
-  }
-}

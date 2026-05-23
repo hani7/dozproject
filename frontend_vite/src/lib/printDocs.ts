@@ -275,6 +275,7 @@ export function printBonLivraison(order: Order) {
   </div>
 
   <div class="footer">
+    <div style="font-size:12px; font-weight:bold; color:#d97706; margin-bottom:6px;">📞 Service Réclamation : 0560825450</div>
     © ${new Date().getFullYear()} ForCli Distribution · doz.baitul.tech · Généré le ${new Date().toLocaleString('fr-FR')}
   </div>
 </body>
