@@ -54,6 +54,14 @@ class VenteViewSet(viewsets.ModelViewSet):
     search_fields  = ['reference', 'client__nom']
     ordering_fields = ['date', 'created_at', 'montant_total']
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = super().get_queryset()
+        # Livreur: only sees ventes assigned to them
+        if user.role == 'livreur':
+            return qs.filter(livreur=user)
+        return qs
+
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return VenteCreateSerializer

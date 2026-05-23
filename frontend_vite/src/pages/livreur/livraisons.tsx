@@ -51,7 +51,7 @@ export default function LivraisonsPage() {
         // Show BT connected toast only once per session
         if (!sessionStorage.getItem('bt_notif_shown')) {
           sessionStorage.setItem('bt_notif_shown', '1');
-          toast.success(`🔵 Imprimante connectée: ${getStoredDeviceName()}`, { duration: 3000 });
+          toast.success(`🔵 Imprimante: ${getStoredDeviceName()}`, { duration: 2500 });
         }
       } else {
         setBtStatus('disconnected');
@@ -62,14 +62,35 @@ export default function LivraisonsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [resCmd, resVente] = await Promise.all([
-        api.get('/commandes/', { params: { statut: filter } }),
-        api.get('/ventes/', { params: { statut: filter } })
-      ]);
-      const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
-      const vts = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
-      const data = [...cmds, ...vts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setOrders(data as Order[]);
+      if (filter === 'en_livraison') {
+        // Active deliveries: only 'en_livraison'
+        const [resCmd, resVente] = await Promise.all([
+          api.get('/commandes/', { params: { statut: 'en_livraison' } }),
+          api.get('/ventes/',    { params: { statut: 'en_livraison' } })
+        ]);
+        const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
+        const vts  = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
+        const data = [...cmds, ...vts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(data as Order[]);
+      } else {
+        // History: fetch both 'livree' AND 'cloturee' (admin may have approved them)
+        const [resCmd1, resCmd2, resVente1, resVente2] = await Promise.all([
+          api.get('/commandes/', { params: { statut: 'livree' } }),
+          api.get('/commandes/', { params: { statut: 'cloturee' } }),
+          api.get('/ventes/',    { params: { statut: 'livree' } }),
+          api.get('/ventes/',    { params: { statut: 'cloturee' } }),
+        ]);
+        const cmds = [
+          ...(resCmd1.data.results || resCmd1.data),
+          ...(resCmd2.data.results || resCmd2.data),
+        ].map((c: any) => ({ ...c, is_vente: false }));
+        const vts = [
+          ...(resVente1.data.results || resVente1.data),
+          ...(resVente2.data.results || resVente2.data),
+        ].map((v: any) => ({ ...v, is_vente: true }));
+        const data = [...cmds, ...vts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(data as Order[]);
+      }
     } catch { }
     setLoading(false);
   }, [filter]);
@@ -240,31 +261,32 @@ export default function LivraisonsPage() {
         </div>
       </div>
 
-      {/* ── Bluetooth status bar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '8px 12px', borderRadius: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flex: 1 }}>
+      {/* ── Bluetooth status bar — hidden when unsupported (Android WebView) ── */}
+      {btStatus !== 'unsupported' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '8px 12px', borderRadius: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flex: 1 }}>
+            {btStatus === 'connected'
+              ? <Bluetooth size={15} color="#3b82f6" />
+              : btStatus === 'connecting'
+              ? <div className="spinner" style={{ width: 14, height: 14 }} />
+              : <BluetoothOff size={15} color="var(--text-muted)" />}
+            <span style={{ fontSize: '12px', fontWeight: 600,
+              color: btStatus === 'connected' ? '#3b82f6' : btStatus === 'connecting' ? '#f59e0b' : 'var(--text-muted)' }}>
+              {btStatus === 'connected' ? `🖨 ${btName || 'Imprimante'}` :
+               btStatus === 'connecting' ? (fr ? 'Connexion...' : 'جارٍ الاتصال...') :
+               (fr ? 'Imprimante non connectée' : 'الطابعة غير متصلة')}
+            </span>
+          </div>
           {btStatus === 'connected'
-            ? <Bluetooth size={15} color="#3b82f6" />
-            : btStatus === 'connecting'
-            ? <div className="spinner" style={{ width: 14, height: 14 }} />
-            : <BluetoothOff size={15} color="var(--text-muted)" />}
-          <span style={{ fontSize: '12px', fontWeight: 600,
-            color: btStatus === 'connected' ? '#3b82f6' : btStatus === 'connecting' ? '#f59e0b' : 'var(--text-muted)' }}>
-            {btStatus === 'connected' ? `🖨 ${btName || 'Imprimante'}` :
-             btStatus === 'connecting' ? (fr ? 'Connexion...' : 'جارٍ الاتصال...') :
-             btStatus === 'unsupported' ? (fr ? 'BT non supporté' : 'BT غير مدعوم') :
-             (fr ? 'Imprimante non connectée' : 'الطابعة غير متصلة')}
-          </span>
+            ? <button onClick={disconnectBT} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                {fr ? 'Déconnecter' : 'قطع الاتصال'}
+              </button>
+            : btStatus !== 'connecting' &&
+              <button onClick={connectBT} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.35)', background: 'rgba(59,130,246,0.08)', color: '#3b82f6', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Bluetooth size={12} /> {fr ? 'Connecter imprimante' : 'توصيل طابعة'}
+              </button>}
         </div>
-        {btStatus === 'connected'
-          ? <button onClick={disconnectBT} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-              {fr ? 'Déconnecter' : 'قطع الاتصال'}
-            </button>
-          : btStatus !== 'unsupported' && btStatus !== 'connecting' &&
-            <button onClick={connectBT} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.35)', background: 'rgba(59,130,246,0.08)', color: '#3b82f6', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Bluetooth size={12} /> {fr ? 'Connecter imprimante' : 'توصيل طابعة'}
-            </button>}
-      </div>
+      )}
 
       <div style={{ marginBottom: '16px', maxWidth: 360 }}>
         <input className="form-control" placeholder={fr ? 'Rechercher...' : 'بحث...'} value={search} onChange={e => setSearch(e.target.value)} />
