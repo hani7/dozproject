@@ -41,6 +41,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import android.util.Base64;
 import android.os.Looper;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.graphics.BitmapFactory;
+import java.io.OutputStream;
+import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -80,9 +87,13 @@ public class MainActivity extends AppCompatActivity {
             splashLayout.setVisibility(View.GONE);
         }, 2000);
 
-        // Request location permissions if not granted
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 100);
+        // Request location and Bluetooth permissions if not granted
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH_CONNECT
+            }, 100);
         }
 
         // Configure WebView
@@ -365,6 +376,99 @@ public class MainActivity extends AppCompatActivity {
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     );
+                }
+            }).start();
+        }
+
+        /**
+         * Native Bluetooth Print: Receives Base64 image, converts to ESC/POS, sends to paired MTP printer
+         */
+        @JavascriptInterface
+        public void printDirectBT(String base64Data) {
+            new Thread(() -> {
+                try {
+                    byte[] imageBytes = Base64.decode(base64Data, Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                    
+                    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                    if (adapter == null || !adapter.isEnabled()) {
+                        runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Veuillez activer le Bluetooth", android.widget.Toast.LENGTH_LONG).show());
+                        return;
+                    }
+
+                    Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+                    BluetoothDevice printer = null;
+                    for (BluetoothDevice d : pairedDevices) {
+                        if (d.getName() != null && (d.getName().contains("MTP") || d.getName().contains("PT200") || d.getName().contains("BT") || d.getName().contains("Printer"))) {
+                            printer = d;
+                            break;
+                        }
+                    }
+                    
+                    if (printer == null && !pairedDevices.isEmpty()) {
+                        printer = pairedDevices.iterator().next(); // fallback to first paired
+                    }
+                    
+                    if (printer == null) {
+                        runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Aucune imprimante appairée trouvée. Veuillez l'associer dans les paramètres Bluetooth.", android.widget.Toast.LENGTH_LONG).show());
+                        return;
+                    }
+
+                    final BluetoothDevice finalPrinter = printer;
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Connexion à " + finalPrinter.getName() + "...", android.widget.Toast.LENGTH_SHORT).show());
+
+                    UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+                    BluetoothSocket socket = finalPrinter.createRfcommSocketToServiceRecord(SPP_UUID);
+                    socket.connect();
+                    OutputStream os = socket.getOutputStream();
+                    
+                    // Init printer
+                    os.write(new byte[]{0x1B, 0x40});
+                    os.write(new byte[]{0x1B, 0x61, 0x01}); // Center align
+
+                    // Convert Bitmap to ESC/POS Raster (GS v 0)
+                    int bmpWidth = bitmap.getWidth();
+                    int bmpHeight = bitmap.getHeight();
+                    int widthInBytes = (bmpWidth + 7) / 8;
+                    byte[] data = new byte[8 + bmpHeight * widthInBytes];
+                    data[0] = 0x1D; data[1] = 0x76; data[2] = 0x30; data[3] = 0x00;
+                    data[4] = (byte) (widthInBytes % 256);
+                    data[5] = (byte) (widthInBytes / 256);
+                    data[6] = (byte) (bmpHeight % 256);
+                    data[7] = (byte) (bmpHeight / 256);
+                    
+                    int index = 8;
+                    for (int y = 0; y < bmpHeight; y++) {
+                        for (int x = 0; x < widthInBytes; x++) {
+                            byte b = 0;
+                            for (int i = 0; i < 8; i++) {
+                                int px = x * 8 + i;
+                                if (px < bmpWidth) {
+                                    int color = bitmap.getPixel(px, y);
+                                    int r = android.graphics.Color.red(color);
+                                    int g = android.graphics.Color.green(color);
+                                    int bCol = android.graphics.Color.blue(color);
+                                    // Threshold for black/white
+                                    if (r < 200 || g < 200 || bCol < 200) {
+                                        b |= (1 << (7 - i));
+                                    }
+                                }
+                            }
+                            data[index++] = b;
+                        }
+                    }
+                    
+                    os.write(data);
+                    
+                    // Feed 4 lines
+                    os.write(new byte[]{0x1B, 0x64, 4});
+                    
+                    os.flush();
+                    socket.close();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Erreur Bluetooth: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show());
                 }
             }).start();
         }

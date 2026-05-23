@@ -332,13 +332,19 @@ export async function printViaElephLabelAuto(ticket: TicketData): Promise<boolea
         const fileName = `ticket_${ticket.reference}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
 
-        // ── Method A: Android WebView bridge (fastest, direct to Eleph Label) ──
+        // ── Method A: Android WebView bridge (fastest, Native Bluetooth) ──
         if (typeof (window as any).AndroidInterface !== 'undefined') {
           try {
             const reader = new FileReader();
             reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
-              (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
+              // Call the new native Bluetooth print method
+              if ((window as any).AndroidInterface.printDirectBT) {
+                (window as any).AndroidInterface.printDirectBT(base64);
+              } else {
+                // Fallback for older APKs
+                (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
+              }
             };
             reader.readAsDataURL(file);
             resolve(true);
