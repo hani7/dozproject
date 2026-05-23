@@ -250,45 +250,45 @@ export async function printViaBluetoothRaw(ticket: TicketData): Promise<boolean>
 function buildTicketInnerHTML(ticket: TicketData): string {
   const reste = Math.max(0, ticket.montant_total - ticket.montant_paye);
   return `
-    <div style="text-align:center;font-weight:bold;font-size:20px;margin-bottom:2px">ForCli</div>
-    <div style="text-align:center;font-size:12px">Distribution &amp; Commerce</div>
-    <div style="text-align:center;font-size:11px;margin-bottom:10px">doz.baitul.tech</div>
-    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    <div style="text-align:center;font-weight:bold;font-size:28px;margin-bottom:2px">ForCli</div>
+    <div style="text-align:center;font-size:16px">Distribution &amp; Commerce</div>
+    <div style="text-align:center;font-size:14px;margin-bottom:10px">doz.baitul.tech</div>
+    <div style="border-top:2px dashed #000;margin:8px 0"></div>
     <div style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between">
         <span>Ref. ${ticket.reference}</span>
         <span>${ticket.date}</span>
       </div>
-      <div style="margin-top:4px">Client: <b>${ticket.client_nom}</b></div>
-      ${ticket.client_phone ? `<div style="margin-top:2px">Tel: ${ticket.client_phone}</div>` : ''}
-      ${ticket.livreur_nom  ? `<div style="margin-top:2px">Livreur: ${ticket.livreur_nom}</div>` : ''}
+      <div style="margin-top:6px">Client: <b>${ticket.client_nom}</b></div>
+      ${ticket.client_phone ? `<div style="margin-top:4px">Tel: ${ticket.client_phone}</div>` : ''}
+      ${ticket.livreur_nom  ? `<div style="margin-top:4px">Livreur: ${ticket.livreur_nom}</div>` : ''}
     </div>
-    <div style="border-top:1px dashed #000;margin:6px 0"></div>
-    <div style="margin-bottom:6px">
+    <div style="border-top:2px dashed #000;margin:8px 0"></div>
+    <div style="margin-bottom:8px">
       ${ticket.lignes.map(l => `
-        <div style="margin-bottom:5px">
+        <div style="margin-bottom:6px">
           <div style="display:flex;justify-content:space-between;font-weight:bold">
             <span>${l.quantite}x ${l.produit_nom.substring(0,22)}</span>
             <span>${l.sous_total.toLocaleString('fr-DZ')} DA</span>
           </div>
-          <div style="font-size:11px;color:#444">&agrave; ${l.prix_unitaire.toLocaleString('fr-DZ')} DA/ctn</div>
+          <div style="font-size:14px;color:#444">&agrave; ${l.prix_unitaire.toLocaleString('fr-DZ')} DA/ctn</div>
         </div>`).join('')}
     </div>
-    <div style="border-top:1px dashed #000;margin:6px 0"></div>
-    <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin:6px 0">
+    <div style="border-top:2px dashed #000;margin:8px 0"></div>
+    <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:22px;margin:8px 0">
       <span>Total :</span><span>${ticket.montant_total.toLocaleString('fr-DZ')} DA</span>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:13px">
+    <div style="display:flex;justify-content:space-between;font-size:18px">
       <span>Pay&eacute; :</span><span>${ticket.montant_paye.toLocaleString('fr-DZ')} DA</span>
     </div>
-    <div style="border-top:1px dashed #000;margin:6px 0"></div>
+    <div style="border-top:2px dashed #000;margin:8px 0"></div>
     ${reste > 0
-      ? `<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin-top:6px">
+      ? `<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:8px">
            <span>RESTE &agrave; PAYER :</span><span>${reste.toLocaleString('fr-DZ')} DA</span>
          </div>`
-      : `<div style="text-align:center;font-weight:bold;margin-top:6px;font-size:13px">*** SOLDE COMPLET ***</div>`}
-    <div style="border-top:1px dashed #000;margin:12px 0 6px 0"></div>
-    <div style="text-align:center;font-size:11px">Merci pour votre commande!</div>
+      : `<div style="text-align:center;font-weight:bold;margin-top:8px;font-size:18px">*** SOLDE COMPLET ***</div>`}
+    <div style="border-top:2px dashed #000;margin:16px 0 8px 0"></div>
+    <div style="text-align:center;font-size:16px">Merci pour votre commande!</div>
   `;
 }
 
@@ -307,8 +307,8 @@ export async function printViaElephLabelAuto(ticket: TicketData): Promise<boolea
       'padding:10px',
       'font-family:Courier New,Courier,monospace',
       'color:#000',
-      'font-size:13px',
-      'line-height:1.3',
+      'font-size:18px', // Base font size bumped from 13 to 18
+      'line-height:1.4',
       'z-index:-1',
       'pointer-events:none',
     ].join(';');
