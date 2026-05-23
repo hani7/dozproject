@@ -338,10 +338,11 @@ export async function printViaElephLabelAuto(ticket: TicketData): Promise<boolea
             const reader = new FileReader();
             reader.onloadend = () => {
               const base64 = (reader.result as string).split(',')[1];
-              // Call the new native Bluetooth print method
-              if ((window as any).AndroidInterface.printDirectBT) {
+              try {
+                // Java methods on JavascriptInterface objects don't always behave like standard JS properties.
+                // Call it directly and catch if it doesn't exist (older APK).
                 (window as any).AndroidInterface.printDirectBT(base64);
-              } else {
+              } catch (e) {
                 // Fallback for older APKs
                 (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
               }
