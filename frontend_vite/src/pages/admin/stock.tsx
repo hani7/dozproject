@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import type { StockMovement, Product } from '@/lib/types';
+import Pagination, { usePagination } from '@/components/Pagination';
 
 export default function StockPage() {
   const { lang } = useLang();
@@ -35,6 +36,18 @@ export default function StockPage() {
       return acc;
     }, {} as Record<string, { entree: number; sortie: number }>);
   }, [movements]);
+
+  const filteredMovements = useMemo(() => movements.filter(m => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || m.produit_nom.toLowerCase().includes(q) || m.reference?.toLowerCase().includes(q);
+    const matchType = !typeFilter || m.type_mouvement === typeFilter;
+    const mDate = new Date(m.created_at).toISOString().split('T')[0];
+    const matchFrom = !dateFrom || mDate >= dateFrom;
+    const matchTo   = !dateTo   || mDate <= dateTo;
+    return matchSearch && matchType && matchFrom && matchTo;
+  }), [movements, search, typeFilter, dateFrom, dateTo]);
+
+  const { page, pageSize, paginated: pagedMovements, total, setPage, setPageSize } = usePagination(filteredMovements, 25);
 
   const load = () => api.get('/stock/').then(r => setMovements(r.data.results || r.data));
   useEffect(() => {
@@ -149,15 +162,7 @@ export default function StockPage() {
             </tr>
           </thead>
           <tbody>
-            {movements.filter(m => {
-              const q = search.toLowerCase();
-              const matchSearch = !q || m.produit_nom.toLowerCase().includes(q) || m.reference?.toLowerCase().includes(q);
-              const matchType = !typeFilter || m.type_mouvement === typeFilter;
-              const mDate = new Date(m.created_at).toISOString().split('T')[0];
-              const matchFrom = !dateFrom || mDate >= dateFrom;
-              const matchTo   = !dateTo   || mDate <= dateTo;
-              return matchSearch && matchType && matchFrom && matchTo;
-            }).map(m => (
+            {pagedMovements.map(m => (
               <tr key={m.id}>
                 <td style={{ fontSize: '12px' }}>
                   <div style={{ fontWeight: 600 }}>{new Date(m.created_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-DZ')}</div>
@@ -196,6 +201,7 @@ export default function StockPage() {
             ))}
           </tbody>
         </table>
+        <Pagination total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modal && (

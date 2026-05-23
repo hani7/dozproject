@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import type { Fournisseur } from '@/lib/types';
+import Pagination, { usePagination } from '@/components/Pagination';
 
 const EMPTY = {
   nom: '', phone: '', email: '', adresse: '',
@@ -19,6 +20,7 @@ export default function FournisseursPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Fournisseur | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const { page, pageSize, paginated: pagedItems, total, setPage, setPageSize } = usePagination(items, 25);
 
   const load = () => api.get('/fournisseurs/', { params: { search: search || undefined } }).then(r => setItems(r.data.results || r.data));
   useEffect(() => { load(); }, [search]);
@@ -96,7 +98,7 @@ export default function FournisseursPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map(f => (
+            {pagedItems.map(f => (
               <tr key={f.id}>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                   {f.nom}
@@ -120,6 +122,7 @@ export default function FournisseursPage() {
             ))}
           </tbody>
         </table>
+        <Pagination total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modal && (

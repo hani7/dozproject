@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Search, MapPin, X } from 'lucide-react';
 import type { Client } from '@/lib/types';
+import Pagination, { usePagination } from '@/components/Pagination';
 
 const EMPTY = {
   nom: '', type_client: 'detail' as 'detail' | 'gros',
@@ -21,6 +22,7 @@ export default function ClientsPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const { page, pageSize, paginated: pagedClients, total, setPage, setPageSize } = usePagination(clients, 25);
 
   const load = async () => {
     try {
@@ -123,7 +125,7 @@ export default function ClientsPage() {
             </tr>
           </thead>
           <tbody>
-            {clients.map(c => (
+            {pagedClients.map(c => (
               <tr key={c.id}>
                 <td>
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.nom}</div>
@@ -150,6 +152,7 @@ export default function ClientsPage() {
             ))}
           </tbody>
         </table>
+        <Pagination total={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {modal && (
