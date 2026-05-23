@@ -48,10 +48,24 @@ export default function LivraisonsPage() {
       if (ok) {
         setBtStatus('connected');
         setBtName(getStoredDeviceName());
-        // Show BT connected toast only once per day
-        const today = new Date().toDateString();
-        if (localStorage.getItem('bt_notif_date') !== today) {
-          localStorage.setItem('bt_notif_date', today);
+        
+        // Show BT connected toast only once per day (very robust)
+        let shouldShowBt = false;
+        try {
+          const today = new Date().toDateString();
+          if (localStorage.getItem('bt_notif_date') !== today) {
+            localStorage.setItem('bt_notif_date', today);
+            shouldShowBt = true;
+          }
+        } catch (e) {
+          if (!(window as any).bt_shown_session) {
+            (window as any).bt_shown_session = true;
+            shouldShowBt = true;
+          }
+        }
+
+        if (shouldShowBt && !(window as any).bt_shown_this_mount) {
+          (window as any).bt_shown_this_mount = true;
           toast.success(`🔵 Imprimante: ${getStoredDeviceName()}`, { duration: 2500 });
         }
       } else {

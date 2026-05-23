@@ -53,10 +53,25 @@ export default function PrevendeurClientsPage() {
 
   useEffect(() => { 
     loadClients(); 
-    // Show GPS reminder only once per day
-    const today = new Date().toDateString();
-    if (localStorage.getItem('gps_notif_date') !== today) {
-      localStorage.setItem('gps_notif_date', today);
+    
+    // Very robust check: only once per day even if localStorage fails
+    let shouldShow = false;
+    try {
+      const today = new Date().toDateString();
+      if (localStorage.getItem('gps_notif_date') !== today) {
+        localStorage.setItem('gps_notif_date', today);
+        shouldShow = true;
+      }
+    } catch (e) {
+      // Fallback if localStorage is disabled/fails (show once per JS session)
+      if (!(window as any).gps_shown_session) {
+        (window as any).gps_shown_session = true;
+        shouldShow = true;
+      }
+    }
+
+    if (shouldShow && !(window as any).gps_shown_this_mount) {
+      (window as any).gps_shown_this_mount = true;
       setTimeout(() => {
         toast(fr ? "🔔 N'oubliez pas d'activer votre GPS (Localisation)" : "🔔 يرجى تفعيل الـ GPS (الموقع)", { duration: 5000 });
         if (navigator.geolocation) {
