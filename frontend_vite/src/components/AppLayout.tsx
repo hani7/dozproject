@@ -58,25 +58,25 @@ export default function AppLayout({ children, allowedRoles }: Props) {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            if (!hasShownSuccess) {
+            if (!(window as any).gps_connected_shown) {
               toast.success(user.role === 'prevendeur' ? 'GPS Connecté' : 'متصل بـ GPS');
-              hasShownSuccess = true;
+              (window as any).gps_connected_shown = true;
             }
             sendLocation(position);
           },
           (err) => {
             console.warn('GPS Request Error:', err);
-            if (!hasShownError) {
+            if (!(window as any).gps_error_shown) {
               toast.error('Erreur GPS: ' + err.message + ' (Activez la position)');
-              hasShownError = true;
+              (window as any).gps_error_shown = true;
             }
           },
           { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
         );
       } else {
-        if (!hasShownError) {
+        if (!(window as any).gps_error_shown) {
           toast.error('GPS non supporté sur ce navigateur');
-          hasShownError = true;
+          (window as any).gps_error_shown = true;
         }
       }
     };

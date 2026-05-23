@@ -385,6 +385,9 @@ public class MainActivity extends AppCompatActivity {
          */
         @JavascriptInterface
         public void printDirectBT(String base64Data) {
+            runOnUiThread(() -> {
+                try { android.widget.Toast.makeText(MainActivity.this, "Préparation de l'imprimante...", android.widget.Toast.LENGTH_SHORT).show(); } catch (Exception e) {}
+            });
             new Thread(() -> {
                 try {
                     byte[] imageBytes = Base64.decode(base64Data, Base64.DEFAULT);

@@ -346,10 +346,10 @@ export async function printViaElephLabelAuto(ticket: TicketData): Promise<boolea
                 // Fallback for older APKs
                 (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
               }
+              resolve(true); // Resolve after sending to Java
             };
             reader.readAsDataURL(file);
-            resolve(true);
-            return;
+            return; // Wait for onloadend
           } catch { /* fall through */ }
         }
 
@@ -508,9 +508,11 @@ function toast_fallback() { console.warn('Print failed'); }
 export async function printTicket(ticket: TicketData): Promise<void> {
   // ── Priority 1: Android WebView → silent auto-print via Eleph Label ──
   if (typeof (window as any).AndroidInterface !== 'undefined') {
+    const { toast } = await import('react-hot-toast');
+    const tId = toast.loading('Préparation de l\'impression...');
     const sent = await printViaElephLabelAuto(ticket);
-    if (sent) return; // success — Eleph Label opens automatically
-    // If it fails, fall through to BT or modal
+    toast.dismiss(tId);
+    if (sent) return; // success
   }
 
   // ── Priority 2: Bluetooth ESC/POS (desktop Chrome / paired device) ──
