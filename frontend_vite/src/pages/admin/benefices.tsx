@@ -115,8 +115,28 @@ export default function StatistiquesPage() {
     { name: fr ? 'Vente Gros' : 'جملة',   value: Math.round(grosTotal) },
   ];
 
+  const applyGroupPreset = (v: 'day' | 'week' | 'month') => {
+    const now = new Date();
+    const toStr = (d: Date) => d.toISOString().split('T')[0];
+    setGroupBy(v);
+    if (v === 'day') {
+      setDateFrom(today);
+      setDateTo(today);
+    } else if (v === 'week') {
+      const dow = now.getDay(); // 0=Sun
+      const diff = dow === 0 ? -6 : 1 - dow; // Monday
+      const mon = new Date(now); mon.setDate(now.getDate() + diff);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      setDateFrom(toStr(mon));
+      setDateTo(toStr(sun) > today ? today : toStr(sun));
+    } else {
+      setDateFrom(firstDay);
+      setDateTo(today);
+    }
+  };
+
   const GroupBtn = ({ v, label }: { v: 'day' | 'week' | 'month'; label: string }) => (
-    <button onClick={() => setGroupBy(v)} style={{
+    <button onClick={() => applyGroupPreset(v)} style={{
       padding: '6px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '12px',
       border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit',
       background: groupBy === v ? 'var(--brand-primary)' : 'var(--bg-elevated)',
