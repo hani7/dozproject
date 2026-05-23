@@ -53,12 +53,16 @@ export default function PrevendeurClientsPage() {
 
   useEffect(() => { 
     loadClients(); 
-    setTimeout(() => {
-      toast(fr ? "🔔 N'oubliez pas d'activer votre GPS (Localisation)" : "🔔 يرجى تفعيل الـ GPS (الموقع)", { duration: 5000 });
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 2000, maximumAge: 0 });
-      }
-    }, 1500);
+    // Show GPS reminder only once per session
+    if (!sessionStorage.getItem('gps_notif_shown')) {
+      sessionStorage.setItem('gps_notif_shown', '1');
+      setTimeout(() => {
+        toast(fr ? "🔔 N'oubliez pas d'activer votre GPS (Localisation)" : "🔔 يرجى تفعيل الـ GPS (الموقع)", { duration: 5000 });
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(() => {}, () => {}, { timeout: 2000, maximumAge: 0 });
+        }
+      }, 1500);
+    }
   }, []);
 
   // Init Leaflet map when modal opens in map mode

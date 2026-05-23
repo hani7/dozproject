@@ -48,7 +48,11 @@ export default function LivraisonsPage() {
       if (ok) {
         setBtStatus('connected');
         setBtName(getStoredDeviceName());
-        toast.success(`🔵 Imprimante connectée: ${getStoredDeviceName()}`, { duration: 3000 });
+        // Show BT connected toast only once per session
+        if (!sessionStorage.getItem('bt_notif_shown')) {
+          sessionStorage.setItem('bt_notif_shown', '1');
+          toast.success(`🔵 Imprimante connectée: ${getStoredDeviceName()}`, { duration: 3000 });
+        }
       } else {
         setBtStatus('disconnected');
       }
