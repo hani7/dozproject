@@ -145,10 +145,10 @@ export default function LivraisonsPage() {
     if (isConnected()) {
       printViaBluetoothRaw(ticket).then(ok => {
         if (ok) toast.success('🖨 Ticket imprimé!', { duration: 2000 });
-        else    printTicketHTML(ticket);
+        else    printTicket(ticket);
       });
     } else {
-      printTicketHTML(ticket);
+      printTicket(ticket);
     }
   };
 

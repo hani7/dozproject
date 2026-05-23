@@ -415,7 +415,11 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     final BluetoothDevice finalPrinter = printer;
-                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Connexion à " + finalPrinter.getName() + "...", android.widget.Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        try {
+                            android.widget.Toast.makeText(MainActivity.this, "Connexion à l'imprimante...", android.widget.Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {}
+                    });
 
                     UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
                     BluetoothSocket socket = finalPrinter.createRfcommSocketToServiceRecord(SPP_UUID);
