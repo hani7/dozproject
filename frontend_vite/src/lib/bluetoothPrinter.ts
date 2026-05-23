@@ -457,10 +457,24 @@ export function printTicketHTML(ticket: TicketData): void {
       txt += `\nTOTAL: ${ticket.montant_total.toLocaleString('fr-DZ')} DA\n`;
       const r = Math.max(0, ticket.montant_total - ticket.montant_paye);
       txt += r > 0 ? `RESTE A PAYER: ${r.toLocaleString('fr-DZ')} DA\n` : `SOLDE COMPLET\n`;
+      
+      const intentUrl = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
+      
+      const fireIntent = () => {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = intentUrl;
+        document.body.appendChild(iframe);
+        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 2000);
+      };
+
       try {
-        if (navigator.share) navigator.share({ title: 'Ticket ' + ticket.reference, text: txt }).catch(() => {});
-        else window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`;
-      } catch { window.location.href = `intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(txt)};end`; }
+        if (navigator.share) {
+          navigator.share({ title: 'Ticket ' + ticket.reference, text: txt }).catch(() => fireIntent());
+        } else {
+          fireIntent();
+        }
+      } catch { fireIntent(); }
     });
   }
 
