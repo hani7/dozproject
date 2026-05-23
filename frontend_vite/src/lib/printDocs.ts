@@ -4,12 +4,37 @@ import type { Order } from '@/lib/types';
 // Shared print helper
 // ─────────────────────────────────────────────────────────────
 function openPrintWindow(html: string, title: string) {
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { w.print(); }, 600);
+  // Use a hidden iframe instead of window.open to avoid blank page redirects on mobile/WebView
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  setTimeout(() => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (e) {
+      console.error('Print failed', e);
+    }
+    // Clean up after print dialog closes (give it some time)
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 5000);
+  }, 1000);
 }
 
 // ─────────────────────────────────────────────────────────────
