@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
@@ -16,6 +16,25 @@ export default function StockPage() {
   const [typeFilter, setTypeFilter] = useState(''); // '' | 'entree' | 'sortie' | 'ajustement'
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [summaryTab, setSummaryTab] = useState<'sortie' | 'entree'>('sortie');
+
+  const todaySummary = useMemo(() => {
+    // We compute local date to match what user sees
+    // Using simple approach: date string format matches what we do below
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    return movements.reduce((acc, m) => {
+      // Check if created_at starts with today's YYYY-MM-DD
+      const mDate = new Date(m.created_at).toISOString().split('T')[0];
+      if (mDate === todayStr) {
+        if (!acc[m.produit_nom]) acc[m.produit_nom] = { entree: 0, sortie: 0 };
+        if (m.type_mouvement === 'entree') acc[m.produit_nom].entree += Number(m.quantite);
+        if (m.type_mouvement === 'sortie') acc[m.produit_nom].sortie += Number(m.quantite);
+      }
+      return acc;
+    }, {} as Record<string, { entree: number; sortie: number }>);
+  }, [movements]);
 
   const load = () => api.get('/stock/').then(r => setMovements(r.data.results || r.data));
   useEffect(() => {
@@ -47,6 +66,45 @@ export default function StockPage() {
           <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{lang === 'fr' ? 'Journal des mouvements' : 'سجل الحركات'}</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModal(true)}><Plus size={15} /> {lang === 'fr' ? 'Nouveau mouvement' : 'حركة جديدة'}</button>
+      </div>
+
+      {/* TODAY SUMMARY */}
+      <div className="card" style={{ padding: '16px', marginBottom: '20px', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+            {lang === 'fr' ? "Aujourd'hui :" : "اليوم:"} {new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-DZ')}
+          </div>
+          <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => setSummaryTab('sortie')} 
+              style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 700, border: 'none', background: summaryTab === 'sortie' ? '#ef4444' : 'transparent', color: summaryTab === 'sortie' ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>
+              ↓ {lang === 'fr' ? 'Sorties' : 'مخرجات'}
+            </button>
+            <button 
+              onClick={() => setSummaryTab('entree')} 
+              style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 700, border: 'none', background: summaryTab === 'entree' ? '#10b981' : 'transparent', color: summaryTab === 'entree' ? 'white' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>
+              ↑ {lang === 'fr' ? 'Entrées' : 'مُدخلات'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+          {Object.entries(todaySummary).filter(([_, totals]) => totals[summaryTab] > 0).length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--text-muted)' }}>{lang === 'fr' ? "Aucun mouvement aujourd'hui" : 'لا توجد حركات اليوم'}</div>
+          ) : (
+            Object.entries(todaySummary).map(([produit, totals]) => {
+              if (totals[summaryTab] === 0) return null;
+              return (
+                <div key={produit} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{produit}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: summaryTab === 'sortie' ? '#ef4444' : '#10b981', background: summaryTab === 'sortie' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>
+                    {totals[summaryTab]} ctn
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Filter bar */}
