@@ -156,6 +156,7 @@ function VentesPageContent({ type }: Props) {
     try {
       await api.post('/ventes/', {
         ...form, type_vente: type, client: Number(form.client), remise: Number(form.remise),
+        statut: 'confirmee',
         lignes: lignes.map(l => ({ produit: Number(l.produit), quantite: Number(l.quantite), prix_unitaire: Number(l.prix_unitaire), sous_total: Number(l.quantite) * Number(l.prix_unitaire) }))
       });
       toast.success(fr ? 'Vente créée!' : 'تم إنشاء البيع!');

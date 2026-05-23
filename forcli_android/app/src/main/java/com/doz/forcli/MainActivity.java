@@ -436,6 +436,11 @@ public class MainActivity extends AppCompatActivity {
                     // Convert Bitmap to ESC/POS Raster (GS v 0)
                     int bmpWidth = bitmap.getWidth();
                     int bmpHeight = bitmap.getHeight();
+                    
+                    // Optimization: Get all pixels at once (100x faster than calling getPixel in a loop)
+                    int[] pixels = new int[bmpWidth * bmpHeight];
+                    bitmap.getPixels(pixels, 0, bmpWidth, 0, 0, bmpWidth, bmpHeight);
+
                     int widthInBytes = (bmpWidth + 7) / 8;
                     byte[] data = new byte[8 + bmpHeight * widthInBytes];
                     data[0] = 0x1D; data[1] = 0x76; data[2] = 0x30; data[3] = 0x00;
@@ -451,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
                             for (int i = 0; i < 8; i++) {
                                 int px = x * 8 + i;
                                 if (px < bmpWidth) {
-                                    int color = bitmap.getPixel(px, y);
+                                    int color = pixels[y * bmpWidth + px];
                                     int r = android.graphics.Color.red(color);
                                     int g = android.graphics.Color.green(color);
                                     int bCol = android.graphics.Color.blue(color);
@@ -465,10 +470,13 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     
+                    // Send all data at once for maximum speed (OS handles buffering)
                     os.write(data);
+                    os.flush();
                     
                     // Feed 4 lines
                     os.write(new byte[]{0x1B, 0x64, 4});
+                    os.flush();
                     
                     os.flush();
                     socket.close();
