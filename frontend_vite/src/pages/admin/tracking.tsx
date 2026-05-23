@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import api from '@/lib/api';
@@ -223,6 +223,11 @@ export default function TrackingPage() {
               position={[Number(user.latitude), Number(user.longitude)]}
               icon={user.role === 'livreur' ? livreurIcon : prevendeurIcon}
             >
+              <Tooltip permanent direction="bottom" offset={[0, 5]} opacity={0.9} className="marker-name-tooltip">
+                <span style={{ fontWeight: 'bold', color: user.role === 'livreur' ? '#dc2626' : '#2563eb' }}>
+                  {user.first_name}
+                </span>
+              </Tooltip>
               <Popup>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '4px' }}>
@@ -252,12 +257,18 @@ export default function TrackingPage() {
                 position={[Number(historyPoints[0].latitude), Number(historyPoints[0].longitude)]}
                 icon={prevendeurIcon}
               >
+                <Tooltip permanent direction="bottom" offset={[0, 5]}>
+                  <span style={{ fontWeight: 'bold' }}>Départ</span>
+                </Tooltip>
                 <Popup>Départ: {new Date(historyPoints[0].timestamp).toLocaleTimeString()}</Popup>
               </Marker>
               <Marker 
                 position={[Number(historyPoints[historyPoints.length - 1].latitude), Number(historyPoints[historyPoints.length - 1].longitude)]}
                 icon={livreurIcon}
               >
+                <Tooltip permanent direction="bottom" offset={[0, 5]}>
+                  <span style={{ fontWeight: 'bold' }}>Arrivée</span>
+                </Tooltip>
                 <Popup>Dernière position: {new Date(historyPoints[historyPoints.length - 1].timestamp).toLocaleTimeString()}</Popup>
               </Marker>
             </>
