@@ -1,10 +1,15 @@
 /**
  * Bluetooth Thermal Printer Utility
  * Target: MTP II PT-200 BT 4.0 (58mm paper, 203 DPI)
- * Paper: 58mm wide | Print area: ~48mm | 32 chars/line at normal size
+ * Paper: 58mm wide | Print area: 48mm | 32 chars/line at normal size
+ * Print image width: 384px (= 48mm × 8 dots/mm)
  *
  * Uses Web Bluetooth API (Chrome/Edge on Android & Desktop)
  * ESC/POS command set
+ *
+ * Eleph Label integration:
+ *   - Package: com.eleph.label
+ *   - Flow: render ticket → PNG → Android Intent → Eleph Label
  */
 
 // ── Known BLE service UUIDs for ESC/POS thermal printers ──
@@ -263,8 +268,8 @@ export function printTicketHTML(ticket: TicketData): void {
         <button id="ticket-print-btn" style="flex: 1; min-width: 120px; padding: 10px; border-radius: 8px; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           🖨 Imprimer
         </button>
-        <button id="ticket-share-img-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #8b5cf6; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
-          📸 Partager Image (Eleph Label)
+        <button id="ticket-share-img-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #7c3aed; color: white; font-weight: bold; font-size: 14px; cursor: pointer; letter-spacing: 0.3px;">
+          🐘 Imprimer via Eleph Label
         </button>
         <button id="ticket-share-txt-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #10b981; color: white; font-weight: bold; font-size: 13px; cursor: pointer;">
           📝 Partager Texte (WhatsApp)
@@ -450,32 +455,131 @@ export function printTicketHTML(ticket: TicketData): void {
     });
   }
 
-  // --- IMAGE SHARE ---
+  // --- ELEPH LABEL PRINT ---
   if (shareImgBtn) {
     shareImgBtn.addEventListener('click', async () => {
+      const btn = shareImgBtn as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = '⏳ Génération image...';
       try {
-        shareImgBtn.textContent = '⏳ Génération...';
         const container = printOverlay.querySelector('.print-ticket-container') as HTMLElement;
-        if (!container) return;
-        
+        if (!container) { btn.disabled = false; btn.textContent = '🐘 Imprimer via Eleph Label'; return; }
+
+        // ── 1. Render ticket at exact 384px (48mm @ 203 DPI = MTP II print zone) ──
         const html2canvas = (await import('html2canvas')).default;
-        const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
-        
+
+        // Force exact 384px width for printer-accurate output
+        const savedMaxW = container.style.maxWidth;
+        const savedW = container.style.width;
+        container.style.maxWidth = '384px';
+        container.style.width = '384px';
+
+        const canvas = await html2canvas(container, {
+          scale: 1,            // 1:1 → 384px wide = 48mm zone
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false,
+          width: 384,
+        });
+
+        container.style.maxWidth = savedMaxW;
+        container.style.width = savedW;
+
+        btn.textContent = '⏳ Ouverture Eleph Label...';
+
+        // ── 2. Convert canvas → Blob → File ──
         canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const file = new File([blob], `ticket_${ticket.reference}.png`, { type: 'image/png' });
-          
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ title: 'Ticket', files: [file] });
-          } else {
-            // If image sharing is blocked, tell user
-            alert("Le partage d'image n'est pas autorisé par votre application. Utilisez 'Partager Texte'.");
+          if (!blob) {
+            btn.disabled = false;
+            btn.textContent = '🐘 Imprimer via Eleph Label';
+            return;
           }
-          shareImgBtn.textContent = '📸 Partager Image (Eleph Label)';
+
+          const fileName = `ticket_${ticket.reference}.png`;
+          const file = new File([blob], fileName, { type: 'image/png' });
+
+          // ── 3. Try direct Eleph Label Intent (Android WebView / Chrome) ──
+          // Eleph Label / JxPrinter package names (ordered by priority)
+          const ELEPH_PACKAGES = [
+            'com.sandu.JxPrinter',      // Eleph Label / JX Printer (used in Android app)
+            'com.eleph.label',           // Alternative Eleph Label package
+            'com.elephant.label',
+            'com.eleph.labelprinter',
+          ];
+
+          let sentViaIntent = false;
+
+          // Method A: Android WebView bridge (forcli_android app — interface name = "AndroidInterface")
+          if (typeof (window as any).AndroidInterface !== 'undefined') {
+            try {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                // calls MainActivity.WebAppInterface.printImageEleph(base64, fileName)
+                (window as any).AndroidInterface.printImageEleph?.(base64, fileName);
+              };
+              reader.readAsDataURL(file);
+              sentViaIntent = true;
+            } catch { /* fall through */ }
+          }
+
+          // Method B: navigator.share with files (Web Share API Level 2)
+          if (!sentViaIntent && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: `Ticket ${ticket.reference}`,
+                text: 'Imprimer ce ticket via Eleph Label',
+                files: [file],
+              });
+              sentViaIntent = true;
+            } catch (shareErr: any) {
+              if (shareErr?.name !== 'AbortError') {
+                console.warn('navigator.share failed, trying intent fallback', shareErr);
+              } else {
+                // User cancelled — that's fine
+                sentViaIntent = true;
+              }
+            }
+          }
+
+          // Method C: Android Intent URL → direct package targeting
+          if (!sentViaIntent) {
+            // Build a data URI to pass the image via intent
+            const dataUrl = canvas.toDataURL('image/png');
+            // Try each known package
+            for (const pkg of ELEPH_PACKAGES) {
+              try {
+                window.location.href =
+                  `intent:#Intent;action=android.intent.action.SEND;` +
+                  `type=image/png;` +
+                  `package=${pkg};` +
+                  `S.android.intent.extra.TEXT=Ticket+${encodeURIComponent(ticket.reference)};` +
+                  `end`;
+                sentViaIntent = true;
+                break;
+              } catch { /* try next package */ }
+            }
+          }
+
+          // Method D: download as PNG fallback (for desktop/unsupported)
+          if (!sentViaIntent) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+
+          btn.disabled = false;
+          btn.textContent = '🐘 Imprimer via Eleph Label';
         }, 'image/png');
+
       } catch (e) {
-        console.error('Share error', e);
-        shareImgBtn.textContent = 'Erreur Génération';
+        console.error('Eleph Label print error:', e);
+        btn.disabled = false;
+        btn.textContent = '🐘 Imprimer via Eleph Label';
+        alert('Erreur lors de la génération du ticket. Réessayez.');
       }
     });
   }

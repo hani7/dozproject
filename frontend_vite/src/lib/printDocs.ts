@@ -162,6 +162,8 @@ export function printBonLivraison(order: Order) {
     <tr>
       <td>${l.produit_nom}</td>
       <td style="text-align:center"><strong>${l.quantite}</strong></td>
+      <td style="text-align:right">${fmt(l.prix_unitaire)} DA</td>
+      <td style="text-align:right"><strong>${fmt(Number(l.prix_unitaire) * Number(l.quantite))} DA</strong></td>
       <td style="text-align:center">☐</td>
     </tr>
   `).join('');
@@ -248,7 +250,9 @@ export function printBonLivraison(order: Order) {
     <thead>
       <tr>
         <th>Produit / Désignation</th>
-        <th style="text-align:center">Quantité à livrer</th>
+        <th style="text-align:center">Qté (CTN)</th>
+        <th style="text-align:right">Prix / CTN</th>
+        <th style="text-align:right">Montant (DA)</th>
         <th style="text-align:center">Réceptionné ✓</th>
       </tr>
     </thead>
@@ -284,29 +288,36 @@ export function printBonLivraison(order: Order) {
 // ─────────────────────────────────────────────────────────────
 export function printDailyBL(orders: Order[], date: string, type: 'gros' | 'detail') {
   // Aggregate products
-  const productTotals: Record<string, { nom: string, qte: number, total: number }> = {};
+  const productTotals: Record<string, { nom: string, qte: number, total: number, prixUnitaire: number, prixCount: number }> = {};
   let globalTotal = 0;
 
   orders.forEach(o => {
     globalTotal += Number(o.montant_total || 0);
     o.lignes?.forEach((l: any) => {
       if (!productTotals[l.produit_nom]) {
-        productTotals[l.produit_nom] = { nom: l.produit_nom, qte: 0, total: 0 };
+        productTotals[l.produit_nom] = { nom: l.produit_nom, qte: 0, total: 0, prixUnitaire: 0, prixCount: 0 };
       }
       productTotals[l.produit_nom].qte += Number(l.quantite);
       productTotals[l.produit_nom].total += Number(l.sous_total || (l.quantite * l.prix_unitaire));
+      // Accumulate for average price calculation
+      productTotals[l.produit_nom].prixUnitaire += Number(l.prix_unitaire || 0);
+      productTotals[l.produit_nom].prixCount += 1;
     });
   });
 
   const sortedProducts = Object.values(productTotals).sort((a, b) => b.qte - a.qte);
 
-  const rows = sortedProducts.map(p => `
+  const rows = sortedProducts.map(p => {
+    const prixMoyen = p.prixCount > 0 ? p.prixUnitaire / p.prixCount : 0;
+    return `
     <tr>
       <td>${p.nom}</td>
-      <td style="text-align:center; font-size:16px;"><strong>${p.qte}</strong></td>
-      <td style="text-align:right">${fmt(p.total)} DA</td>
+      <td style="text-align:center; font-size:15px;"><strong>${p.qte}</strong></td>
+      <td style="text-align:right">${fmt(prixMoyen)} DA</td>
+      <td style="text-align:right"><strong>${fmt(p.total)} DA</strong></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -370,8 +381,9 @@ export function printDailyBL(orders: Order[], date: string, type: 'gros' | 'deta
     <thead>
       <tr>
         <th>Produit / Désignation</th>
-        <th style="text-align:center">Quantité Globale (CTN)</th>
-        <th style="text-align:right">Montant Global</th>
+        <th style="text-align:center">Qté Totale (CTN)</th>
+        <th style="text-align:right">Prix / CTN</th>
+        <th style="text-align:right">Montant Total (DA)</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>

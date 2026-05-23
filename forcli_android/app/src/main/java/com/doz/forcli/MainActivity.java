@@ -39,6 +39,8 @@ import android.graphics.Canvas;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileOutputStream;
+import android.util.Base64;
+import android.os.Looper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -304,6 +306,67 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void print() {
             runOnUiThread(() -> doPrint());
+        }
+
+        /**
+         * Called from JavaScript: AndroidInterface.printImageEleph(base64, fileName)
+         * Decodes a base64 PNG, saves to cache, and opens Eleph Label (com.sandu.JxPrinter)
+         * with the image URI via ACTION_SEND intent.
+         */
+        @JavascriptInterface
+        public void printImageEleph(String base64Data, String fileName) {
+            new Thread(() -> {
+                try {
+                    // Decode base64 PNG
+                    byte[] imageBytes = Base64.decode(base64Data, Base64.DEFAULT);
+
+                    // Save to cache dir (accessible via FileProvider)
+                    File cachePath = new File(getCacheDir(), "images");
+                    if (!cachePath.exists()) cachePath.mkdirs();
+
+                    String safeFileName = (fileName != null && !fileName.isEmpty()) ? fileName : "ticket.png";
+                    File file = new File(cachePath, safeFileName);
+                    FileOutputStream fos = new FileOutputStream(file);
+                    fos.write(imageBytes);
+                    fos.close();
+
+                    // Build FileProvider URI
+                    Uri contentUri = FileProvider.getUriForFile(
+                        MainActivity.this,
+                        getPackageName() + ".fileprovider",
+                        file
+                    );
+
+                    if (contentUri == null) return;
+
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType("image/png");
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                    // Target Eleph Label / JxPrinter directly
+                    shareIntent.setPackage("com.sandu.JxPrinter");
+
+                    runOnUiThread(() -> {
+                        try {
+                            startActivity(shareIntent);
+                        } catch (android.content.ActivityNotFoundException e) {
+                            // Eleph Label not installed: show system chooser
+                            shareIntent.setPackage(null);
+                            startActivity(Intent.createChooser(shareIntent, "Imprimer le ticket"));
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() ->
+                        android.widget.Toast.makeText(
+                            MainActivity.this,
+                            "Erreur impression: " + e.getMessage(),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    );
+                }
+            }).start();
         }
     }
 }
