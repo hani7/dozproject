@@ -22,6 +22,7 @@ class ProduitListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'nom', 'code', 'cartons_par_palette',
             'prix_detail', 'prix_gros', 'prix_achat',
+            'seuil_volume', 'prix_volume_detail',
             'stock_actuel', 'stock_minimum', 'stock_faible',
             'stock_palettes', 'stock_cartons_restants',
             'image', 'actif', 'description',

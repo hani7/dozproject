@@ -19,6 +19,7 @@ export default function ProduitsPage() {
   const [form, setForm] = useState({
     nom: '', code: '', cartons_par_palette: '1',
     prix_achat: '', prix_detail: '', prix_gros: '',
+    seuil_volume: '0', prix_volume_detail: '',
     stock_actuel: '', stock_minimum: '5', description: '', actif: true,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -45,7 +46,7 @@ export default function ProduitsPage() {
     setFormErrors({});
     setImageFile(null);
     setImagePreview(null);
-    setForm({ nom: '', code: '', cartons_par_palette: '1', prix_achat: '', prix_detail: '', prix_gros: '', stock_actuel: '0', stock_minimum: '5', description: '', actif: true });
+    setForm({ nom: '', code: '', cartons_par_palette: '1', prix_achat: '', prix_detail: '', prix_gros: '', seuil_volume: '0', prix_volume_detail: '', stock_actuel: '0', stock_minimum: '5', description: '', actif: true });
     setModal(true);
   };
 
@@ -59,6 +60,7 @@ export default function ProduitsPage() {
       code: p.code || '',
       cartons_par_palette: String(p.cartons_par_palette),
       prix_achat: String(p.prix_achat), prix_detail: String(p.prix_detail), prix_gros: String(p.prix_gros),
+      seuil_volume: String(p.seuil_volume || 0), prix_volume_detail: String(p.prix_volume_detail || ''),
       stock_actuel: String(p.stock_actuel), stock_minimum: String(p.stock_minimum),
       description: p.description || '', actif: p.actif,
     });
@@ -91,6 +93,8 @@ export default function ProduitsPage() {
         fd.append('prix_achat', String(Number(form.prix_achat)));
         fd.append('prix_detail', String(Number(form.prix_detail)));
         fd.append('prix_gros', String(Number(form.prix_gros)));
+        fd.append('seuil_volume', String(Number(form.seuil_volume)));
+        fd.append('prix_volume_detail', String(Number(form.prix_volume_detail)));
         fd.append('stock_minimum', String(Number(form.stock_minimum)));
         fd.append('description', form.description);
         fd.append('actif', String(form.actif));
@@ -108,6 +112,8 @@ export default function ProduitsPage() {
           prix_achat: Number(form.prix_achat),
           prix_detail: Number(form.prix_detail),
           prix_gros: Number(form.prix_gros),
+          seuil_volume: Number(form.seuil_volume),
+          prix_volume_detail: Number(form.prix_volume_detail),
           stock_minimum: Number(form.stock_minimum),
           description: form.description,
           actif: form.actif,
@@ -445,6 +451,30 @@ export default function ProduitsPage() {
                       {fr ? 'Marge:' : 'هامش:'} {m.pct}% · +{m.val} DA/ctn
                     </div>
                   ) : null; })()}
+
+                  {/* Volume discount (Detail only) */}
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed rgba(99,102,241,0.2)' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#8b5cf6', marginBottom: '8px' }}>
+                      🌟 {fr ? 'Prix de Volume (Optionnel)' : 'سعر الكمية (اختياري)'}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{fr ? 'À partir de (ctn)' : 'ابتداءً من (كرتون)'}</label>
+                        <input className="form-control" type="number" min="0" value={form.seuil_volume}
+                          onChange={e => setForm(f => ({ ...f, seuil_volume: e.target.value }))}
+                          style={{ padding: '6px 8px', fontSize: '12px' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{fr ? 'Nouveau Prix' : 'السعر الجديد'}</label>
+                        <div style={{ position: 'relative' }}>
+                          <input className="form-control" type="number" min="0" step="0.01" value={form.prix_volume_detail}
+                            onChange={e => setForm(f => ({ ...f, prix_volume_detail: e.target.value }))}
+                            style={{ padding: '6px 24px 6px 8px', fontSize: '12px' }} />
+                          <span style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', color: '#06b6d4', fontWeight: 700 }}>DA</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {/* Gros */}
                 <div style={{ padding: '16px' }}>

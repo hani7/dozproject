@@ -20,6 +20,8 @@ export interface Product {
   prix_achat: number;             // per palette
   prix_detail: number;            // per carton
   prix_gros: number;              // per carton
+  seuil_volume: number;           // threshold for volume discount
+  prix_volume_detail: number;     // discounted price for detail if seuil reached
   stock_actuel: number;           // in cartons
   stock_minimum: number;          // in cartons
   stock_faible: boolean;

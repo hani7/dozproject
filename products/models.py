@@ -26,6 +26,14 @@ class Produit(models.Model):
         max_digits=10, decimal_places=2, default=0,
         help_text="Prix de vente par carton (détail)"
     )
+    seuil_volume = models.PositiveIntegerField(
+        default=0,
+        help_text="Quantité minimum pour appliquer le prix de volume (Détail)"
+    )
+    prix_volume_detail = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text="Prix de vente par carton appliqué au-delà du seuil (Détail)"
+    )
     prix_gros = models.DecimalField(
         max_digits=10, decimal_places=2, default=0,
         help_text="Prix de vente par carton (gros)"

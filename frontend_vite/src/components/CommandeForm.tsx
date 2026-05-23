@@ -106,10 +106,15 @@ export function CommandeForm({ type }: Props) {
   const removeFromCart = (id: number) =>
     setCart((c) => c.filter((i) => i.product.id !== id));
 
-  const price = (p: Product) =>
-    type === "gros" ? Number(p.prix_gros) : Number(p.prix_detail);
+  const price = (p: Product, qty: number = 1) => {
+    if (type === "gros") return Number(p.prix_gros);
+    if (type === "detail" && p.seuil_volume && p.seuil_volume > 0 && qty >= p.seuil_volume && p.prix_volume_detail) {
+      return Number(p.prix_volume_detail);
+    }
+    return Number(p.prix_detail);
+  };
 
-  const total = cart.reduce((s, i) => s + i.qty * price(i.product), 0);
+  const total = cart.reduce((s, i) => s + i.qty * price(i.product, i.qty), 0);
 
   const submit = async () => {
     if (!clientId) {
@@ -129,8 +134,8 @@ export function CommandeForm({ type }: Props) {
         lignes: cart.map((i) => ({
           produit: i.product.id,
           quantite: i.qty,
-          prix_unitaire: price(i.product),
-          sous_total: i.qty * price(i.product),
+          prix_unitaire: price(i.product, i.qty),
+          sous_total: i.qty * price(i.product, i.qty),
         })),
       });
       const ref = res.data.reference;
@@ -470,7 +475,7 @@ export function CommandeForm({ type }: Props) {
             >
               {filtered.map((p) => {
                 const inCart = cart.find((i) => i.product.id === p.id);
-                const pPrice = price(p);
+                const pPrice = price(p, inCart ? inCart.qty : 1);
                 const isJustAdded = addedId === p.id;
                 return (
                   <div

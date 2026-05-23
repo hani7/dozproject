@@ -146,9 +146,12 @@ function VentesPageContent({ type }: Props) {
 
   const addLigne = () => setLignes(l => [...l, { produit: '', quantite: '', prix_unitaire: '' }]);
   const updateLigne = (i: number, field: string, val: string) => setLignes(l => l.map((li, j) => j === i ? { ...li, [field]: val } : li));
-  const getDefaultPrice = (productId: string) => {
+  const getDefaultPrice = (productId: string, qty: number = 1) => {
     const p = products.find(p => String(p.id) === productId);
     if (!p) return '';
+    if (type === 'detail' && p.seuil_volume && p.seuil_volume > 0 && qty >= p.seuil_volume && p.prix_volume_detail) {
+      return String(p.prix_volume_detail);
+    }
     return String(type === 'gros' ? p.prix_gros : p.prix_detail);
   };
 
@@ -753,7 +756,11 @@ function VentesPageContent({ type }: Props) {
                     <option value="">--</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
                   </select>
-                  <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite} onChange={e => updateLigne(i, 'quantite', e.target.value)} />
+                  <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite} onChange={e => {
+                    const newQty = Number(e.target.value);
+                    const newPrice = l.produit ? getDefaultPrice(l.produit, newQty) : l.prix_unitaire;
+                    setLignes(lines => lines.map((li, j) => j === i ? { ...li, quantite: e.target.value, prix_unitaire: newPrice } : li));
+                  }} />
                   <input className="form-control" type="number" placeholder="Prix DA" value={l.prix_unitaire} onChange={e => updateLigne(i, 'prix_unitaire', e.target.value)} />
                   <button className="btn btn-danger btn-icon" title={fr ? 'Supprimer' : 'حذف'} onClick={() => setLignes(lines => lines.filter((_, j) => j !== i))}><Trash2 size={13} /></button>
                 </div>
