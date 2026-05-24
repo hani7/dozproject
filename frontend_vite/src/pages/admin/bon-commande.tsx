@@ -21,7 +21,6 @@ function printBonCommande(achat: any, fr: boolean) {
         <td>${i + 1}</td>
         <td style="font-weight:700">${l.produit_nom || '—'}</td>
         <td style="text-align:center;font-weight:800;font-size:15px;color:#006045">${pal} pal</td>
-        <td style="text-align:center;color:#888">—</td>
       </tr>`;
   }).join('');
 
@@ -67,11 +66,6 @@ function printBonCommande(achat: any, fr: boolean) {
   .summary { border: 2px solid #006045; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
   .summary .item .lbl { font-size: 10px; color: #888; text-transform: uppercase; font-weight: 600; }
   .summary .item .val { font-size: 16px; font-weight: 800; color: #006045; margin-top: 2px; }
-
-  /* Notes */
-  .notes-box { border: 1px dashed #ccc; border-radius: 6px; padding: 12px 14px; min-height: 50px; margin-bottom: 24px; }
-  .notes-box .label { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; margin-bottom: 6px; }
-  .notes-box p { font-size: 12px; color: #444; }
 
   /* Signatures */
   .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
@@ -128,7 +122,6 @@ function printBonCommande(achat: any, fr: boolean) {
         <th>#</th>
         <th>${fr ? 'Produit' : 'المنتج'}</th>
         <th style="text-align:center">${fr ? 'Quantité (pal)' : 'الكمية (باليت)'}</th>
-        <th style="text-align:center">${fr ? 'Notes' : 'ملاحظات'}</th>
       </tr>
     </thead>
     <tbody>
@@ -142,12 +135,6 @@ function printBonCommande(achat: any, fr: boolean) {
       <div class="lbl">${fr ? 'Total palettes' : 'مجموع الباليت'}</div>
       <div class="val">${totalPal} pal</div>
     </div>
-  </div>
-
-  <!-- Notes -->
-  <div class="notes-box">
-    <div class="label">${fr ? 'Notes / Instructions' : 'ملاحظات'}</div>
-    <p>${achat.notes || (fr ? 'Aucune instruction particulière.' : 'لا توجد ملاحظات.')}</p>
   </div>
 
   <!-- Signatures -->
