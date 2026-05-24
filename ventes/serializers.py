@@ -125,3 +125,20 @@ class VenteCreateSerializer(serializers.ModelSerializer):
         vente.montant_total = total * (1 - remise)
         vente.save()
         return vente
+
+    def update(self, instance, validated_data):
+        lignes_data = validated_data.pop('lignes', None)
+        # Update scalar fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if lignes_data is not None:
+            # Replace all lines atomically
+            instance.lignes.all().delete()
+            total = 0
+            for ligne_data in lignes_data:
+                ligne = LigneVente.objects.create(vente=instance, **ligne_data)
+                total += ligne.sous_total
+            remise = instance.remise / 100
+            instance.montant_total = total * (1 - remise)
+        instance.save()
+        return instance

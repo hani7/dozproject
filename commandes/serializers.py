@@ -106,7 +106,7 @@ class CommandeCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Commande
-        fields = ['client', 'type_commande', 'lignes', 'notes', 'date_livraison_souhaitee']
+        fields = ['client', 'type_commande', 'lignes', 'notes', 'date_livraison_souhaitee', 'montant_paye']
 
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes')
@@ -118,3 +118,17 @@ class CommandeCreateSerializer(serializers.ModelSerializer):
         commande.montant_total = total
         commande.save()
         return commande
+
+    def update(self, instance, validated_data):
+        lignes_data = validated_data.pop('lignes', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if lignes_data is not None:
+            instance.lignes.all().delete()
+            total = 0
+            for ligne_data in lignes_data:
+                ligne = LigneCommande.objects.create(commande=instance, **ligne_data)
+                total += ligne.sous_total
+            instance.montant_total = total
+        instance.save()
+        return instance

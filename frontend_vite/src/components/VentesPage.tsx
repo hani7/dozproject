@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2, Printer, FileText, Download } from 'lucide-react';
+import { Plus, Eye, RotateCcw, CheckCircle, AlertTriangle, DollarSign, Trash2, Printer, FileText, Download, Pencil } from 'lucide-react';
 import { printDailyBL } from '@/lib/printDocs';
 
 interface Props { type: 'detail' | 'gros'; }
@@ -49,6 +49,13 @@ function VentesPageContent({ type }: Props) {
   const [statusFilter, setStatusFilter] = useState('');
   const [retourFilter, setRetourFilter] = useState<'all' | 'avec' | 'sans'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'non_paye'>('all');
+  const [editModal, setEditModal] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ client: '', notes: '', mode_paiement: 'especes', remise: '0' });
+  const [editLignes, setEditLignes] = useState<{ produit: string; quantite: string; prix_unitaire: string }[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editClientSearch, setEditClientSearch] = useState('');
+  const [showEditClientList, setShowEditClientList] = useState(false);
+  const filteredEditClients = clients.filter(c => c.nom?.toLowerCase().includes(editClientSearch.toLowerCase()));
 
   // Searchable client dropdown state
   const [clientSearch, setClientSearch] = useState('');
@@ -139,13 +146,66 @@ function VentesPageContent({ type }: Props) {
 
   // Close modals on Escape
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { setModal(false); setViewModal(null); setRetourModal(null); setPaiementModal(null); } };
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { setModal(false); setViewModal(null); setRetourModal(null); setPaiementModal(null); setEditModal(null); } };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, []);
 
   const addLigne = () => setLignes(l => [...l, { produit: '', quantite: '', prix_unitaire: '' }]);
   const updateLigne = (i: number, field: string, val: string) => setLignes(l => l.map((li, j) => j === i ? { ...li, [field]: val } : li));
+
+  const openEdit = (v: any) => {
+    setEditForm({
+      client: String(v.client || v.client_id || ''),
+      notes: v.notes || '',
+      mode_paiement: v.mode_paiement || 'especes',
+      remise: String(v.remise || 0),
+    });
+    setEditLignes(
+      (v.lignes || []).map((l: any) => ({
+        produit: String(l.produit),
+        quantite: String(l.quantite),
+        prix_unitaire: String(l.prix_unitaire),
+      }))
+    );
+    setEditClientSearch(v.client_nom || '');
+    setShowEditClientList(false);
+    setEditModal(v);
+  };
+
+  const saveEdit = async () => {
+    if (!editModal) return;
+    if (!editForm.client) { toast.error(fr ? 'Client requis' : 'العميل مطلوب'); return; }
+    const validLignes = editLignes.filter(l => l.produit && Number(l.quantite) > 0);
+    if (!validLignes.length) { toast.error(fr ? 'Au moins un produit requis' : 'منتج واحد على الأقل'); return; }
+    setEditSaving(true);
+    try {
+      const payload = {
+        client: Number(editForm.client),
+        notes: editForm.notes,
+        lignes: validLignes.map(l => ({
+          produit: Number(l.produit),
+          quantite: Number(l.quantite),
+          prix_unitaire: Number(l.prix_unitaire),
+          sous_total: Number(l.quantite) * Number(l.prix_unitaire),
+        })),
+        ...(editModal._source !== 'commande' ? { mode_paiement: editForm.mode_paiement, remise: Number(editForm.remise) } : {}),
+      };
+      const endpoint = editModal._source === 'commande'
+        ? `/commandes/${editModal.id}/`
+        : `/ventes/${editModal.id}/`;
+      await api.patch(endpoint, payload);
+      toast.success(fr ? '✅ Commande modifiée' : '✅ تم تعديل الطلب');
+      setEditModal(null);
+      load();
+    } catch (e: any) {
+      const data = e?.response?.data;
+      const msg = data?.error || data?.detail || (typeof data === 'string' ? data : null) || JSON.stringify(data) || 'Erreur';
+      toast.error(msg, { duration: 6000 });
+    } finally {
+      setEditSaving(false);
+    }
+  };
   const getDefaultPrice = (productId: string, qty: number = 1) => {
     const p = products.find(p => String(p.id) === productId);
     if (!p) return '';
@@ -654,6 +714,7 @@ function VentesPageContent({ type }: Props) {
                 <td>
                   <div style={{ display: 'flex', gap: '5px' }}>
                     <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
+                    <button className="btn btn-secondary btn-icon" title={fr ? 'Modifier' : 'تعديل'} onClick={() => openEdit(v)} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1' }}><Pencil size={12} /></button>
                     <button className="btn btn-secondary btn-icon" title={fr ? 'Paiement' : 'دفع'} onClick={() => openPaiement(v)} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}><DollarSign size={12} /></button>
                     {v.statut === 'livree' && (
                       <>
@@ -1101,7 +1162,147 @@ function VentesPageContent({ type }: Props) {
       )}
 
 
-      {/* ── Paiement Modal ── */}
+      {/* ── Edit Modal ── */}
+      {editModal && (
+        <div className="modal-overlay" onClick={() => setEditModal(null)}>
+          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: 680 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '10px', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Pencil size={18} color="#6366f1" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>{fr ? 'Modifier la commande' : 'تعديل الطلب'}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{editModal.reference} · {editModal.client_nom}</div>
+                </div>
+              </div>
+              <CloseBtn onClick={() => setEditModal(null)} />
+            </div>
+
+            {/* Warning banner */}
+            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '10px 14px', marginBottom: '18px', fontSize: '12px', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ⚠️ {fr ? 'Les lignes seront entièrement remplacées. Le montant total sera recalculé.' : 'ستُستبدل جميع الأصناف. سيُعاد حساب المجموع الكلي.'}
+            </div>
+
+            {/* Client */}
+            <div className="form-group" style={{ position: 'relative', marginBottom: '14px' }}>
+              <label className="form-label">{fr ? 'Client' : 'العميل'}</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="form-control"
+                  placeholder={fr ? 'Rechercher un client...' : 'ابحث عن عميل...'}
+                  value={editForm.client ? (clients.find(c => String(c.id) === String(editForm.client))?.nom || editClientSearch) : editClientSearch}
+                  onChange={e => {
+                    setEditForm(f => ({ ...f, client: '' }));
+                    setEditClientSearch(e.target.value);
+                    setShowEditClientList(true);
+                  }}
+                  onFocus={() => setShowEditClientList(true)}
+                  onBlur={() => setTimeout(() => setShowEditClientList(false), 200)}
+                />
+                {editForm.client && (
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#ef4444', fontSize: '14px', fontWeight: 'bold' }}
+                    onClick={() => { setEditForm(f => ({ ...f, client: '' })); setEditClientSearch(''); }}>
+                    ✕
+                  </span>
+                )}
+              </div>
+              {showEditClientList && !editForm.client && (
+                <div style={{ position: 'absolute', zIndex: 200, width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '4px' }}>
+                  {filteredEditClients.length === 0 ? (
+                    <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '13px' }}>{fr ? 'Aucun résultat' : 'لا توجد نتائج'}</div>
+                  ) : filteredEditClients.map(c => (
+                    <div key={c.id}
+                      style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: '13px' }}
+                      onMouseDown={() => { setEditForm(f => ({ ...f, client: String(c.id) })); setShowEditClientList(false); setEditClientSearch(''); }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      {c.nom}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mode paiement + Remise (vente only) */}
+            {editModal._source !== 'commande' && (
+              <div className="grid-2" style={{ marginBottom: '14px' }}>
+                <div className="form-group">
+                  <label className="form-label">{fr ? 'Mode de paiement' : 'طريقة الدفع'}</label>
+                  <select className="form-control" value={editForm.mode_paiement} onChange={e => setEditForm(f => ({ ...f, mode_paiement: e.target.value }))}>
+                    <option value="especes">{fr ? 'Espèces' : 'نقداً'}</option>
+                    <option value="virement">{fr ? 'Virement' : 'تحويل'}</option>
+                    <option value="cheque">{fr ? 'Chèque' : 'شيك'}</option>
+                    <option value="credit">{fr ? 'Crédit' : 'آجل'}</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{fr ? 'Remise (%)' : 'الخصم (%)'}</label>
+                  <input className="form-control" type="number" min="0" max="100" value={editForm.remise} onChange={e => setEditForm(f => ({ ...f, remise: e.target.value }))} />
+                </div>
+              </div>
+            )}
+
+            {/* Lignes produits */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>{fr ? 'Produits' : 'المنتجات'}</div>
+              {editLignes.map((l, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <select className="form-control" value={l.produit} onChange={e => {
+                    const pid = e.target.value;
+                    const price = getDefaultPrice(pid);
+                    setEditLignes(lines => lines.map((li, j) => j === i ? { ...li, produit: pid, prix_unitaire: price } : li));
+                  }}>
+                    <option value="">--</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                  </select>
+                  <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite}
+                    onChange={e => {
+                      const newQty = Number(e.target.value);
+                      const newPrice = l.produit ? getDefaultPrice(l.produit, newQty) : l.prix_unitaire;
+                      setEditLignes(lines => lines.map((li, j) => j === i ? { ...li, quantite: e.target.value, prix_unitaire: newPrice } : li));
+                    }} />
+                  <input className="form-control" type="number" placeholder="Prix DA" value={l.prix_unitaire}
+                    onChange={e => setEditLignes(lines => lines.map((li, j) => j === i ? { ...li, prix_unitaire: e.target.value } : li))} />
+                  <button className="btn btn-danger btn-icon" onClick={() => setEditLignes(lines => lines.filter((_, j) => j !== i))}><Trash2 size={13} /></button>
+                </div>
+              ))}
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditLignes(l => [...l, { produit: '', quantite: '1', prix_unitaire: '' }])}>
+                <Plus size={12} /> {fr ? 'Ajouter produit' : 'إضافة منتج'}
+              </button>
+            </div>
+
+            {/* Notes */}
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label">{fr ? 'Notes' : 'ملاحظات'}</label>
+              <textarea className="form-control" rows={2} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'none' }} />
+            </div>
+
+            {/* Live total preview */}
+            {(() => {
+              const total = editLignes.reduce((s, l) => s + (Number(l.quantite) * Number(l.prix_unitaire) || 0), 0);
+              const remise = editModal._source !== 'commande' ? Number(editForm.remise || 0) / 100 : 0;
+              const net = total * (1 - remise);
+              return total > 0 ? (
+                <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600 }}>{fr ? 'Nouveau total estimé' : 'المجموع الجديد المقدر'}</span>
+                  <span style={{ fontWeight: 900, fontSize: '18px', color: 'var(--brand-primary)' }}>{net.toLocaleString('fr-DZ')} DA</span>
+                </div>
+              ) : null;
+            })()}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setEditModal(null)}>{fr ? 'Annuler' : 'إلغاء'}</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}
+                style={{ background: '#6366f1', border: 'none', opacity: editSaving ? 0.7 : 1 }}>
+                {editSaving ? <div className="spinner" style={{ width: 14, height: 14 }} /> : <Pencil size={14} />}
+                {fr ? 'Enregistrer les modifications' : 'حفظ التعديلات'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {paiementModal && (() => {
         const reste = Math.max(0, Number(paiementModal.montant_total) - Number(paiementModal.montant_paye || 0));
         const isPaid = reste <= 0;
