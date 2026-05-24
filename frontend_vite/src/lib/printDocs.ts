@@ -288,8 +288,6 @@ export function printBonLivraison(order: Order) {
     <div class="montant-inner">Montant Total : ${fmt(order.montant_total)} DA</div>
   </div>
 
-  ${order.notes ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;font-size:12px;color:#166534;margin-bottom:16px">📝 <strong>Notes :</strong> ${order.notes}</div>` : ''}
-
   <div class="signatures">
     <div class="sig-box">
       <div class="sig-label">Signature du Livreur</div>
