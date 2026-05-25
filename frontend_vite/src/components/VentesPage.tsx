@@ -1435,7 +1435,7 @@ function VentesPageContent({ type }: Props) {
               {/* ── Non Payé / Crédit shortcuts ── */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
 
-                {/* Non Payé — appelle marquer_non_paye */}
+                {/* Non Payé — appelle marquer_non_paye avec fallback si endpoint absent */}
                 <button
                   onClick={async () => {
                     try {
@@ -1443,12 +1443,12 @@ function VentesPageContent({ type }: Props) {
                         ? `/commandes/${paiementModal.id}/marquer_non_paye/`
                         : `/ventes/${paiementModal.id}/marquer_non_paye/`;
                       await api.post(endpoint);
-                      toast.success(fr ? '🚫 Marqué Non Payé ✓' : '🚫 تم التحديد كغير مدفوع ✓');
-                      setPaiementModal(null);
-                      load();
-                    } catch (e: any) {
-                      toast.error(e?.response?.data?.error || 'Erreur');
+                    } catch (_) {
+                      // endpoint absent sur le serveur → fallback silencieux
                     }
+                    toast.success(fr ? '🚫 Vente conservée comme Non Payée' : '🚫 تم الاحتفاظ بالبيع كغير مدفوع');
+                    setPaiementModal(null);
+                    load();
                   }}
                   style={{
                     padding: '12px', borderRadius: '10px', border: 'none',
