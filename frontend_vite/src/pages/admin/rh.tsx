@@ -28,7 +28,7 @@ export default function RHPage() {
 
   const [virements, setVirements] = useState<any[]>([]);
   const [paieModal, setPaieModal] = useState(false);
-  const [paieForm, setPaieForm] = useState({ employe: '', montant: '', date: new Date().toISOString().split('T')[0], motif: 'Salaire' });
+  const [paieForm, setPaieForm] = useState({ employe: '', type: 'salaire', montant: '', date: new Date().toISOString().split('T')[0], motif: '' });
 
   const load = () => api.get('/hr/employes/').then(r => setEmployes(r.data.results || r.data));
   const loadVirements = () => api.get('/paiements/virements/').then(r => setVirements(r.data.results || r.data));
@@ -68,7 +68,9 @@ export default function RHPage() {
         employe: paieForm.employe,
         montant: Number(paieForm.montant),
         date: paieForm.date,
-        motif: paieForm.motif,
+        motif: paieForm.type === 'avance' 
+          ? (paieForm.motif ? `Avance: ${paieForm.motif}` : 'Avance')
+          : (paieForm.motif ? `Salaire: ${paieForm.motif}` : 'Salaire Total'),
         statut: 'execute',
       });
       toast.success(lang === 'fr' ? 'Paiement effectué!' : 'تم الدفع!');
@@ -167,7 +169,7 @@ export default function RHPage() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '18px' }}>{lang === 'fr' ? 'Historique des Salaires' : 'سجل الرواتب'}</h2>
-            <button className="btn btn-primary" onClick={() => { setPaieForm({ employe: '', montant: '', date: new Date().toISOString().split('T')[0], motif: 'Salaire' }); setPaieModal(true); }}>
+            <button className="btn btn-primary" onClick={() => { setPaieForm({ employe: '', type: 'salaire', montant: '', date: new Date().toISOString().split('T')[0], motif: '' }); setPaieModal(true); }}>
               <DollarSign size={15} /> {lang === 'fr' ? 'Payer un salaire' : 'دفع راتب'}
             </button>
           </div>
@@ -242,15 +244,28 @@ export default function RHPage() {
         <div className="modal-overlay" onClick={() => setPaieModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">{lang === 'fr' ? 'Paiement de Salaire' : 'دفع راتب'}</div>
-            <div className="form-group">
-              <label className="form-label">{lang === 'fr' ? 'Employé' : 'الموظف'}</label>
-              <select className="form-control" value={paieForm.employe} onChange={e => {
-                const emp = employes.find(x => String(x.id) === e.target.value);
-                setPaieForm(f => ({ ...f, employe: e.target.value, montant: emp ? String(emp.salaire_base) : '' }));
-              }}>
-                <option value="">{lang === 'fr' ? '-- Sélectionner --' : '-- اختر --'}</option>
-                {employes.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
-              </select>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">{lang === 'fr' ? 'Employé' : 'الموظف'}</label>
+                <select className="form-control" value={paieForm.employe} onChange={e => {
+                  const emp = employes.find(x => String(x.id) === e.target.value);
+                  setPaieForm(f => ({ ...f, employe: e.target.value, montant: (f.type === 'salaire' && emp) ? String(emp.salaire_base) : f.montant }));
+                }}>
+                  <option value="">{lang === 'fr' ? '-- Sélectionner --' : '-- اختر --'}</option>
+                  {employes.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{lang === 'fr' ? 'Type de paiement' : 'نوع الدفع'}</label>
+                <select className="form-control" value={paieForm.type} onChange={e => {
+                  const type = e.target.value;
+                  const emp = employes.find(x => String(x.id) === paieForm.employe);
+                  setPaieForm(f => ({ ...f, type, montant: (type === 'salaire' && emp) ? String(emp.salaire_base) : '' }));
+                }}>
+                  <option value="salaire">{lang === 'fr' ? 'Salaire Total' : 'الراتب الإجمالي'}</option>
+                  <option value="avance">{lang === 'fr' ? 'Avance' : 'سلفة'}</option>
+                </select>
+              </div>
             </div>
             <div className="grid-2">
               <div className="form-group">
