@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Search, TrendingUp, TrendingDown, Download, FileText, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import type { StockMovement, Product } from '@/lib/types';
 import Pagination, { usePagination } from '@/components/Pagination';
@@ -75,69 +75,81 @@ export default function StockPage() {
   };
 
   const exportExcel = () => {
-    const data = filteredMovements.map(m => ({
-      Date: new Date(m.created_at).toLocaleString(lang === 'fr' ? 'fr-FR' : 'ar-DZ'),
-      Produit: m.produit_nom,
-      Client: m.client_nom || '-',
-      Type: typeLabels[m.type_mouvement]?.[lang] || m.type_mouvement,
-      Motif: m.motif,
-      Quantite: (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
-      'Stock Avant': m.stock_avant,
-      'Stock Apres': m.stock_apres,
-      Reference: m.reference || '-'
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Mouvements");
-    XLSX.writeFile(wb, `Mouvements_Stock_${new Date().toISOString().split('T')[0]}.xlsx`);
+    try {
+      const data = filteredMovements.map(m => ({
+        Date: new Date(m.created_at).toLocaleString(lang === 'fr' ? 'fr-FR' : 'ar-DZ'),
+        Produit: m.produit_nom,
+        Client: m.client_nom || '-',
+        Type: typeLabels[m.type_mouvement]?.[lang] || m.type_mouvement,
+        Motif: m.motif,
+        Quantite: (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
+        'Stock Avant': m.stock_avant,
+        'Stock Apres': m.stock_apres,
+        Reference: m.reference || '-'
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Mouvements");
+      XLSX.writeFile(wb, `Mouvements_Stock_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (e: any) {
+      toast.error(`Excel error: ${e.message}`);
+    }
   };
 
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text(lang === 'fr' ? "Journal des Mouvements de Stock" : "سجل حركات المخزون", 14, 15);
-    const tableData = filteredMovements.map(m => [
-      new Date(m.created_at).toLocaleDateString(),
-      m.produit_nom,
-      m.client_nom || '-',
-      typeLabels[m.type_mouvement]?.['fr'] || m.type_mouvement,
-      m.motif,
-      (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
-      m.stock_apres,
-      m.reference || '-'
-    ]);
-    (doc as any).autoTable({
-      startY: 25,
-      head: [['Date', 'Produit', 'Client', 'Type', 'Motif', 'Qte', 'Stock', 'Ref']],
-      body: tableData,
-      styles: { fontSize: 8 },
-    });
-    doc.save(`Mouvements_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const printMovement = (m: StockMovement) => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(lang === 'fr' ? "Bon de Mouvement de Stock" : "سند حركة مخزون", 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.text(`Date : ${new Date(m.created_at).toLocaleString()}`, 20, 40);
-    doc.text(`Reference : ${m.reference || '-'}`, 20, 50);
-    doc.text(`Client : ${m.client_nom || '-'}`, 20, 60);
-    
-    (doc as any).autoTable({
-      startY: 70,
-      head: [['Produit', 'Type', 'Motif', 'Quantite', 'Stock Avant', 'Stock Apres']],
-      body: [[
+    try {
+      const doc = new jsPDF();
+      doc.text(lang === 'fr' ? "Journal des Mouvements de Stock" : "سجل حركات المخزون", 14, 15);
+      const tableData = filteredMovements.map(m => [
+        new Date(m.created_at).toLocaleDateString(),
         m.produit_nom,
+        m.client_nom || '-',
         typeLabels[m.type_mouvement]?.['fr'] || m.type_mouvement,
         m.motif,
         (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
-        m.stock_avant,
-        m.stock_apres
-      ]],
-    });
-    
-    doc.save(`Mouvement_${m.id}.pdf`);
+        m.stock_apres,
+        m.reference || '-'
+      ]);
+      (doc as any).autoTable({
+        startY: 25,
+        head: [['Date', 'Produit', 'Client', 'Type', 'Motif', 'Qte', 'Stock', 'Ref']],
+        body: tableData,
+        styles: { fontSize: 8 },
+      });
+      doc.save(`Mouvements_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (e: any) {
+      toast.error(`PDF error: ${e.message}`);
+    }
+  };
+
+  const printMovement = (m: StockMovement) => {
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(lang === 'fr' ? "Bon de Mouvement de Stock" : "سند حركة مخزون", 105, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.text(`Date : ${new Date(m.created_at).toLocaleString()}`, 20, 40);
+      doc.text(`Reference : ${m.reference || '-'}`, 20, 50);
+      doc.text(`Client : ${m.client_nom || '-'}`, 20, 60);
+      
+      (doc as any).autoTable({
+        startY: 70,
+        head: [['Produit', 'Type', 'Motif', 'Quantite', 'Stock Avant', 'Stock Apres']],
+        body: [[
+          m.produit_nom,
+          typeLabels[m.type_mouvement]?.['fr'] || m.type_mouvement,
+          m.motif,
+          (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
+          m.stock_avant,
+          m.stock_apres
+        ]],
+      });
+      
+      doc.save(`Mouvement_${m.id}.pdf`);
+    } catch (e: any) {
+      toast.error(`Print error: ${e.message}`);
+    }
   };
 
   return (
