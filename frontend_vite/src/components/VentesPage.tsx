@@ -87,7 +87,7 @@ function VentesPageContent({ type }: Props) {
         _source: 'commande',
         type_vente: c.type_commande,
         date: c.created_at?.split('T')[0],
-        mode_paiement: '\u2014',
+        mode_paiement: c.mode_paiement || '—',
         montant_paye: c.montant_paye || 0,
         reste_a_payer: c.reste_a_payer !== undefined ? c.reste_a_payer : (Number(c.montant_total) - Number(c.montant_paye || 0)),
         remise: 0,
@@ -1459,14 +1459,20 @@ function VentesPageContent({ type }: Props) {
                       ok = true;
                     } catch (_) { /* endpoint absent */ }
 
-                    // 2) Fallback : PATCH mode_paiement='credit' (fonctionne sur l'ancien serveur)
-                    if (!ok) {
+                    // 2) Fallback PATCH mode_paiement='credit' (ventes uniquement, commandes n'ont pas ce champ sur l'ancien serveur)
+                    if (!ok && paiementModal._source !== 'commande') {
                       try {
-                        const patchEp = paiementModal._source === 'commande'
-                          ? `/commandes/${paiementModal.id}/`
-                          : `/ventes/${paiementModal.id}/`;
-                        await api.patch(patchEp, { mode_paiement: 'credit' });
-                      } catch (_2) { /* silent */ }
+                        await api.patch(`/ventes/${paiementModal.id}/`, { mode_paiement: 'credit' });
+                        ok = true;
+                      } catch (e2: any) {
+                        const msg = e2?.response?.data?.mode_paiement?.[0]
+                          || e2?.response?.data?.error
+                          || e2?.response?.data?.detail
+                          || JSON.stringify(e2?.response?.data)
+                          || 'Erreur';
+                        toast.error(`Erreur: ${msg}`);
+                        return;
+                      }
                     }
                     toast.success(fr ? '🚫 Marqué Non Payé ✓' : '🚫 تم التحديد كغير مدفوع ✓');
                     setPaiementModal(null);
