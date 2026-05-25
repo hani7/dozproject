@@ -94,7 +94,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}
       style={{
         width: sidebarWidth,
-        background: collapsed ? '#5629b8' : '#7132ca',
+        background: 'linear-gradient(180deg, #7132ca 0%, #4c1d95 100%)',
         borderRight: isRTL ? 'none' : '1px solid rgba(255,255,255,0.1)',
         borderLeft: isRTL ? '1px solid rgba(255,255,255,0.1)' : 'none',
       }}
@@ -128,7 +128,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           width: 28,
           height: 28,
           borderRadius: '50%',
-          background: collapsed ? '#5629b8' : '#7132ca',
+          background: '#7132ca',
           border: '2px solid rgba(255,255,255,0.2)',
           color: '#fff',
           display: 'flex',
