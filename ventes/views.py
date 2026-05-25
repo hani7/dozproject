@@ -205,12 +205,24 @@ class VenteViewSet(viewsets.ModelViewSet):
                 valeur_retour = qte * ligne.prix_unitaire
                 valeur_retour_totale += valeur_retour
 
-                # Produit perdu — déduire du stock SANS retour
-                Produit.objects.filter(pk=ligne.produit_id).update(
-                    stock_actuel=F('stock_actuel') - qte
+                # 1. Reverse the sale first to avoid double deduction
+                Produit.objects.filter(pk=ligne.produit_id).update(stock_actuel=F('stock_actuel') + qte)
+                p_temp = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
+                MouvementStock.objects.create(
+                    produit_id=ligne.produit_id,
+                    type_mouvement='entree',
+                    motif='retour',
+                    quantite=qte,
+                    stock_avant=p_temp.stock_actuel - qte,
+                    stock_apres=p_temp.stock_actuel,
+                    reference=vente.reference,
+                    notes=f"Retour (avant perte) — Vente {vente.reference}",
+                    cree_par=request.user,
                 )
-                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
 
+                # 2. Now log the actual loss
+                Produit.objects.filter(pk=ligne.produit_id).update(stock_actuel=F('stock_actuel') - qte)
+                produit = Produit.objects.only('stock_actuel').get(pk=ligne.produit_id)
                 MouvementStock.objects.create(
                     produit_id=ligne.produit_id,
                     type_mouvement='sortie',
