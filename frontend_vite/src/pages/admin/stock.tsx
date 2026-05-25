@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { Plus, Search, TrendingUp, TrendingDown, Download, FileText, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import type { StockMovement, Product } from '@/lib/types';
 import Pagination, { usePagination } from '@/components/Pagination';
 
@@ -110,7 +110,7 @@ export default function StockPage() {
         m.stock_apres,
         m.reference || '-'
       ]);
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 25,
         head: [['Date', 'Produit', 'Client', 'Type', 'Motif', 'Qte', 'Stock', 'Ref']],
         body: tableData,
@@ -133,7 +133,7 @@ export default function StockPage() {
       doc.text(`Reference : ${m.reference || '-'}`, 20, 50);
       doc.text(`Client : ${m.client_nom || '-'}`, 20, 60);
       
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: 70,
         head: [['Produit', 'Type', 'Motif', 'Quantite', 'Stock Avant', 'Stock Apres']],
         body: [[
