@@ -712,16 +712,54 @@ function VentesPageContent({ type }: Props) {
                   </div>
                 </td>
                 <td>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
-                    <button className="btn btn-secondary btn-icon" title={fr ? 'Modifier' : 'تعديل'} onClick={() => openEdit(v)} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1' }}><Pencil size={12} /></button>
-                    <button className="btn btn-secondary btn-icon" title={fr ? 'Paiement' : 'دفع'} onClick={() => openPaiement(v)} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}><DollarSign size={12} /></button>
-                    {v.statut === 'livree' && (
-                      <>
-                        <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v, false)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
-                        <button className="btn btn-danger btn-icon" title={fr ? 'Non Conforme' : 'غير مطابق'} onClick={() => openRetour(v, true)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}><AlertTriangle size={12} /></button>
-                        <button className="btn btn-primary btn-icon" title={fr ? 'Approuver' : 'موافقة'} onClick={() => approuver(v)}><CheckCircle size={12} /></button>
-                      </>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {/* Row 1 — action icons */}
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button className="btn btn-secondary btn-icon" title={fr ? 'Voir' : 'عرض'} onClick={() => setViewModal(v)}><Eye size={12} /></button>
+                      <button className="btn btn-secondary btn-icon" title={fr ? 'Modifier' : 'تعديل'} onClick={() => openEdit(v)} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366f1' }}><Pencil size={12} /></button>
+                      <button className="btn btn-secondary btn-icon" title={fr ? 'Paiement' : 'دفع'} onClick={() => openPaiement(v)} style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981' }}><DollarSign size={12} /></button>
+                      {v.statut === 'livree' && (
+                        <>
+                          <button className="btn btn-warning btn-icon" title={fr ? 'Retour' : 'إرجاع'} onClick={() => openRetour(v, false)} style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}><RotateCcw size={12} /></button>
+                          <button className="btn btn-danger btn-icon" title={fr ? 'Non Conforme' : 'غير مطابق'} onClick={() => openRetour(v, true)} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}><AlertTriangle size={12} /></button>
+                          <button className="btn btn-primary btn-icon" title={fr ? 'Approuver' : 'موافقة'} onClick={() => approuver(v)}><CheckCircle size={12} /></button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Row 2 — Non Payé / Crédit (tous statuts sauf cloturee + annulee) */}
+                    {v.statut !== 'cloturee' && v.statut !== 'annulee' && (
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        {/* Non Payé */}
+                        <button
+                          title={fr ? 'Non Payé — fermer sans encaisser' : 'غير مدفوع'}
+                          onClick={() => openPaiement(v)}
+                          style={{
+                            flex: 1, padding: '4px 8px', borderRadius: '7px', fontSize: '11px', fontWeight: 800,
+                            border: `1.5px solid ${Number(v.montant_paye || 0) === 0 ? 'rgba(239,68,68,0.7)' : 'rgba(239,68,68,0.25)'}`,
+                            background: Number(v.montant_paye || 0) === 0 ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.05)',
+                            color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit',
+                            whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+                          }}
+                        >
+                          🚫 {fr ? 'Non Payé' : 'غير مدفوع'}
+                        </button>
+
+                        {/* Crédit */}
+                        <button
+                          title={fr ? 'Crédit — versement partiel' : 'آجل — دفع جزئي'}
+                          onClick={() => openPaiement(v)}
+                          style={{
+                            flex: 1, padding: '4px 8px', borderRadius: '7px', fontSize: '11px', fontWeight: 800,
+                            border: `1.5px solid ${Number(v.montant_paye || 0) > 0 && Number(v.reste_a_payer) > 0 ? 'rgba(245,158,11,0.7)' : 'rgba(245,158,11,0.25)'}`,
+                            background: Number(v.montant_paye || 0) > 0 && Number(v.reste_a_payer) > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.05)',
+                            color: '#d97706', cursor: 'pointer', fontFamily: 'inherit',
+                            whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+                          }}
+                        >
+                          ⏳ {fr ? 'Crédit' : 'آجل'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
