@@ -904,6 +904,38 @@ function VentesPageContent({ type }: Props) {
                 </span>
                 <span style={{ fontWeight: 800, color: viewModal.reste_a_payer > 0 ? '#ef4444' : '#10b981' }}>{viewModal.reste_a_payer?.toLocaleString('fr-DZ')} DA</span>
               </div>
+
+              {/* ── Statut paiement badge ── */}
+              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'center' }}>
+                {Number(viewModal.montant_paye || 0) === 0 ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    background: 'rgba(239,68,68,0.12)', border: '2px solid rgba(239,68,68,0.5)',
+                    borderRadius: '12px', padding: '10px 24px',
+                    color: '#ef4444', fontWeight: 800, fontSize: '15px', letterSpacing: '0.5px',
+                  }}>
+                    🚫 {fr ? 'NON PAYÉ' : 'غير مدفوع'}
+                  </div>
+                ) : Number(viewModal.reste_a_payer) > 0 ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    background: 'rgba(245,158,11,0.12)', border: '2px solid rgba(245,158,11,0.5)',
+                    borderRadius: '12px', padding: '10px 24px',
+                    color: '#d97706', fontWeight: 800, fontSize: '15px', letterSpacing: '0.5px',
+                  }}>
+                    ⏳ {fr ? 'CRÉDIT' : 'آجل'} — {fr ? 'Reste' : 'المتبقي'} : {Number(viewModal.reste_a_payer).toLocaleString('fr-DZ')} DA
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.5)',
+                    borderRadius: '12px', padding: '10px 24px',
+                    color: '#10b981', fontWeight: 800, fontSize: '15px', letterSpacing: '0.5px',
+                  }}>
+                    ✅ {fr ? 'PAYÉ INTÉGRALEMENT' : 'مدفوع بالكامل'}
+                  </div>
+                )}
+              </div>
             </div>
             {viewModal.notes && (
               <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
