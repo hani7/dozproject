@@ -103,6 +103,7 @@ export interface StockMovement {
   id: number;
   produit: number;
   produit_nom: string;
+  client_nom?: string;
   type_mouvement: 'entree' | 'sortie' | 'ajustement';
   motif: string;
   quantite: number;

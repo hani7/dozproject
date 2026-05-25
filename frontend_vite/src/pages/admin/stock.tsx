@@ -3,7 +3,10 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Download, FileText, Printer } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import type { StockMovement, Product } from '@/lib/types';
 import Pagination, { usePagination } from '@/components/Pagination';
 
@@ -69,6 +72,72 @@ export default function StockPage() {
     entree: { fr: 'Entrée', ar: 'دخول' },
     sortie: { fr: 'Sortie', ar: 'خروج' },
     ajustement: { fr: 'Ajustement', ar: 'تعديل' },
+  };
+
+  const exportExcel = () => {
+    const data = filteredMovements.map(m => ({
+      Date: new Date(m.created_at).toLocaleString(lang === 'fr' ? 'fr-FR' : 'ar-DZ'),
+      Produit: m.produit_nom,
+      Client: m.client_nom || '-',
+      Type: typeLabels[m.type_mouvement]?.[lang] || m.type_mouvement,
+      Motif: m.motif,
+      Quantite: (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
+      'Stock Avant': m.stock_avant,
+      'Stock Apres': m.stock_apres,
+      Reference: m.reference || '-'
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Mouvements");
+    XLSX.writeFile(wb, `Mouvements_Stock_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text(lang === 'fr' ? "Journal des Mouvements de Stock" : "سجل حركات المخزون", 14, 15);
+    const tableData = filteredMovements.map(m => [
+      new Date(m.created_at).toLocaleDateString(),
+      m.produit_nom,
+      m.client_nom || '-',
+      typeLabels[m.type_mouvement]?.['fr'] || m.type_mouvement,
+      m.motif,
+      (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
+      m.stock_apres,
+      m.reference || '-'
+    ]);
+    (doc as any).autoTable({
+      startY: 25,
+      head: [['Date', 'Produit', 'Client', 'Type', 'Motif', 'Qte', 'Stock', 'Ref']],
+      body: tableData,
+      styles: { fontSize: 8 },
+    });
+    doc.save(`Mouvements_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const printMovement = (m: StockMovement) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(lang === 'fr' ? "Bon de Mouvement de Stock" : "سند حركة مخزون", 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Date : ${new Date(m.created_at).toLocaleString()}`, 20, 40);
+    doc.text(`Reference : ${m.reference || '-'}`, 20, 50);
+    doc.text(`Client : ${m.client_nom || '-'}`, 20, 60);
+    
+    (doc as any).autoTable({
+      startY: 70,
+      head: [['Produit', 'Type', 'Motif', 'Quantite', 'Stock Avant', 'Stock Apres']],
+      body: [[
+        m.produit_nom,
+        typeLabels[m.type_mouvement]?.['fr'] || m.type_mouvement,
+        m.motif,
+        (m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : '') + m.quantite,
+        m.stock_avant,
+        m.stock_apres
+      ]],
+    });
+    
+    doc.save(`Mouvement_${m.id}.pdf`);
   };
 
   return (
@@ -145,6 +214,15 @@ export default function StockPage() {
             × {lang === 'fr' ? 'Réinit.' : 'إعادة'}
           </button>
         )}
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button onClick={exportExcel} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            <Download size={14} /> Excel
+          </button>
+          <button onClick={exportPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#ef4444', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            <FileText size={14} /> PDF
+          </button>
+        </div>
       </div>
 
       <div className="table-container">
@@ -153,12 +231,14 @@ export default function StockPage() {
             <tr>
               <th>{lang === 'fr' ? 'Date' : 'التاريخ'}</th>
               <th>{lang === 'fr' ? 'Produit' : 'المنتج'}</th>
+              <th>{lang === 'fr' ? 'Client' : 'العميل'}</th>
               <th>{lang === 'fr' ? 'Type' : 'النوع'}</th>
               <th>{lang === 'fr' ? 'Motif' : 'السبب'}</th>
               <th>{lang === 'fr' ? 'Quantité' : 'الكمية'}</th>
               <th style={{ color: 'var(--text-muted)' }}>{lang === 'fr' ? 'Avant (ctn)' : 'قبل (ctn)'}</th>
               <th style={{ color: '#006045', fontWeight: 800 }}>{lang === 'fr' ? 'Stock (ctn)' : 'المخزون (ctn)'}</th>
               <th>{lang === 'fr' ? 'Référence' : 'المرجع'}</th>
+              <th>{lang === 'fr' ? 'Actions' : 'إجراءات'}</th>
             </tr>
           </thead>
           <tbody>
@@ -171,6 +251,7 @@ export default function StockPage() {
                   </div>
                 </td>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{m.produit_nom}</td>
+                <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{m.client_nom || '-'}</td>
                 <td>
                   <span className={`badge ${typeColors[m.type_mouvement]}`}>
                     {m.type_mouvement === 'entree' ? <TrendingUp size={10} /> : m.type_mouvement === 'sortie' ? <TrendingDown size={10} /> : null}
@@ -197,6 +278,11 @@ export default function StockPage() {
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '2px' }}>ctn</span>
                 </td>
                 <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.reference || '-'}</td>
+                <td>
+                  <button onClick={() => printMovement(m)} title="Imprimer" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <Printer size={16} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
