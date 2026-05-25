@@ -671,12 +671,14 @@ function VentesPageContent({ type }: Props) {
                 <td style={{ color: 'var(--text-muted)' }}>{Number(v.montant_paye || 0).toLocaleString()} DA</td>
                 <td style={{ fontWeight: 600, color: Number(v.reste_a_payer) > 0 ? '#ef4444' : '#10b981' }}>{Number(v.reste_a_payer || 0).toLocaleString()} DA</td>
                 <td>
-                  {Number(v.montant_paye || 0) === 0 ? (
+                  {Number(v.montant_paye || 0) === 0 && (v.mode_paiement === 'non_paye' || v.mode_paiement === 'credit') ? (
+                    <span className="badge badge-danger" style={{ whiteSpace: 'nowrap', background: 'rgba(239,68,68,0.18)', border: '1.5px solid rgba(239,68,68,0.5)', color: '#ef4444', fontWeight: 800 }}>🚫 {fr ? 'Non Payé' : 'غير مدفوع'}</span>
+                  ) : Number(v.montant_paye || 0) === 0 ? (
                     <span className="badge badge-danger" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Non payé' : 'غير مدفوع'}</span>
                   ) : Number(v.reste_a_payer) > 0 ? (
-                    <span className="badge badge-warning" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Versé' : 'مقدم'}</span>
+                    <span className="badge badge-warning" style={{ whiteSpace: 'nowrap' }}>⏳ {fr ? 'Crédit' : 'آجل'}</span>
                   ) : (
-                    <span className="badge badge-success" style={{ whiteSpace: 'nowrap' }}>{fr ? 'Payé' : 'مدفوع'}</span>
+                    <span className="badge badge-success" style={{ whiteSpace: 'nowrap' }}>✅ {fr ? 'Payé' : 'مدفوع'}</span>
                   )}
                 </td>
                 <td><span className={`badge ${STATUS_COLORS[v.statut]}`} style={{ whiteSpace: 'nowrap' }}>{statusLabels[v.statut]?.[lang]}</span></td>
@@ -907,7 +909,16 @@ function VentesPageContent({ type }: Props) {
 
               {/* ── Statut paiement badge ── */}
               <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'center' }}>
-                {Number(viewModal.montant_paye || 0) === 0 ? (
+                {Number(viewModal.montant_paye || 0) === 0 && (viewModal.mode_paiement === 'non_paye' || viewModal.mode_paiement === 'credit') ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.7)',
+                    borderRadius: '12px', padding: '10px 24px',
+                    color: '#ef4444', fontWeight: 800, fontSize: '15px', letterSpacing: '0.5px',
+                  }}>
+                    🚫 {fr ? 'NON PAYÉ — Crédit' : 'غير مدفوع — آجل'}
+                  </div>
+                ) : Number(viewModal.montant_paye || 0) === 0 ? (
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',
                     background: 'rgba(239,68,68,0.12)', border: '2px solid rgba(239,68,68,0.5)',
@@ -1435,18 +1446,29 @@ function VentesPageContent({ type }: Props) {
               {/* ── Non Payé / Crédit shortcuts ── */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
 
-                {/* Non Payé — appelle marquer_non_paye avec fallback si endpoint absent */}
+                {/* Non Payé — essaie marquer_non_paye, fallback PATCH mode_paiement='credit' */}
                 <button
                   onClick={async () => {
+                    let ok = false;
+                    // 1) Essaie le nouvel endpoint
                     try {
-                      const endpoint = paiementModal._source === 'commande'
+                      const ep = paiementModal._source === 'commande'
                         ? `/commandes/${paiementModal.id}/marquer_non_paye/`
                         : `/ventes/${paiementModal.id}/marquer_non_paye/`;
-                      await api.post(endpoint);
-                    } catch (_) {
-                      // endpoint absent sur le serveur → fallback silencieux
+                      await api.post(ep);
+                      ok = true;
+                    } catch (_) { /* endpoint absent */ }
+
+                    // 2) Fallback : PATCH mode_paiement='credit' (fonctionne sur l'ancien serveur)
+                    if (!ok) {
+                      try {
+                        const patchEp = paiementModal._source === 'commande'
+                          ? `/commandes/${paiementModal.id}/`
+                          : `/ventes/${paiementModal.id}/`;
+                        await api.patch(patchEp, { mode_paiement: 'credit' });
+                      } catch (_2) { /* silent */ }
                     }
-                    toast.success(fr ? '🚫 Vente conservée comme Non Payée' : '🚫 تم الاحتفاظ بالبيع كغير مدفوع');
+                    toast.success(fr ? '🚫 Marqué Non Payé ✓' : '🚫 تم التحديد كغير مدفوع ✓');
                     setPaiementModal(null);
                     load();
                   }}
