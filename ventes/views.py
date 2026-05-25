@@ -237,6 +237,14 @@ class VenteViewSet(viewsets.ModelViewSet):
         return Response(VenteSerializer(vente).data)
 
     @action(detail=True, methods=['post'])
+    def marquer_non_paye(self, request, pk=None):
+        """Mark vente as non-payé (mode_paiement = non_paye, no payment recorded)."""
+        vente = self.get_object()
+        vente.mode_paiement = 'non_paye'
+        vente.save(update_fields=['mode_paiement', 'updated_at'])
+        return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
     def payer(self, request, pk=None):
         from paiements.models import Paiement
         from django.utils import timezone

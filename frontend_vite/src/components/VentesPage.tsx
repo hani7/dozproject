@@ -1432,11 +1432,24 @@ function VentesPageContent({ type }: Props) {
                 </button>
               </div>
 
-              {/* ── Non Payé / Crédit shortcuts — toujours visibles ── */}
+              {/* ── Non Payé / Crédit shortcuts ── */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-                {/* Non Payé — fond rouge plein */}
+
+                {/* Non Payé — appelle marquer_non_paye */}
                 <button
-                  onClick={() => setPaiementModal(null)}
+                  onClick={async () => {
+                    try {
+                      const endpoint = paiementModal._source === 'commande'
+                        ? `/commandes/${paiementModal.id}/marquer_non_paye/`
+                        : `/ventes/${paiementModal.id}/marquer_non_paye/`;
+                      await api.post(endpoint);
+                      toast.success(fr ? '🚫 Marqué Non Payé ✓' : '🚫 تم التحديد كغير مدفوع ✓');
+                      setPaiementModal(null);
+                      load();
+                    } catch (e: any) {
+                      toast.error(e?.response?.data?.error || 'Erreur');
+                    }
+                  }}
                   style={{
                     padding: '12px', borderRadius: '10px', border: 'none',
                     background: '#ef4444', color: '#fff',
@@ -1450,25 +1463,24 @@ function VentesPageContent({ type }: Props) {
                   🚫 {fr ? 'Non Payé' : 'غير مدفوع'}
                 </button>
 
-                {/* Crédit — fond orange plein */}
+                {/* Crédit — efface le montant pour saisie partielle, puis enregistre en mode crédit */}
                 <button
-                  onClick={() => { if (!isPaid) { setPaiementMode('credit'); setTimeout(doPaiement, 0); } }}
-                  disabled={isPaid || Number(paiementAmount) <= 0}
+                  onClick={() => {
+                    setPaiementMode('credit');
+                    setPaiementAmount(''); // efface → l'utilisateur saisit le montant partiel
+                    toast(fr ? '⏳ Entrez le montant versé puis confirmez' : '⏳ أدخل المبلغ المدفوع ثم أكد', { duration: 3000 });
+                  }}
                   style={{
                     padding: '12px', borderRadius: '10px', border: 'none',
-                    background: isPaid || Number(paiementAmount) <= 0 ? '#d97706' : '#f59e0b',
-                    color: '#fff',
-                    fontWeight: 800, fontSize: '13px',
-                    cursor: isPaid || Number(paiementAmount) <= 0 ? 'not-allowed' : 'pointer',
+                    background: '#f59e0b', color: '#fff',
+                    fontWeight: 800, fontSize: '13px', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    fontFamily: 'inherit', transition: 'all 0.15s',
-                    boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
-                    opacity: isPaid || Number(paiementAmount) <= 0 ? 0.55 : 1,
+                    fontFamily: 'inherit', transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
                   }}
-                  onMouseEnter={e => { if (!isPaid && Number(paiementAmount) > 0) e.currentTarget.style.background = '#d97706'; }}
-                  onMouseLeave={e => { if (!isPaid && Number(paiementAmount) > 0) e.currentTarget.style.background = '#f59e0b'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#d97706'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#f59e0b'; }}
                 >
-                  ⏳ {fr ? 'Crédit' : 'آجل'} ({fr ? 'versement partiel' : 'دفع جزئي'})
+                  ⏳ {fr ? 'Crédit' : 'آجل'}
                 </button>
               </div>
 

@@ -260,6 +260,15 @@ class CommandeViewSet(viewsets.ModelViewSet):
         return Response(CommandeSerializer(commande).data)
 
     @action(detail=True, methods=['post'])
+    def marquer_non_paye(self, request, pk=None):
+        """Mark commande as non-payé (mode_paiement = non_paye)."""
+        from .models import Commande
+        commande = self.get_object()
+        commande.mode_paiement = 'non_paye'
+        commande.save(update_fields=['mode_paiement', 'updated_at'])
+        return Response(CommandeSerializer(commande).data)
+
+    @action(detail=True, methods=['post'])
     def payer(self, request, pk=None):
         from paiements.models import Paiement
         from decimal import Decimal

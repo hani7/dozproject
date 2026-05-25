@@ -23,6 +23,7 @@ class Vente(models.Model):
         ('virement', 'Virement'),
         ('cheque', 'Chèque'),
         ('credit', 'Crédit'),
+        ('non_paye', 'Non Payé'),
     ]
     reference      = models.CharField(max_length=50, unique=True)
     type_vente     = models.CharField(max_length=10, choices=TYPE_CHOICES, db_index=True)
