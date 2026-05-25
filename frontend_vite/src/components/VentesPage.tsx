@@ -1432,44 +1432,45 @@ function VentesPageContent({ type }: Props) {
                 </button>
               </div>
 
-              {/* ── Non Payé / Crédit shortcuts ── */}
-              {!isPaid && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-                  {/* Non Payé — client paie 0 DA aujourd'hui */}
-                  <button
-                    onClick={() => setPaiementModal(null)}
-                    style={{
-                      padding: '12px', borderRadius: '10px', border: '2px solid rgba(239,68,68,0.5)',
-                      background: 'rgba(239,68,68,0.08)', color: '#ef4444',
-                      fontWeight: 800, fontSize: '13px', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      fontFamily: 'inherit', transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
-                  >
-                    🚫 {fr ? 'Non Payé' : 'غير مدفوع'}
-                  </button>
+              {/* ── Non Payé / Crédit shortcuts — toujours visibles ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                {/* Non Payé — fond rouge plein */}
+                <button
+                  onClick={() => setPaiementModal(null)}
+                  style={{
+                    padding: '12px', borderRadius: '10px', border: 'none',
+                    background: '#ef4444', color: '#fff',
+                    fontWeight: 800, fontSize: '13px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    fontFamily: 'inherit', transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(239,68,68,0.35)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#dc2626'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ef4444'; }}
+                >
+                  🚫 {fr ? 'Non Payé' : 'غير مدفوع'}
+                </button>
 
-                  {/* Crédit — confirme le montant partiel en mode crédit */}
-                  <button
-                    onClick={() => { setPaiementMode('credit'); setTimeout(doPaiement, 0); }}
-                    disabled={Number(paiementAmount) <= 0}
-                    style={{
-                      padding: '12px', borderRadius: '10px', border: '2px solid rgba(245,158,11,0.5)',
-                      background: 'rgba(245,158,11,0.08)', color: '#d97706',
-                      fontWeight: 800, fontSize: '13px', cursor: Number(paiementAmount) <= 0 ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      fontFamily: 'inherit', transition: 'all 0.15s',
-                      opacity: Number(paiementAmount) <= 0 ? 0.5 : 1,
-                    }}
-                    onMouseEnter={e => { if (Number(paiementAmount) > 0) e.currentTarget.style.background = 'rgba(245,158,11,0.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.08)'; }}
-                  >
-                    ⏳ {fr ? 'Crédit' : 'آجل'} ({fr ? 'versement partiel' : 'دفع جزئي'})
-                  </button>
-                </div>
-              )}
+                {/* Crédit — fond orange plein */}
+                <button
+                  onClick={() => { if (!isPaid) { setPaiementMode('credit'); setTimeout(doPaiement, 0); } }}
+                  disabled={isPaid || Number(paiementAmount) <= 0}
+                  style={{
+                    padding: '12px', borderRadius: '10px', border: 'none',
+                    background: isPaid || Number(paiementAmount) <= 0 ? '#d97706' : '#f59e0b',
+                    color: '#fff',
+                    fontWeight: 800, fontSize: '13px',
+                    cursor: isPaid || Number(paiementAmount) <= 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    fontFamily: 'inherit', transition: 'all 0.15s',
+                    boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
+                    opacity: isPaid || Number(paiementAmount) <= 0 ? 0.55 : 1,
+                  }}
+                  onMouseEnter={e => { if (!isPaid && Number(paiementAmount) > 0) e.currentTarget.style.background = '#d97706'; }}
+                  onMouseLeave={e => { if (!isPaid && Number(paiementAmount) > 0) e.currentTarget.style.background = '#f59e0b'; }}
+                >
+                  ⏳ {fr ? 'Crédit' : 'آجل'} ({fr ? 'versement partiel' : 'دفع جزئي'})
+                </button>
+              </div>
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
