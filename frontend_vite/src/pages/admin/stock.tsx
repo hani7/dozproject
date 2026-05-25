@@ -7,6 +7,7 @@ import { Plus, Search, TrendingUp, TrendingDown, Download, FileText, Printer } f
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { amiriFont } from '@/lib/amiriFont';
 import type { StockMovement, Product } from '@/lib/types';
 import Pagination, { usePagination } from '@/components/Pagination';
 
@@ -99,6 +100,9 @@ export default function StockPage() {
   const exportPDF = () => {
     try {
       const doc = new jsPDF();
+      doc.addFileToVFS('Amiri-Regular.ttf', amiriFont);
+      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri');
       doc.text(lang === 'fr' ? "Journal des Mouvements de Stock" : "سجل حركات المخزون", 14, 15);
       const tableData = filteredMovements.map(m => [
         new Date(m.created_at).toLocaleDateString(),
@@ -114,7 +118,7 @@ export default function StockPage() {
         startY: 25,
         head: [['Date', 'Produit', 'Client', 'Type', 'Motif', 'Qte', 'Stock', 'Ref']],
         body: tableData,
-        styles: { fontSize: 8 },
+        styles: { font: 'Amiri', fontSize: 8 },
       });
       doc.save(`Mouvements_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (e: any) {
@@ -125,6 +129,9 @@ export default function StockPage() {
   const printMovement = (m: StockMovement) => {
     try {
       const doc = new jsPDF();
+      doc.addFileToVFS('Amiri-Regular.ttf', amiriFont);
+      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri');
       doc.setFontSize(18);
       doc.text(lang === 'fr' ? "Bon de Mouvement de Stock" : "سند حركة مخزون", 105, 20, { align: 'center' });
       
@@ -144,6 +151,7 @@ export default function StockPage() {
           m.stock_avant,
           m.stock_apres
         ]],
+        styles: { font: 'Amiri' },
       });
       
       doc.save(`Mouvement_${m.id}.pdf`);
