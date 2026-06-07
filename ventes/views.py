@@ -282,3 +282,37 @@ class VenteViewSet(viewsets.ModelViewSet):
             )
 
         return Response(VenteSerializer(vente).data)
+
+    @action(detail=True, methods=['post'])
+    def annuler(self, request, pk=None):
+        from stock.models import MouvementStock
+        from products.models import Produit
+        from django.db.models import F
+
+        with transaction.atomic():
+            vente = self.get_object()
+            if vente.statut == 'annulee':
+                return Response({'error': 'Déjà annulée.'}, status=400)
+
+            # Check if stock was deducted (statut was confirmée, en_livraison, etc.)
+            mouvements_sortie = MouvementStock.objects.filter(reference=vente.reference, type_mouvement='sortie', motif='vente')
+            if mouvements_sortie.exists():
+                for mvt in mouvements_sortie:
+                    Produit.objects.filter(pk=mvt.produit_id).update(stock_actuel=F('stock_actuel') + mvt.quantite)
+                    produit = Produit.objects.only('stock_actuel').get(pk=mvt.produit_id)
+                    MouvementStock.objects.create(
+                        produit_id=mvt.produit_id,
+                        type_mouvement='entree',
+                        motif='retour',
+                        quantite=mvt.quantite,
+                        stock_avant=produit.stock_actuel - mvt.quantite,
+                        stock_apres=produit.stock_actuel,
+                        reference=vente.reference,
+                        notes=f"Annulation vente — {vente.reference}",
+                        cree_par=request.user,
+                    )
+
+            vente.statut = 'annulee'
+            vente.save(update_fields=['statut', 'updated_at'])
+            
+        return Response(VenteSerializer(vente).data)

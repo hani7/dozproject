@@ -107,8 +107,8 @@ export default function CommandesLivePage() {
   const cancel = async (order: any) => {
     if (!window.confirm(`${fr ? 'Annuler cette demande?' : 'إلغاء هذا الطلب؟'}`)) return;
     try {
-      const endpoint = order.is_vente ? `/ventes/${order.id}/` : `/commandes/${order.id}/`;
-      await api.patch(endpoint, { statut: 'annulee' });
+      const endpoint = order.is_vente ? `/ventes/${order.id}/annuler/` : `/commandes/${order.id}/annuler/`;
+      await api.post(endpoint);
       toast.success(fr ? 'Annulé' : 'تم الإلغاء');
       load();
     } catch { }
