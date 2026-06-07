@@ -106,7 +106,7 @@ class CommandeCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Commande
-        fields = ['client', 'type_commande', 'lignes', 'notes', 'date_livraison_souhaitee', 'montant_paye']
+        fields = ['client', 'type_commande', 'lignes', 'notes', 'date_livraison_souhaitee', 'montant_paye', 'statut']
 
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes')

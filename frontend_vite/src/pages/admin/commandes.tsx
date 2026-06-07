@@ -111,7 +111,7 @@ export default function CommandesLivePage() {
       await api.post(endpoint);
       toast.success(fr ? 'Annulé' : 'تم الإلغاء');
       load();
-    } catch { }
+    } catch (e: any) { toast.error(e?.response?.data?.error || 'Erreur d\'annulation'); }
   };
 
   const openNonConforme = (order: any) => {
