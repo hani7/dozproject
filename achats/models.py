@@ -26,6 +26,7 @@ class BonAchat(models.Model):
     montant_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     montant_paye = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
+    facture_pdf = models.FileField(upload_to='factures_achats/', null=True, blank=True)
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
