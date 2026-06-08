@@ -3,7 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useLang } from '@/contexts/LangContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Search, MapPin, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, MapPin, X, Clock } from 'lucide-react';
 import type { Client } from '@/lib/types';
 import Pagination, { usePagination } from '@/components/Pagination';
 
@@ -120,6 +120,7 @@ export default function ClientsPage() {
               <th>{fr ? 'Type' : 'النوع'}</th>
               <th>RC / NIF</th>
               <th>{fr ? 'Téléphone' : 'الهاتف'}</th>
+              <th>{fr ? 'Date d\'ajout' : 'تاريخ الإضافة'}</th>
               <th>{fr ? 'Solde' : 'الرصيد'}</th>
               <th>{fr ? 'Actions' : 'الإجراءات'}</th>
             </tr>
@@ -139,6 +140,19 @@ export default function ClientsPage() {
                   {!(c as any).rc && !(c as any).nif && '-'}
                 </td>
                 <td style={{ fontSize: '13px' }}>{c.phone || '-'}</td>
+                <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {(c as any).created_at ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span>
+                        {new Date((c as any).created_at).toLocaleString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  ) : '-'}
+                </td>
                 <td style={{ fontWeight: 600, color: c.solde < 0 ? '#ef4444' : c.solde > 0 ? '#10b981' : 'var(--text-muted)' }}>
                   {c.solde?.toLocaleString()} DA
                 </td>
@@ -161,8 +175,13 @@ export default function ClientsPage() {
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <div className="modal-title" style={{ margin: 0 }}>
-                {editing ? (fr ? 'Modifier client' : 'تعديل العميل') : (fr ? 'Nouveau client' : 'عميل جديد')}
+              <div className="modal-title" style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                <span>{editing ? (fr ? 'Modifier client' : 'تعديل العميل') : (fr ? 'Nouveau client' : 'عميل جديد')}</span>
+                {editing && (editing as any).created_at && (
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    ({fr ? 'Créé le :' : 'أنشئ في:'} {new Date((editing as any).created_at).toLocaleString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => setModal(false)}

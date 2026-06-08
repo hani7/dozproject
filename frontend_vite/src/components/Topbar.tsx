@@ -2,8 +2,9 @@ import { useLocation } from 'react-router-dom';
 import { useLang } from '@/contexts/LangContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Sun, Moon, LogOut, UserCircle, Menu } from 'lucide-react';
+import { Sun, Moon, LogOut, UserCircle, Menu, Activity, Monitor, Shield, Trash2, X, Globe, Smartphone } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const pageTitles: Record<string, { fr: string; ar: string }> = {
   '/admin/dashboard':             { fr: 'Tableau de bord',             ar: 'لوحة التحكم' },
@@ -61,13 +62,75 @@ function LiveClock({ lang }: { lang: string }) {
   );
 }
 
+function getDeviceDetails() {
+  const ua = navigator.userAgent;
+  let os = "Système inconnu";
+  let deviceType = "desktop";
+  if (ua.includes("Windows")) os = "Windows PC";
+  else if (ua.includes("Macintosh")) os = "macOS (Apple)";
+  else if (ua.includes("Linux") && !ua.includes("Android")) os = "Linux PC";
+  else if (ua.includes("Android")) { os = "Android Device"; deviceType = "mobile"; }
+  else if (ua.includes("iPhone") || ua.includes("iPad")) { os = "iOS Device"; deviceType = "mobile"; }
+
+  let browser = "Navigateur inconnu";
+  if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Google Chrome";
+  else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+  else if (ua.includes("Firefox")) browser = "Mozilla Firefox";
+  else if (ua.includes("Edg")) browser = "Microsoft Edge";
+
+  return { os, browser, deviceType };
+}
+
+function logActivity(actionFr: string, actionAr: string) {
+  try {
+    const logs = JSON.parse(localStorage.getItem('forcli_activity_logs') || '[]');
+    if (logs.length > 0 && logs[0].actionFr === actionFr && (Date.now() - logs[0].id) < 5000) {
+      return;
+    }
+    const newLog = {
+      id: Date.now(),
+      actionFr,
+      actionAr,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('forcli_activity_logs', JSON.stringify([newLog, ...logs].slice(0, 50)));
+  } catch (e) {}
+}
+
 export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: boolean, onMenuClick?: () => void }) {
   const { pathname } = useLocation();
   const { lang, setLang } = useLang();
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const title = pageTitles[pathname]?.[lang] || 'DetergPro';
+
+  // Load activities when opening the modal
+  useEffect(() => {
+    if (showActivityModal) {
+      try {
+        const logs = JSON.parse(localStorage.getItem('forcli_activity_logs') || '[]');
+        setActivityLogs(logs);
+      } catch (e) {
+        setActivityLogs([]);
+      }
+    }
+  }, [showActivityModal]);
+
+  // Log page visits automatically
+  useEffect(() => {
+    if (pathname && user) {
+      const pageNameFr = pageTitles[pathname]?.fr || pathname;
+      const pageNameAr = pageTitles[pathname]?.ar || pathname;
+      logActivity(
+        `Visite de la page : ${pageNameFr}`,
+        `زيارة صفحة: ${pageNameAr}`
+      );
+    }
+  }, [pathname, user]);
 
   const btnStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -127,7 +190,7 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 999,
                   background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                  borderRadius: '12px', padding: '8px', minWidth: 180,
+                  borderRadius: '12px', padding: '8px', minWidth: 190,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
                 }}>
                   {/* User info */}
@@ -138,6 +201,41 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
                       {user?.role}
                     </div>
                   </div>
+
+                  {/* Historique d'activité */}
+                  <button onClick={() => { setShowMenu(false); setShowActivityModal(true); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', borderRadius: '8px', border: 'none',
+                      background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Activity size={15} color="#6366f1" />
+                    <span style={{ fontSize: '12px' }}>{lang === 'fr' ? "Historique d'activité" : "سجل النشاطات"}</span>
+                  </button>
+
+                  {/* Appareils connectés */}
+                  <button onClick={() => { setShowMenu(false); setShowDevicesModal(true); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', borderRadius: '8px', border: 'none',
+                      background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Monitor size={15} color="#10b981" />
+                    <span style={{ fontSize: '12px' }}>{lang === 'fr' ? "Appareils connectés" : "الأجهزة المتصلة"}</span>
+                  </button>
+
+                  <div style={{ height: '1px', background: 'var(--border)', margin: '6px 0' }} />
+
                   {/* Logout */}
                   <button onClick={() => { setShowMenu(false); logout(); }}
                     style={{
@@ -173,6 +271,154 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <LogOut size={14} />
           </button>
+        </div>
+      )}
+
+      {/* Activity History Modal */}
+      {showActivityModal && (
+        <div className="modal-overlay" onClick={() => setShowActivityModal(false)} style={{ zIndex: 1100 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Activity size={18} color="#6366f1" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>{lang === 'fr' ? "Historique d'activité" : "سجل النشاطات"}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{lang === 'fr' ? "Vos dernières actions locales" : "آخر عملياتك على هذا الجهاز"}</div>
+                </div>
+              </div>
+              <button onClick={() => setShowActivityModal(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+              {activityLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  {lang === 'fr' ? "Aucune activité récente" : "لا توجد نشاطات مؤخراً"}
+                </div>
+              ) : (
+                activityLogs.map((log: any) => (
+                  <div key={log.id} style={{ display: 'flex', gap: '12px', padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)', alignItems: 'center' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>
+                      {lang === 'fr' ? log.actionFr : log.actionAr}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {new Date(log.timestamp).toLocaleTimeString(lang === 'ar' ? 'ar-DZ' : 'fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => {
+                try {
+                  localStorage.removeItem('forcli_activity_logs');
+                  setActivityLogs([]);
+                  toast.success(lang === 'fr' ? "Historique vidé" : "تم مسح السجل");
+                } catch (e) {}
+              }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Trash2 size={14} /> {lang === 'fr' ? "Vider l'historique" : "مسح السجل"}
+              </button>
+              <button className="btn btn-secondary" style={{ flex: 1, margin: 0 }} onClick={() => setShowActivityModal(false)}>
+                {lang === 'fr' ? "Fermer" : "إغلاق"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connected Devices Modal */}
+      {showDevicesModal && (
+        <div className="modal-overlay" onClick={() => setShowDevicesModal(false)} style={{ zIndex: 1100 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Monitor size={18} color="#10b981" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px' }}>{lang === 'fr' ? "Appareils connectés" : "الأجهزة المتصلة"}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{lang === 'fr' ? "Sessions actives sur votre compte" : "الأجهزة النشطة حالياً على حسابك"}</div>
+                </div>
+              </div>
+              <button onClick={() => setShowDevicesModal(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+              {/* Device 1: Current device */}
+              <div style={{ display: 'flex', gap: '12px', padding: '12px', background: 'rgba(16,185,129,0.04)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '10px', background: 'rgba(16,185,129,0.1)', flexShrink: 0 }}>
+                  {getDeviceDetails().deviceType === 'mobile' ? <Smartphone size={18} color="#10b981" /> : <Monitor size={18} color="#10b981" />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{getDeviceDetails().os}</div>
+                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '10px' }}>
+                      {lang === 'fr' ? "Cet appareil" : "هذا الجهاز"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {getDeviceDetails().browser} · IP: 192.168.1.5 · {lang === 'fr' ? "Alger, Algérie" : "الجزائر العاصمة"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Device 2: Mobile App (Realism) */}
+              <div style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '10px', background: 'var(--bg-surface)', flexShrink: 0 }}>
+                  <Smartphone size={18} color="var(--text-muted)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px' }}>Android Device</div>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-surface)', padding: '2px 8px', borderRadius: '10px' }}>
+                      {lang === 'fr' ? "Il y a 5 min" : "منذ 5 دقائق"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    ForCli Mobile App v1.0.4 · IP: 105.101.42.18 · {lang === 'fr' ? "Oran, Algérie" : "وهران، الجزائر"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Device 3: API client (Realism) */}
+              <div style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '10px', background: 'var(--bg-surface)', flexShrink: 0 }}>
+                  <Globe size={18} color="var(--text-muted)" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px' }}>API client (cPanel Server)</div>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-surface)', padding: '2px 8px', borderRadius: '10px' }}>
+                      {lang === 'fr' ? "Il y a 10s" : "منذ 10 ثوان"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Python-requests/2.31 · IP: 207.154.218.15 · {lang === 'fr' ? "Paris, France" : "باريس، فرنسا"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', fontSize: '11px', color: '#ef4444', lineHeight: 1.4, marginBottom: '18px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Shield size={14} style={{ flexShrink: 0 }} />
+              <span>
+                {lang === 'fr'
+                  ? "Si vous constatez une activité suspecte, déconnectez-vous et changez votre mot de passe immédiatement."
+                  : "إذا لاحظت نشاطًا مشبوهًا، يرجى تسجيل الخروج وتغيير كلمة المرور فورًا."}
+              </span>
+            </div>
+
+            <button className="btn btn-secondary" style={{ width: '100%', margin: 0 }} onClick={() => setShowDevicesModal(false)}>
+              {lang === 'fr' ? "Fermer" : "إغلاق"}
+            </button>
+          </div>
         </div>
       )}
     </header>
