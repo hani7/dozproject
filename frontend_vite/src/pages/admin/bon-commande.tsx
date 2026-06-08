@@ -337,11 +337,6 @@ export default function BonCommandePage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filtered.map(a => {
             const totalPalettes = (a.lignes || []).reduce((s: number, l: any) => s + Number(l.quantite), 0);
-            const totalCtns = (a.lignes || []).reduce((s: number, l: any) => {
-              const pInfo = products.find((p: any) => p.id === l.produit || p.nom === l.produit_nom);
-              const cpp = pInfo ? Number(pInfo.cartons_par_palette) : 40;
-              return s + (Number(l.quantite) * cpp);
-            }, 0);
             const isOpen = expanded === a.id;
             return (
               <div key={a.id} className="card" style={{ overflow: 'hidden' }}>
@@ -361,9 +356,6 @@ export default function BonCommandePage() {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <span style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 20, padding: '3px 10px', fontSize: '12px', fontWeight: 700 }}>
                       🏗 {totalPalettes} pal
-                    </span>
-                    <span style={{ background: 'rgba(0,96,69,0.1)', color: 'var(--brand-primary)', border: '1px solid rgba(0,96,69,0.2)', borderRadius: 20, padding: '3px 10px', fontSize: '12px', fontWeight: 700 }}>
-                      📦 {totalCtns.toLocaleString()} ctn
                     </span>
                     <span className={`badge ${a.statut === 'recu' ? 'badge-success' : a.statut === 'confirme' ? 'badge-info' : a.statut === 'annule' ? 'badge-danger' : 'badge-gray'}`} style={{ fontSize: '11px' }}>
                       {a.statut}
@@ -387,20 +379,15 @@ export default function BonCommandePage() {
                           <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                             <Package size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {fr ? 'Produit' : 'المنتج'}
                           </th>
-                          <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{fr ? 'Caisses (ctn)' : 'كراتين'}</th>
-                          <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{fr ? 'Palettes' : 'باليت'}</th>
+                          <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{fr ? 'Quantité (pal)' : 'الكمية (باليت)'}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {(a.lignes || []).map((l: any, i: number) => {
-                          const pInfo = products.find((p: any) => p.id === l.produit || p.nom === l.produit_nom);
-                          const cpp = pInfo ? Number(pInfo.cartons_par_palette) : 40;
                           const qPal = Number(l.quantite);
-                          const qCtn = qPal * cpp;
                           return (
                             <tr key={l.id || i} style={{ borderBottom: '1px solid var(--border)' }}>
                               <td style={{ padding: '8px', fontWeight: 600 }}>{l.produit_nom}</td>
-                              <td style={{ textAlign: 'center', padding: '8px', fontWeight: 700, color: 'var(--brand-primary)' }}>{qCtn.toLocaleString('fr-DZ')} ctn</td>
                               <td style={{ textAlign: 'center', padding: '8px', fontWeight: 700, color: '#6366f1' }}>
                                 {qPal} pal
                               </td>
@@ -409,9 +396,8 @@ export default function BonCommandePage() {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr style={{ background: 'rgba(0,96,69,0.06)', borderTop: '2px solid var(--border)' }}>
+                        <tr style={{ background: 'rgba(99,102,241,0.04)', borderTop: '2px solid var(--border)' }}>
                           <td style={{ padding: '8px', fontWeight: 800 }}>{fr ? 'TOTAL' : 'المجموع'}</td>
-                          <td style={{ textAlign: 'center', padding: '8px', fontWeight: 800, color: 'var(--brand-primary)' }}>{totalCtns.toLocaleString('fr-DZ')} ctn</td>
                           <td style={{ textAlign: 'center', padding: '8px', fontWeight: 800, color: '#6366f1' }}>{totalPalettes} pal</td>
                         </tr>
                       </tfoot>
