@@ -14,8 +14,8 @@ from clients.models import Client
 from fournisseurs.models import Fournisseur
 
 
-# Cache key — v5: fixed import crash
-_DASH_CACHE_KEY = 'dashboard_stats_v5'
+# Cache key — v6: fixed stock valeur calculation (carton × prix_achat/cpp)
+_DASH_CACHE_KEY = 'dashboard_stats_v6'
 _DASH_CACHE_TTL = 60  # seconds
 
 
@@ -57,15 +57,21 @@ def dashboard_stats(request):
     month_start = today.replace(day=1)
 
     # ── Products ───────────────────────────────────────────────
-    produit_agg = Produit.objects.filter(actif=True).aggregate(
-        total=Count('id'),
-        valeur=Sum(
-            ExpressionWrapper(
-                F('stock_actuel') * F('prix_achat'),
-                output_field=DecimalField(),
-            )
-        ),
+    # stock_actuel is in CARTONS; prix_achat is per PALETTE.
+    # Correct formula: valeur = sum(stock_actuel × (prix_achat / cartons_par_palette))
+    produits_qs = Produit.objects.filter(actif=True).only(
+        'stock_actuel', 'prix_achat', 'cartons_par_palette'
     )
+    total_produits = produits_qs.count()
+    valeur_total = Decimal('0')
+    for p in produits_qs:
+        cpp = Decimal(str(p.cartons_par_palette or 1))
+        cout_carton = (p.prix_achat or Decimal('0')) / cpp
+        valeur_total += (p.stock_actuel or Decimal('0')) * cout_carton
+    produit_agg = {
+        'total': total_produits,
+        'valeur': valeur_total,
+    }
     produits_stock_faible = Produit.objects.filter(
         actif=True, stock_actuel__lte=F('stock_minimum')
     ).count()
