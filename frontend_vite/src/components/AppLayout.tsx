@@ -22,7 +22,7 @@ export default function AppLayout({ children, allowedRoles }: Props) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { t } = useLang();
+  const { t, isRTL } = useLang();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -155,7 +155,11 @@ export default function AppLayout({ children, allowedRoles }: Props) {
       )}
       <div
         className={`main-content ${isMobileRole ? 'mobile-main' : ''}`}
-        style={{ marginLeft: isMobileRole ? undefined : (sidebarCollapsed ? 72 : 260), transition: 'margin-left 0.3s ease' }}
+        style={isMobileRole ? {} : {
+          marginLeft:  isRTL ? 0   : (sidebarCollapsed ? 72 : 260),
+          marginRight: isRTL ? (sidebarCollapsed ? 72 : 260) : 0,
+          transition: 'margin 0.3s ease',
+        }}
       >
         <Topbar isMobileRole={isMobileRole} onMenuClick={() => setSidebarCollapsed(c => !c)} />
         <main className={`page-content ${isMobileRole ? 'mobile-page-content' : ''}`}>
