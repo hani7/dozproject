@@ -177,7 +177,7 @@ export default function Topbar({ isMobileRole, onMenuClick }: { isMobileRole?: b
               }}
             >
               <UserCircle size={18} color={showMenu ? '#6366f1' : 'var(--text-secondary)'} />
-              <span style={{ fontSize: '12px', fontWeight: 700, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: showMenu ? '#6366f1' : 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: showMenu ? '#6366f1' : 'var(--text-secondary)', direction: 'ltr', textAlign: lang === 'ar' ? 'right' : 'left', display: 'inline-block', verticalAlign: 'middle' }}>
                 {user?.full_name || user?.username || 'Admin'}
               </span>
             </button>
