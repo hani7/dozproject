@@ -14,8 +14,8 @@ from clients.models import Client
 from fournisseurs.models import Fournisseur
 
 
-# Cache key — v6: fixed stock valeur calculation (carton × prix_achat/cpp)
-_DASH_CACHE_KEY = 'dashboard_stats_v6'
+# Cache key — v7: included commandes and paye amounts
+_DASH_CACHE_KEY = 'dashboard_stats_v7'
 _DASH_CACHE_TTL = 60  # seconds
 
 
