@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from django.utils import timezone
@@ -39,6 +40,20 @@ def deduct_stock_if_needed_commande(commande, user):
             reference=commande.reference,
             cree_par=user,
         )
+class CommandeFilter(django_filters.FilterSet):
+    date__gte = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
+    date__lte = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
+
+    class Meta:
+        model = Commande
+        fields = {
+            'statut': ['exact'],
+            'type_commande': ['exact'],
+            'prevendeur': ['exact'],
+            'livreur': ['exact'],
+            'created_at': ['gte', 'lte'],
+        }
+
 class CommandeViewSet(viewsets.ModelViewSet):
     # Use the fully-optimized base queryset everywhere (including custom actions)
     queryset = Commande.objects.select_related(
@@ -46,13 +61,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
     ).prefetch_related('lignes__produit').all()
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = {
-        'statut': ['exact'],
-        'type_commande': ['exact'],
-        'prevendeur': ['exact'],
-        'livreur': ['exact'],
-        'created_at': ['gte', 'lte'],
-    }
+    filterset_class = CommandeFilter
     search_fields = ['reference', 'client__nom']
     ordering_fields = ['created_at', 'montant_total']
 

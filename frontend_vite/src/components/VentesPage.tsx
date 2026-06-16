@@ -66,20 +66,17 @@ function VentesPageContent({ type }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const dateParamsVente: any = {};
-      const dateParamsCmd: any = {};
+      const dateParams: any = {};
       if (dateFrom) {
-        dateParamsVente['date__gte'] = dateFrom;
-        dateParamsCmd['created_at__gte'] = `${dateFrom}T00:00:00`;
+        dateParams['date__gte'] = dateFrom;
       }
       if (dateTo) {
-        dateParamsVente['date__lte'] = dateTo;
-        dateParamsCmd['created_at__lte'] = `${dateTo}T23:59:59`;
+        dateParams['date__lte'] = dateTo;
       }
 
       const [resVente, resCmd] = await Promise.all([
-        api.get('/ventes/', { params: { type_vente: type, ...dateParamsVente, page_size: 50 } }),
-        api.get('/commandes/', { params: { type_commande: type, ...dateParamsCmd, page_size: 50 } }),
+        api.get('/ventes/', { params: { type_vente: type, ...dateParams, page_size: 500 } }),
+        api.get('/commandes/', { params: { type_commande: type, ...dateParams, page_size: 500 } }),
       ]);
 
       const vts = (resVente.data.results || resVente.data).map((v: any) => ({
