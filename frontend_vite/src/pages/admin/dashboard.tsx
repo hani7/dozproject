@@ -44,9 +44,9 @@ export default function DashboardPage() {
 
   const kpis = [
     {
-      label: lang === 'fr' ? 'Ventes ce mois' : 'مبيعات الشهر',
+      label: lang === 'fr' ? 'Chiffre d\'Affaires (CA)' : 'إجمالي الإيرادات (المبيعات)',
       value: fmt(stats?.ventes.ce_mois_total ?? 0),
-      sub: `${stats?.ventes.ce_mois_count ?? 0} ${lang === 'fr' ? 'factures' : 'فاتورة'}`,
+      sub: `${fmt(stats?.ventes.ce_mois_paye ?? 0)} ${lang === 'fr' ? 'encaissés' : 'تم تحصيلها'}`,
       icon: '💰', color: '#6366f1',
     },
     {

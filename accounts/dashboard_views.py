@@ -24,16 +24,28 @@ def _calc_benefice(date_from, date_to=None):
     Returns (ca, cout, benefice) as float.
     prix_achat is per palette; coût/carton = prix_achat / cartons_par_palette.
     """
-    qs = LigneVente.objects.filter(
+    qs_v = LigneVente.objects.filter(
         vente__created_at__date__gte=date_from
-    ).select_related('produit')
+    ).exclude(vente__statut__in=['annulee', 'brouillon']).select_related('produit')
+    
+    qs_c = LigneCommande.objects.filter(
+        commande__created_at__date__gte=date_from
+    ).exclude(commande__statut='annulee').select_related('produit')
+
     if date_to:
-        qs = qs.filter(vente__created_at__date__lte=date_to)
+        qs_v = qs_v.filter(vente__created_at__date__lte=date_to)
+        qs_c = qs_c.filter(commande__created_at__date__lte=date_to)
 
     ca_total   = Decimal('0')
     cout_total = Decimal('0')
     try:
-        for ligne in qs:
+        for ligne in qs_v:
+            ca_total += ligne.quantite * ligne.prix_unitaire
+            cpp = Decimal(str(ligne.produit.cartons_par_palette or 1))
+            cout_carton = (ligne.produit.prix_achat or Decimal('0')) / cpp
+            cout_total  += ligne.quantite * cout_carton
+            
+        for ligne in qs_c:
             ca_total += ligne.quantite * ligne.prix_unitaire
             cpp = Decimal(str(ligne.produit.cartons_par_palette or 1))
             cout_carton = (ligne.produit.prix_achat or Decimal('0')) / cpp
@@ -57,8 +69,6 @@ def dashboard_stats(request):
     month_start = today.replace(day=1)
 
     # ── Products ───────────────────────────────────────────────
-    # stock_actuel is in CARTONS; prix_achat is per PALETTE.
-    # Correct formula: valeur = sum(stock_actuel × (prix_achat / cartons_par_palette))
     produits_qs = Produit.objects.filter(actif=True).only(
         'stock_actuel', 'prix_achat', 'cartons_par_palette'
     )
@@ -79,12 +89,29 @@ def dashboard_stats(request):
     # ── Sales (month) ──────────────────────────────────────────
     ventes_mois = Vente.objects.filter(
         created_at__date__gte=month_start
-    ).aggregate(
+    ).exclude(statut__in=['annulee', 'brouillon']).aggregate(
         count=Count('id'),
         total=Sum('montant_total'),
+        paye=Sum('montant_paye'),
         detail_total=Sum('montant_total', filter=Q(type_vente='detail')),
         gros_total=Sum('montant_total', filter=Q(type_vente='gros')),
     )
+    
+    cmds_mois = Commande.objects.filter(
+        created_at__date__gte=month_start
+    ).exclude(statut='annulee').aggregate(
+        count=Count('id'),
+        total=Sum('montant_total'),
+        paye=Sum('montant_paye'),
+        detail_total=Sum('montant_total', filter=Q(type_commande='detail')),
+        gros_total=Sum('montant_total', filter=Q(type_commande='gros')),
+    )
+
+    t_count = (ventes_mois['count'] or 0) + (cmds_mois['count'] or 0)
+    t_total = (ventes_mois['total'] or Decimal('0')) + (cmds_mois['total'] or Decimal('0'))
+    t_paye = (ventes_mois['paye'] or Decimal('0')) + (cmds_mois['paye'] or Decimal('0'))
+    t_detail = (ventes_mois['detail_total'] or Decimal('0')) + (cmds_mois['detail_total'] or Decimal('0'))
+    t_gros = (ventes_mois['gros_total'] or Decimal('0')) + (cmds_mois['gros_total'] or Decimal('0'))
 
     # ── Bénéfice du mois ───────────────────────────────────────
     _, _, benefice_mois = _calc_benefice(month_start)
@@ -105,10 +132,22 @@ def dashboard_stats(request):
 
     # ── 7-day sales chart ──────────────────────────────────────
     seven_days_ago = today - timedelta(days=6)
-    daily_sales_qs = Vente.objects.filter(
+    
+    daily_v = Vente.objects.filter(
         created_at__date__gte=seven_days_ago
-    ).values('created_at__date').annotate(total=Sum('montant_total'))
-    daily_map = {row['created_at__date']: float(row['total'] or 0) for row in daily_sales_qs}
+    ).exclude(statut__in=['annulee', 'brouillon']).values('created_at__date').annotate(total=Sum('montant_total'))
+    
+    daily_c = Commande.objects.filter(
+        created_at__date__gte=seven_days_ago
+    ).exclude(statut='annulee').values('created_at__date').annotate(total=Sum('montant_total'))
+    
+    daily_map = {}
+    for row in daily_v:
+        d = row['created_at__date']
+        daily_map[d] = daily_map.get(d, 0) + float(row['total'] or 0)
+    for row in daily_c:
+        d = row['created_at__date']
+        daily_map[d] = daily_map.get(d, 0) + float(row['total'] or 0)
 
     sales_chart = [
         {
@@ -125,10 +164,11 @@ def dashboard_stats(request):
             'valeur_stock': float(produit_agg['valeur'] or 0),
         },
         'ventes': {
-            'ce_mois_count': ventes_mois['count'] or 0,
-            'ce_mois_total': float(ventes_mois['total'] or 0),
-            'detail_total':  float(ventes_mois['detail_total'] or 0),
-            'gros_total':    float(ventes_mois['gros_total'] or 0),
+            'ce_mois_count': t_count,
+            'ce_mois_total': float(t_total),
+            'ce_mois_paye':  float(t_paye),
+            'detail_total':  float(t_detail),
+            'gros_total':    float(t_gros),
         },
         'commandes': {
             'en_attente':   (cmd_agg['en_attente'] or 0) + (vente_agg['en_attente'] or 0),
@@ -150,10 +190,6 @@ def dashboard_stats(request):
 def benefices_detail(request):
     """
     Returns profit breakdown per period.
-    Query params:
-      date_from (YYYY-MM-DD)  default: first day of current month
-      date_to   (YYYY-MM-DD)  default: today
-      group_by  day|week|month  default: day
     """
     today = timezone.now().date()
 
@@ -167,37 +203,44 @@ def benefices_detail(request):
     except ValueError:
         date_to = today
 
-    group_by = request.GET.get('group_by', 'day')  # day | week | month
+    group_by = request.GET.get('group_by', 'day')
 
-    # Fetch all relevant ligne ventes in range
-    lignes = LigneVente.objects.filter(
+    lignes_v = LigneVente.objects.filter(
         vente__created_at__date__gte=date_from,
         vente__created_at__date__lte=date_to,
-    ).select_related('produit', 'vente').order_by('vente__created_at')
+    ).exclude(vente__statut__in=['annulee', 'brouillon']).select_related('produit', 'vente').order_by('vente__created_at')
+    
+    lignes_c = LigneCommande.objects.filter(
+        commande__created_at__date__gte=date_from,
+        commande__created_at__date__lte=date_to,
+    ).exclude(commande__statut='annulee').select_related('produit', 'commande').order_by('commande__created_at')
 
-    # Group by period
     from collections import defaultdict
     buckets = defaultdict(lambda: {'ca': Decimal('0'), 'cout': Decimal('0')})
 
-    for ligne in lignes:
-        d = ligne.vente.created_at.date()
-        if group_by == 'month':
-            key = d.strftime('%Y-%m')
-            label = d.strftime('%b %Y')
-        elif group_by == 'week':
-            # ISO week start (Monday)
-            week_start = d - timedelta(days=d.weekday())
-            key = str(week_start)
-            label = f"Sem. {d.isocalendar()[1]} ({week_start.strftime('%d/%m')})"
-        else:
-            key = str(d)
-            label = d.strftime('%d/%m/%Y')
+    def process_lignes(lignes, is_vente=True):
+        for ligne in lignes:
+            parent = ligne.vente if is_vente else ligne.commande
+            d = parent.created_at.date()
+            if group_by == 'month':
+                key = d.strftime('%Y-%m')
+                label = d.strftime('%b %Y')
+            elif group_by == 'week':
+                week_start = d - timedelta(days=d.weekday())
+                key = str(week_start)
+                label = f"Sem. {d.isocalendar()[1]} ({week_start.strftime('%d/%m')})"
+            else:
+                key = str(d)
+                label = d.strftime('%d/%m/%Y')
 
-        cpp = Decimal(str(ligne.produit.cartons_par_palette or 1))
-        cout_carton = (ligne.produit.prix_achat or Decimal('0')) / cpp
-        buckets[key]['ca']   += ligne.quantite * ligne.prix_unitaire
-        buckets[key]['cout'] += ligne.quantite * cout_carton
-        buckets[key].setdefault('label', label)
+            cpp = Decimal(str(ligne.produit.cartons_par_palette or 1))
+            cout_carton = (ligne.produit.prix_achat or Decimal('0')) / cpp
+            buckets[key]['ca']   += ligne.quantite * ligne.prix_unitaire
+            buckets[key]['cout'] += ligne.quantite * cout_carton
+            buckets[key].setdefault('label', label)
+
+    process_lignes(lignes_v, True)
+    process_lignes(lignes_c, False)
 
     result = []
     for key in sorted(buckets.keys()):
@@ -212,7 +255,6 @@ def benefices_detail(request):
             'benefice': round(ca - cout, 2),
         })
 
-    # Totals
     total_ca   = sum(r['ca'] for r in result)
     total_cout = sum(r['cout'] for r in result)
 

@@ -117,7 +117,7 @@ export interface StockMovement {
 
 export interface DashboardStats {
   produits: { total: number; stock_faible: number; valeur_stock: number };
-  ventes: { ce_mois_count: number; ce_mois_total: number; detail_total: number; gros_total: number };
+  ventes: { ce_mois_count: number; ce_mois_total: number; ce_mois_paye: number; detail_total: number; gros_total: number };
   commandes: { en_attente: number; en_livraison: number };
   clients: number;
   fournisseurs: number;
