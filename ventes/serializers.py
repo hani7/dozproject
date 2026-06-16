@@ -38,8 +38,6 @@ class VenteListSerializer(serializers.ModelSerializer):
     client_adresse = serializers.CharField(source='client.adresse', read_only=True)
     cree_par_nom  = serializers.CharField(source='cree_par.get_full_name', read_only=True)
     reste_a_payer = serializers.ReadOnlyField()
-    has_retour    = serializers.BooleanField(read_only=True, default=False)
-    has_non_conforme = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = Vente
@@ -48,7 +46,7 @@ class VenteListSerializer(serializers.ModelSerializer):
             'client', 'client_nom', 'client_phone', 'client_adresse',
             'cree_par_nom', 'livreur',
             'mode_paiement', 'montant_total', 'montant_paye', 'reste_a_payer', 'remise',
-            'notes', 'lignes', 'has_retour', 'has_non_conforme',
+            'notes', 'lignes',
         ]
 
 

@@ -27,6 +27,12 @@ class LigneCommandeSerializer(serializers.ModelSerializer):
             return obj.produit.image.url
         return None
 
+class LigneCommandeInputSerializer(serializers.ModelSerializer):
+    """Used only for writing — excludes commande (set automatically)"""
+    class Meta:
+        model = LigneCommande
+        fields = ['produit', 'quantite', 'prix_unitaire']
+
 
 # ── Lightweight list serializer (NO N+1 queries) ─────────────────
 class CommandeListSerializer(serializers.ModelSerializer):
@@ -38,8 +44,6 @@ class CommandeListSerializer(serializers.ModelSerializer):
     prevendeur_nom = serializers.SerializerMethodField()
     livreur_nom    = serializers.SerializerMethodField()
     reste_a_payer  = serializers.ReadOnlyField()
-    has_retour     = serializers.BooleanField(read_only=True, default=False)
-    has_non_conforme = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = Commande
@@ -48,7 +52,7 @@ class CommandeListSerializer(serializers.ModelSerializer):
             'client', 'client_nom', 'client_phone', 'client_adresse',
             'prevendeur', 'prevendeur_nom', 'livreur', 'livreur_nom',
             'montant_total', 'montant_paye', 'reste_a_payer',
-            'notes', 'lignes', 'has_retour', 'has_non_conforme',
+            'notes', 'lignes',
         ]
 
     def get_prevendeur_nom(self, obj):
