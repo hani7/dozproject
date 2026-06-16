@@ -16,6 +16,11 @@ class Produit(models.Model):
     cartons_par_palette = models.PositiveIntegerField(
         default=1, help_text="Nombre de cartons dans une palette"
     )
+    # Conversion: 1 carton = N bouteilles (unités)
+    bouteilles_par_carton = models.PositiveIntegerField(
+        default=1, help_text="Nombre de bouteilles (unités) dans un carton"
+    )
+    
     # Purchase price: per PALETTE
     prix_achat = models.DecimalField(
         max_digits=10, decimal_places=2, default=0,
@@ -60,6 +65,20 @@ class Produit(models.Model):
     @property
     def stock_faible(self):
         return self.stock_actuel <= self.stock_minimum
+
+    @property
+    def prix_detail_bouteille(self):
+        """Prix de vente détail par bouteille (unité individuelle)"""
+        if self.bouteilles_par_carton and self.bouteilles_par_carton > 0:
+            return round(float(self.prix_detail) / self.bouteilles_par_carton, 2)
+        return float(self.prix_detail)
+
+    @property
+    def prix_gros_bouteille(self):
+        """Prix de vente gros par bouteille (unité individuelle)"""
+        if self.bouteilles_par_carton and self.bouteilles_par_carton > 0:
+            return round(float(self.prix_gros) / self.bouteilles_par_carton, 2)
+        return float(self.prix_gros)
 
     @property
     def stock_palettes(self):
