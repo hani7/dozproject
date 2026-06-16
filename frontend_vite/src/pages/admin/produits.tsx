@@ -449,7 +449,6 @@ export default function ProduitsPage() {
                 )}
               </div>
             </div>
-            </div>
 
             {/* Dual sale prices */}
             <div style={{ border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', overflow: 'hidden', marginBottom: '14px' }}>

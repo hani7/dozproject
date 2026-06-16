@@ -17,6 +17,7 @@ export interface Product {
   code: string;
   description?: string;
   cartons_par_palette: number;    // how many cartons per palette
+  bouteilles_par_carton: number;  // how many bottles per carton
   prix_achat: number;             // per palette
   prix_detail: number;            // per carton
   prix_gros: number;              // per carton
