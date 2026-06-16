@@ -476,6 +476,18 @@ export default function ProduitsPage() {
                       {fr ? 'Marge:' : 'هامش:'} {m.pct}% · +{m.val} DA/ctn
                     </div>
                   ) : null; })()}
+                  {/* Prix par bouteille - Détail */}
+                  {form.prix_detail && form.bouteilles_par_carton && Number(form.bouteilles_par_carton) > 0 && (
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', padding: '6px 10px' }}>
+                      <span style={{ fontSize: '16px' }}>🍾</span>
+                      <div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>{fr ? 'Prix / bouteille (détail)' : 'سعر / زجاجة (تجزئة)'}</div>
+                        <div style={{ fontWeight: 900, fontSize: '15px', color: '#06b6d4' }}>
+                          {(Number(form.prix_detail) / Number(form.bouteilles_par_carton)).toFixed(2)} <span style={{ fontSize: '10px', fontWeight: 600 }}>DA</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Volume discount (Detail only) */}
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed rgba(99,102,241,0.2)' }}>
@@ -521,6 +533,18 @@ export default function ProduitsPage() {
                       {fr ? 'Marge:' : 'هامش:'} {m.pct}% · +{m.val} DA/ctn
                     </div>
                   ) : null; })()}
+                  {/* Prix par bouteille - Gros */}
+                  {form.prix_gros && form.bouteilles_par_carton && Number(form.bouteilles_par_carton) > 0 && (
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px', padding: '6px 10px' }}>
+                      <span style={{ fontSize: '16px' }}>🍾</span>
+                      <div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>{fr ? 'Prix / bouteille (gros)' : 'سعر / زجاجة (جملة)'}</div>
+                        <div style={{ fontWeight: 900, fontSize: '15px', color: '#6366f1' }}>
+                          {(Number(form.prix_gros) / Number(form.bouteilles_par_carton)).toFixed(2)} <span style={{ fontSize: '10px', fontWeight: 600 }}>DA</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

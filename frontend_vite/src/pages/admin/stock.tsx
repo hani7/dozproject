@@ -257,6 +257,7 @@ export default function StockPage() {
               <th>{lang === 'fr' ? 'Quantité' : 'الكمية'}</th>
               <th style={{ color: 'var(--text-muted)' }}>{lang === 'fr' ? 'Avant (ctn)' : 'قبل (ctn)'}</th>
               <th style={{ color: '#006045', fontWeight: 800 }}>{lang === 'fr' ? 'Stock (ctn)' : 'المخزون (ctn)'}</th>
+              <th style={{ color: '#8b5cf6', fontWeight: 800 }}>🍾 {lang === 'fr' ? 'Stock (btl)' : 'مخزون (زجاجة)'}</th>
               <th>{lang === 'fr' ? 'Référence' : 'المرجع'}</th>
               <th>{lang === 'fr' ? 'Actions' : 'إجراءات'}</th>
             </tr>
@@ -296,6 +297,21 @@ export default function StockPage() {
                 <td style={{ fontWeight: 800, fontSize: '14px' }}>
                   <span style={{ color: 'var(--brand-primary)' }}>{m.stock_apres}</span>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '2px' }}>ctn</span>
+                </td>
+                <td style={{ fontWeight: 700 }}>
+                  {(() => {
+                    const prod = products.find((p: any) => p.id === m.produit || p.nom === m.produit_nom);
+                    const bpc = prod?.bouteilles_par_carton || 1;
+                    const btl = Math.round(m.stock_apres * bpc);
+                    return bpc > 1 ? (
+                      <span style={{ color: '#8b5cf6', fontWeight: 800, fontSize: '13px' }}>
+                        {btl.toLocaleString('fr-DZ')}
+                        <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginLeft: '2px', fontWeight: 600 }}>btl</span>
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
+                    );
+                  })()}
                 </td>
                 <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.reference || '-'}</td>
                 <td>
