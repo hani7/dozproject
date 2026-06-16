@@ -41,8 +41,8 @@ export default function CommandesLivePage() {
   const load = useCallback(async () => {
     try {
       const [resCmd, resVente] = await Promise.all([
-        api.get('/commandes/', { params: { ordering: '-created_at', page_size: 100 } }),
-        api.get('/ventes/', { params: { ordering: '-created_at', page_size: 100 } })
+        api.get('/commandes/', { params: { ordering: '-created_at', page_size: 50 } }),
+        api.get('/ventes/', { params: { ordering: '-created_at', page_size: 50 } })
       ]);
       const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
       const vts = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
@@ -66,7 +66,7 @@ export default function CommandesLivePage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000);
+    const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [load]);
 

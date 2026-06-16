@@ -71,8 +71,8 @@ function VentesPageContent({ type }: Props) {
       if (dateTo) dateParams['date__lte'] = dateTo;
 
       const [resVente, resCmd] = await Promise.all([
-        api.get('/ventes/', { params: { type_vente: type, ...dateParams, page_size: 500 } }),
-        api.get('/commandes/', { params: { type_commande: type, page_size: 500 } }),
+        api.get('/ventes/', { params: { type_vente: type, ...dateParams, page_size: 50 } }),
+        api.get('/commandes/', { params: { type_commande: type, page_size: 50 } }),
       ]);
 
       const vts = (resVente.data.results || resVente.data).map((v: any) => ({
@@ -112,7 +112,7 @@ function VentesPageContent({ type }: Props) {
   // Initial load + auto-refresh every 20s
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    const iv = setInterval(load, 20000);
+    const iv = setInterval(load, 45000);
     return () => clearInterval(iv);
   }, [load]);
   useEffect(() => {

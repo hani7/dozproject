@@ -3,7 +3,17 @@ from decimal import Decimal
 from .models import Vente, LigneVente
 
 
-# ── Read serializer (for responses) ────────────────────────────
+# ── Light ligne serializer for list (no image lookup) ───────────
+class LigneVenteListSerializer(serializers.ModelSerializer):
+    produit_nom = serializers.CharField(source='produit.nom', read_only=True)
+
+    class Meta:
+        model = LigneVente
+        fields = ['id', 'produit', 'produit_nom', 'quantite', 'prix_unitaire', 'sous_total']
+        read_only_fields = ['sous_total']
+
+
+# ── Full ligne serializer for detail (includes image) ───────────
 class LigneVenteSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
     produit_image = serializers.SerializerMethodField()
@@ -18,6 +28,31 @@ class LigneVenteSerializer(serializers.ModelSerializer):
             return obj.produit.image.url
         return None
 
+
+# ── Lightweight list serializer (NO N+1 queries) ─────────────────
+class VenteListSerializer(serializers.ModelSerializer):
+    """Used for list — avoids the expensive retours/non_conformes queries per row."""
+    lignes        = LigneVenteListSerializer(many=True, read_only=True)
+    client_nom    = serializers.CharField(source='client.nom', read_only=True)
+    client_phone  = serializers.CharField(source='client.phone', read_only=True)
+    client_adresse = serializers.CharField(source='client.adresse', read_only=True)
+    cree_par_nom  = serializers.CharField(source='cree_par.get_full_name', read_only=True)
+    reste_a_payer = serializers.ReadOnlyField()
+    has_retour    = serializers.BooleanField(read_only=True, default=False)
+    has_non_conforme = serializers.BooleanField(read_only=True, default=False)
+
+    class Meta:
+        model = Vente
+        fields = [
+            'id', 'reference', 'type_vente', 'statut', 'date', 'created_at',
+            'client', 'client_nom', 'client_phone', 'client_adresse',
+            'cree_par_nom', 'livreur',
+            'mode_paiement', 'montant_total', 'montant_paye', 'reste_a_payer', 'remise',
+            'notes', 'lignes', 'has_retour', 'has_non_conforme',
+        ]
+
+
+# ── Full detail serializer (used for retrieve only) ──────────────
 class VenteSerializer(serializers.ModelSerializer):
     lignes           = LigneVenteSerializer(many=True, read_only=True)
     client_nom       = serializers.CharField(source='client.nom', read_only=True)
@@ -44,7 +79,6 @@ class VenteSerializer(serializers.ModelSerializer):
 
     def get_retours(self, obj):
         from stock.models import MouvementStock
-        # Build a price lookup from the vente's lignes
         prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
         mvts = MouvementStock.objects.filter(
             reference=obj.reference, motif='retour'
@@ -71,7 +105,6 @@ class VenteSerializer(serializers.ModelSerializer):
 
     def get_non_conformes(self, obj):
         from stock.models import MouvementStock
-        # Use original prix_unitaire stored in current lignes
         prix_par_produit = {l.produit_id: float(l.prix_unitaire) for l in obj.lignes.all()}
         mvts = MouvementStock.objects.filter(
             reference=obj.reference, motif='non_conforme'

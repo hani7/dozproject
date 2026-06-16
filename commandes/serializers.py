@@ -3,6 +3,16 @@ from .models import Commande, LigneCommande
 from accounts.serializers import UserSerializer
 
 
+# ── Light ligne serializer for list (no image, faster) ───────────
+class LigneCommandeListSerializer(serializers.ModelSerializer):
+    produit_nom = serializers.CharField(source='produit.nom', read_only=True)
+
+    class Meta:
+        model = LigneCommande
+        fields = ['id', 'produit', 'produit_nom', 'quantite', 'prix_unitaire', 'sous_total']
+        read_only_fields = ['sous_total']
+
+
 class LigneCommandeSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
     produit_image = serializers.SerializerMethodField()
@@ -17,11 +27,35 @@ class LigneCommandeSerializer(serializers.ModelSerializer):
             return obj.produit.image.url
         return None
 
-class LigneCommandeInputSerializer(serializers.ModelSerializer):
-    """Used only for writing — excludes commande (set automatically)"""
+
+# ── Lightweight list serializer (NO N+1 queries) ─────────────────
+class CommandeListSerializer(serializers.ModelSerializer):
+    """Fast serializer for list view — no extra SQL per row."""
+    lignes         = LigneCommandeListSerializer(many=True, read_only=True)
+    client_nom     = serializers.CharField(source='client.nom', read_only=True)
+    client_phone   = serializers.CharField(source='client.phone', read_only=True)
+    client_adresse = serializers.CharField(source='client.adresse', read_only=True)
+    prevendeur_nom = serializers.SerializerMethodField()
+    livreur_nom    = serializers.SerializerMethodField()
+    reste_a_payer  = serializers.ReadOnlyField()
+    has_retour     = serializers.BooleanField(read_only=True, default=False)
+    has_non_conforme = serializers.BooleanField(read_only=True, default=False)
+
     class Meta:
-        model = LigneCommande
-        fields = ['produit', 'quantite', 'prix_unitaire']
+        model = Commande
+        fields = [
+            'id', 'reference', 'type_commande', 'statut', 'created_at',
+            'client', 'client_nom', 'client_phone', 'client_adresse',
+            'prevendeur', 'prevendeur_nom', 'livreur', 'livreur_nom',
+            'montant_total', 'montant_paye', 'reste_a_payer',
+            'notes', 'lignes', 'has_retour', 'has_non_conforme',
+        ]
+
+    def get_prevendeur_nom(self, obj):
+        return obj.prevendeur.get_full_name() if obj.prevendeur else ''
+
+    def get_livreur_nom(self, obj):
+        return obj.livreur.get_full_name() if obj.livreur else ''
 
 
 class CommandeSerializer(serializers.ModelSerializer):

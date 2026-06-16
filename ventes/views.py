@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from django.db.models import F
 from .models import Vente, LigneVente
-from .serializers import VenteSerializer, VenteCreateSerializer
+from .serializers import VenteSerializer, VenteListSerializer, VenteCreateSerializer
 from stock.models import MouvementStock
 from products.models import Produit
 
@@ -40,7 +40,7 @@ def deduct_stock_if_needed(vente, user):
 class VenteViewSet(viewsets.ModelViewSet):
     queryset = Vente.objects.select_related(
         'client', 'cree_par', 'livreur'
-    ).prefetch_related('lignes__produit').all()
+    ).prefetch_related('lignes__produit').order_by('-created_at').all()
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
@@ -53,6 +53,13 @@ class VenteViewSet(viewsets.ModelViewSet):
     }
     search_fields  = ['reference', 'client__nom']
     ordering_fields = ['date', 'created_at', 'montant_total']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return VenteCreateSerializer
+        if self.action == 'list':
+            return VenteListSerializer
+        return VenteSerializer
 
     def get_queryset(self):
         user = self.request.user

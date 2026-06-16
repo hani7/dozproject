@@ -59,6 +59,9 @@ class CommandeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ('create', 'update', 'partial_update'):
             return CommandeCreateSerializer
+        if self.action == 'list':
+            from .serializers import CommandeListSerializer
+            return CommandeListSerializer
         return CommandeSerializer
 
     def get_queryset(self):
