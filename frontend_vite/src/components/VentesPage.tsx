@@ -817,7 +817,7 @@ function VentesPageContent({ type }: Props) {
                     setLignes(lines => lines.map((li, j) => j === i ? { ...li, produit: e.target.value, prix_unitaire: price } : li));
                   }}>
                     <option value="">--</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                    {products.map(p => <option key={p.id} value={String(p.id)}>{p.nom}</option>)}
                   </select>
                   <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite} onChange={e => {
                     const newQty = Number(e.target.value);
@@ -1108,33 +1108,70 @@ function VentesPageContent({ type }: Props) {
                   <tr style={{ background: 'var(--bg-elevated)' }}>
                     <th style={{ padding: '9px 12px', textAlign: 'left', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{fr ? 'Produit' : 'المنتج'}</th>
                     <th style={{ padding: '9px 12px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{fr ? 'Vendu' : 'مُباع'}</th>
-                    <th style={{ padding: '9px 12px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{fr ? 'Retourner' : 'إرجاع'}</th>
+                    <th style={{ padding: '9px 12px', textAlign: 'center', fontSize: '11px', color: '#6366f1', fontWeight: 700, textTransform: 'uppercase' }}>🍾 {fr ? 'Unité' : 'الوحدة'}</th>
+                    <th style={{ padding: '9px 12px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{fr ? 'Qté à retourner' : 'كمية الإرجاع'}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {retourModal.lignes?.map((l: any) => {
+                      const selectedUnite = (retourQty as any)[`unite_${l.produit}`] || 'carton';
+                      const prod = products.find((p: any) => String(p.id) === String(l.produit));
+                      const bpc = prod?.bouteilles_par_carton || 1;
                       const qte = Number(retourQty[l.produit] || 0);
                       const hasReturn = qte > 0;
+                      // Conversion affichée
+                      const qteEnCartons = selectedUnite === 'bouteille' ? qte / bpc : qte;
                       return (
                         <tr key={l.id} style={{ borderTop: '1px solid var(--border)', background: hasReturn ? (isNonConforme ? 'rgba(239,68,68,0.04)' : 'rgba(245,158,11,0.04)') : 'transparent' }}>
                           <td style={{ padding: '10px 12px', fontWeight: 600 }}>
                             <div>{l.produit_nom}</div>
                             {hasReturn && (
                               <div style={{ fontSize: '10px', color: isNonConforme ? '#ef4444' : '#f59e0b', fontWeight: 700, marginTop: '2px' }}>
-                                {qte} × {Number(l.prix_unitaire).toLocaleString('fr-DZ')} = {(qte * Number(l.prix_unitaire)).toLocaleString('fr-DZ')} DA
+                                {selectedUnite === 'bouteille'
+                                  ? `${qte} btl ÷ ${bpc} = ${qteEnCartons.toFixed(3)} ctn`
+                                  : `${qte} × ${Number(l.prix_unitaire).toLocaleString('fr-DZ')} = ${(qte * Number(l.prix_unitaire)).toLocaleString('fr-DZ')} DA`
+                                }
                               </div>
                             )}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>{l.quantite} ctn</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>{Number(l.prix_unitaire).toLocaleString('fr-DZ')} DA</td>
+                          {/* Sélecteur Unité */}
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              {['carton', 'bouteille'].map(u => (
+                                <button key={u} type="button"
+                                  onClick={() => setRetourQty(q => ({ ...q, [`unite_${l.produit}`]: u } as any))}
+                                  style={{
+                                    padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                                    border: selectedUnite === u ? 'none' : '1px solid var(--border)',
+                                    background: selectedUnite === u ? (u === 'bouteille' ? '#8b5cf6' : '#6366f1') : 'var(--bg-elevated)',
+                                    color: selectedUnite === u ? 'white' : 'var(--text-muted)',
+                                    fontFamily: 'inherit', transition: 'all 0.15s',
+                                  }}>
+                                  {u === 'carton' ? `📦 ${fr ? 'Carton' : 'كرتون'}` : `🍾 ${fr ? 'Bouteille' : 'زجاجة'}`}
+                                </button>
+                              ))}
+                            </div>
+                            {selectedUnite === 'bouteille' && bpc > 1 && (
+                              <div style={{ fontSize: '9px', color: '#8b5cf6', marginTop: '3px', fontWeight: 600 }}>
+                                1 ctn = {bpc} btl
+                              </div>
+                            )}
+                          </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                            <input
-                              type="number" min="0" max={l.quantite}
-                              className="form-control"
-                              style={{ width: 80, textAlign: 'center', margin: '0 auto', borderColor: hasReturn ? (isNonConforme ? '#ef4444' : '#f59e0b') : undefined }}
-                              value={retourQty[l.produit] ?? '0'}
-                              onChange={e => setRetourQty(q => ({ ...q, [l.produit]: e.target.value }))}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              <input
+                                type="number" min="0"
+                                max={selectedUnite === 'bouteille' ? l.quantite * bpc : l.quantite}
+                                className="form-control"
+                                style={{ width: 72, textAlign: 'center', margin: '0 auto', borderColor: hasReturn ? (isNonConforme ? '#ef4444' : '#f59e0b') : undefined }}
+                                value={retourQty[l.produit] ?? '0'}
+                                onChange={e => setRetourQty(q => ({ ...q, [l.produit]: e.target.value }))}
+                              />
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {selectedUnite === 'bouteille' ? 'btl' : 'ctn'}
+                              </span>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1297,7 +1334,7 @@ function VentesPageContent({ type }: Props) {
                     setEditLignes(lines => lines.map((li, j) => j === i ? { ...li, produit: pid, prix_unitaire: price } : li));
                   }}>
                     <option value="">--</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                    {products.map(p => <option key={p.id} value={String(p.id)}>{p.nom}</option>)}
                   </select>
                   <input className="form-control" type="number" placeholder={fr ? 'Qté' : 'كمية'} value={l.quantite}
                     onChange={e => {

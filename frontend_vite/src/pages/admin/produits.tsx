@@ -18,7 +18,7 @@ export default function ProduitsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
-    nom: '', code: '', cartons_par_palette: '1',
+    nom: '', code: '', cartons_par_palette: '1', bouteilles_par_carton: '1',
     prix_achat: '', prix_detail: '', prix_gros: '',
     seuil_volume: '0', prix_volume_detail: '',
     stock_actuel: '', stock_minimum: '5', description: '', actif: true,
@@ -48,7 +48,7 @@ export default function ProduitsPage() {
     setFormErrors({});
     setImageFile(null);
     setImagePreview(null);
-    setForm({ nom: '', code: '', cartons_par_palette: '1', prix_achat: '', prix_detail: '', prix_gros: '', seuil_volume: '0', prix_volume_detail: '', stock_actuel: '0', stock_minimum: '5', description: '', actif: true });
+    setForm({ nom: '', code: '', cartons_par_palette: '1', bouteilles_par_carton: '1', prix_achat: '', prix_detail: '', prix_gros: '', seuil_volume: '0', prix_volume_detail: '', stock_actuel: '0', stock_minimum: '5', description: '', actif: true });
     setModal(true);
   };
 
@@ -61,6 +61,7 @@ export default function ProduitsPage() {
       nom: p.nom,
       code: p.code || '',
       cartons_par_palette: String(p.cartons_par_palette),
+      bouteilles_par_carton: String((p as any).bouteilles_par_carton ?? 1),
       prix_achat: String(p.prix_achat), prix_detail: String(p.prix_detail), prix_gros: String(p.prix_gros),
       seuil_volume: String(p.seuil_volume || 0), prix_volume_detail: String(p.prix_volume_detail || ''),
       stock_actuel: String(p.stock_actuel), stock_minimum: String(p.stock_minimum),
@@ -92,6 +93,7 @@ export default function ProduitsPage() {
         fd.append('nom', form.nom);
         if (form.code) fd.append('code', form.code);
         fd.append('cartons_par_palette', String(Number(form.cartons_par_palette)));
+        fd.append('bouteilles_par_carton', String(Number(form.bouteilles_par_carton)));
         fd.append('prix_achat', String(Number(form.prix_achat)));
         fd.append('prix_detail', String(Number(form.prix_detail)));
         fd.append('prix_gros', String(Number(form.prix_gros)));
@@ -111,6 +113,7 @@ export default function ProduitsPage() {
           nom: form.nom,
           ...(form.code ? { code: form.code } : {}),
           cartons_par_palette: Number(form.cartons_par_palette),
+          bouteilles_par_carton: Number(form.bouteilles_par_carton),
           prix_achat: Number(form.prix_achat),
           prix_detail: Number(form.prix_detail),
           prix_gros: Number(form.prix_gros),
@@ -190,6 +193,7 @@ export default function ProduitsPage() {
               <th style={{ width: 56 }}></th>
               <th>{fr ? 'Produit' : 'المنتج'}</th>
               <th>🏭 {fr ? 'Palette / Cartons' : 'باليت / كرتون'}</th>
+              <th style={{ color: '#8b5cf6', fontWeight: 700 }}>🍾 {fr ? 'Btl/Ctn' : 'زجاجة/كرتون'}</th>
               <th>💰 {fr ? 'Achat (palette)' : 'شراء (باليت)'}</th>
               <th>📦 {fr ? 'Vente Détail (carton)' : 'تجزئة (كرتون)'}</th>
               <th>🏪 {fr ? 'Vente Gros (carton)' : 'جملة (كرتون)'}</th>
@@ -225,6 +229,10 @@ export default function ProduitsPage() {
                 <td style={{ fontSize: '12px' }}>
                   <span style={{ fontWeight: 700, color: '#8b5cf6' }}>1 palette</span>
                   <span style={{ color: 'var(--text-muted)' }}> = {p.cartons_par_palette} cartons</span>
+                </td>
+                <td style={{ textAlign: 'center' }}>
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: '#8b5cf6' }}>{(p as any).bouteilles_par_carton ?? 1}</div>
+                  <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600 }}>btl/ctn</div>
                 </td>
                 <td style={{ fontWeight: 600, color: '#8b5cf6' }}>{Number(p.prix_achat).toLocaleString('fr-DZ')} DA</td>
                 <td>
@@ -411,21 +419,36 @@ export default function ProduitsPage() {
                   </p>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">💰 {fr ? "Prix d'achat / palette" : 'سعر الشراء / باليت'}</label>
-                  <div style={{ position: 'relative' }}>
-                    <input className={`form-control ${formErrors.prix_achat ? 'input-error' : ''}`} type="number" min="0" step="0.01" value={form.prix_achat}
-                      onChange={e => { setForm(f => ({ ...f, prix_achat: e.target.value })); setFormErrors(er => ({ ...er, prix_achat: '' })); }}
-                      style={{ borderColor: formErrors.prix_achat ? '#ef4444' : '#8b5cf644', paddingRight: '36px', fontWeight: 700 }} />
-                    {formErrors.prix_achat && <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>⚠ {formErrors.prix_achat}</p>}
-                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: '#8b5cf6', fontWeight: 700 }}>DA</span>
-                  </div>
-                  {form.prix_achat && form.cartons_par_palette && (
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      = {(Number(form.prix_achat) / Number(form.cartons_par_palette)).toFixed(2)} DA/carton
-                    </p>
-                  )}
+                  <label className="form-label" style={{ color: '#8b5cf6' }}>🍾 {fr ? 'Bouteilles par carton' : 'زجاجات في الكرتون'}</label>
+                  <input className={`form-control`} type="number" min="1" value={form.bouteilles_par_carton}
+                    onChange={e => setForm(f => ({ ...f, bouteilles_par_carton: e.target.value }))}
+                    style={{ borderColor: '#8b5cf644' }} />
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {fr ? '1 carton = N bouteilles (unités)' : '1 كرتون = N زجاجة'}
+                    {form.bouteilles_par_carton && form.prix_detail && (
+                      <span style={{ color: '#8b5cf6', fontWeight: 700, display: 'block' }}>
+                        → {(Number(form.prix_detail) / Number(form.bouteilles_par_carton)).toFixed(2)} DA/btl (détail)
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="form-label">💰 {fr ? "Prix d'achat / palette" : 'سعر الشراء / باليت'}</label>
+                <div style={{ position: 'relative' }}>
+                  <input className={`form-control ${formErrors.prix_achat ? 'input-error' : ''}`} type="number" min="0" step="0.01" value={form.prix_achat}
+                    onChange={e => { setForm(f => ({ ...f, prix_achat: e.target.value })); setFormErrors(er => ({ ...er, prix_achat: '' })); }}
+                    style={{ borderColor: formErrors.prix_achat ? '#ef4444' : '#8b5cf644', paddingRight: '36px', fontWeight: 700 }} />
+                  {formErrors.prix_achat && <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px' }}>⚠ {formErrors.prix_achat}</p>}
+                  <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: '#8b5cf6', fontWeight: 700 }}>DA</span>
+                </div>
+                {form.prix_achat && form.cartons_par_palette && (
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    = {(Number(form.prix_achat) / Number(form.cartons_par_palette)).toFixed(2)} DA/carton
+                  </p>
+                )}
+              </div>
+            </div>
             </div>
 
             {/* Dual sale prices */}
