@@ -8,7 +8,7 @@ from datetime import timedelta, date as date_type
 from decimal import Decimal
 
 from products.models import Produit
-from commandes.models import Commande
+from commandes.models import Commande, LigneCommande
 from ventes.models import Vente, LigneVente
 from clients.models import Client
 from fournisseurs.models import Fournisseur
