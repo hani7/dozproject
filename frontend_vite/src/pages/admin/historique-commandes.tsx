@@ -7,12 +7,18 @@ import type { Order } from '@/lib/types';
 import { printFacture, printBonLivraison } from '@/lib/printDocs';
 
 const STATUS_COLORS: Record<string, string> = {
+  en_attente: 'badge-warning',
+  confirmee: 'badge-info',
+  en_livraison: 'badge-purple',
   livree: 'badge-success',
   annulee: 'badge-danger',
 };
 const STATUS_LABELS: Record<string, Record<string, string>> = {
-  livree:  { fr: 'Livrée',  ar: 'تم التوصيل' },
-  annulee: { fr: 'Annulée', ar: 'ملغاة' },
+  en_attente:   { fr: 'En attente',   ar: 'في الانتظار' },
+  confirmee:    { fr: 'Confirmée',    ar: 'مؤكدة' },
+  en_livraison: { fr: 'En livraison', ar: 'قيد التوصيل' },
+  livree:       { fr: 'Livrée',       ar: 'تم التوصيل' },
+  annulee:      { fr: 'Annulée',      ar: 'ملغاة' },
 };
 
 export default function HistoriqueCommandesPage() {
@@ -30,7 +36,7 @@ export default function HistoriqueCommandesPage() {
       params: { ordering: '-created_at', page_size: 200, statut: statusFilter || undefined }
     }).then(r => {
       const data: Order[] = r.data.results || r.data;
-      setOrders(data.filter(o => ['livree', 'annulee'].includes(o.statut)));
+      setOrders(data);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [statusFilter]);
@@ -64,6 +70,9 @@ export default function HistoriqueCommandesPage() {
         </div>
         <select className="form-control" style={{ maxWidth: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">{fr ? 'Tous statuts' : 'كل الحالات'}</option>
+          <option value="en_attente">{fr ? 'En attente' : 'في الانتظار'}</option>
+          <option value="confirmee">{fr ? 'Confirmées' : 'مؤكدة'}</option>
+          <option value="en_livraison">{fr ? 'En livraison' : 'قيد التوصيل'}</option>
           <option value="livree">{fr ? 'Livrées' : 'تم التوصيل'}</option>
           <option value="annulee">{fr ? 'Annulées' : 'ملغاة'}</option>
         </select>
@@ -110,8 +119,8 @@ export default function HistoriqueCommandesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
-                  {fr ? 'Aucune commande terminée trouvée' : 'لا توجد طلبات منتهية'}
+                <tr><td colSpan={9} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                  {fr ? 'Aucune commande trouvée' : 'لا توجد طلبات'}
                 </td></tr>
               ) : filtered.map(o => (
                 <tr key={o.id}>
