@@ -84,9 +84,12 @@ export default function HistoriqueCommandesPage() {
       </div>
 
       {/* Summary KPIs */}
-      <div className="grid-4" style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {[
           { label: fr ? 'Total commandes' : 'إجمالي الطلبات', value: filtered.length, icon: '📋', color: '#6366f1' },
+          { label: fr ? 'En attente' : 'في الانتظار', value: filtered.filter(o => o.statut === 'en_attente').length, icon: '⏳', color: '#f59e0b' },
+          { label: fr ? 'Confirmées' : 'مؤكدة', value: filtered.filter(o => o.statut === 'confirmee').length, icon: '🔵', color: '#0ea5e9' },
+          { label: fr ? 'En livraison' : 'قيد التوصيل', value: filtered.filter(o => o.statut === 'en_livraison').length, icon: '🚚', color: '#8b5cf6' },
           { label: fr ? 'Livrées' : 'مُوصَّلة', value: filtered.filter(o => o.statut === 'livree').length, icon: '✅', color: '#10b981' },
           { label: fr ? 'Annulées' : 'ملغاة', value: filtered.filter(o => o.statut === 'annulee').length, icon: '❌', color: '#ef4444' },
           { label: fr ? 'CA livré' : 'رقم الأعمال', value: totalCA.toLocaleString('fr-DZ') + ' DA', icon: '💰', color: 'var(--brand-primary)' },
@@ -128,7 +131,8 @@ export default function HistoriqueCommandesPage() {
                     {o.reference}
                   </td>
                   <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {new Date(o.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    <div>{new Date(o.created_at).toLocaleDateString('fr-DZ', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                    <div style={{ fontSize: '11px', marginTop: '2px', opacity: 0.8 }}>{new Date(o.created_at).toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{o.client_nom}</div>
