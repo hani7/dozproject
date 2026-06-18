@@ -56,8 +56,7 @@ export default function HistoriqueCommandesPage() {
         <div>
           <h1>{fr ? 'Historique des commandes' : 'سجل الطلبات'}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-            {filtered.length} {fr ? 'commandes' : 'طلب'} ·{' '}
-            CA: <strong style={{ color: 'var(--brand-primary)' }}>{totalCA.toLocaleString('fr-DZ')} DA</strong>
+            {filtered.length} {fr ? 'commandes' : 'طلب'}
           </p>
         </div>
       </div>
