@@ -28,7 +28,8 @@ export default function HistoriqueCommandesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const fr = lang === 'fr';
 
   useEffect(() => {
@@ -46,8 +47,10 @@ export default function HistoriqueCommandesPage() {
     const q = search.toLowerCase();
     const matchSearch = !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q);
     const matchType = !typeFilter || o.type_commande === typeFilter;
-    const matchDate = !dateFilter || o.created_at.startsWith(dateFilter);
-    return matchSearch && matchType && matchDate;
+    const orderDate = o.created_at.split('T')[0];
+    const matchDateFrom = !dateFrom || orderDate >= dateFrom;
+    const matchDateTo = !dateTo || orderDate <= dateTo;
+    return matchSearch && matchType && matchDateFrom && matchDateTo;
   });
 
   const totalCA = filtered.filter(o => o.statut === 'livree').reduce((s, o) => s + Number(o.montant_total), 0);
@@ -69,7 +72,11 @@ export default function HistoriqueCommandesPage() {
           <Search />
           <input className="form-control" placeholder={fr ? 'Réf. ou client...' : 'مرجع أو عميل...'} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <input type="date" className="form-control" style={{ maxWidth: 160 }} value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input type="date" className="form-control" style={{ maxWidth: 140 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} title={fr ? 'De' : 'من'} />
+          <span style={{ color: 'var(--text-muted)' }}>→</span>
+          <input type="date" className="form-control" style={{ maxWidth: 140 }} value={dateTo} onChange={e => setDateTo(e.target.value)} title={fr ? 'À' : 'إلى'} />
+        </div>
         <select className="form-control" style={{ maxWidth: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">{fr ? 'Tous statuts' : 'كل الحالات'}</option>
           <option value="en_attente">{fr ? 'En attente' : 'في الانتظار'}</option>
