@@ -40,8 +40,11 @@ export default function StatistiquesPage() {
   const today = new Date().toISOString().split('T')[0];
   const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     .toISOString().split('T')[0];
+  // Default: last 30 days to ensure data is visible even if current month has none
+  const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30))
+    .toISOString().split('T')[0];
 
-  const [dateFrom, setDateFrom] = useState(firstDay);
+  const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
   const [dateTo,   setDateTo]   = useState(today);
   const [groupBy,  setGroupBy]  = useState<'day' | 'week' | 'month'>('day');
   const [benData,  setBenData]  = useState<BenData | null>(null);
