@@ -66,7 +66,7 @@ export default function StatistiquesPage() {
 
     const [ben, dash, prods, cls, vts] = await Promise.allSettled([
       api.get('/dashboard/benefices/', { params: { date_from: dateFrom, date_to: dateTo, group_by: groupBy } }),
-      api.get('/dashboard/stats/'),
+      api.get('/dashboard/stats/', { params: { date_from: dateFrom, date_to: dateTo } }),
       api.get('/products/', { params: { page_size: 100 } }),
       fetchAllClients(),
       api.get('/ventes/', { params: { page_size: 200, ordering: '-created_at' } }),

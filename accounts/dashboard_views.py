@@ -14,9 +14,8 @@ from clients.models import Client
 from fournisseurs.models import Fournisseur
 
 
-# Cache key — v7: included commandes and paye amounts
-_DASH_CACHE_KEY = 'dashboard_stats_v7'
-_DASH_CACHE_TTL = 60  # seconds
+# Cache TTL — keyed per date range so different periods are cached independently
+_DASH_CACHE_TTL = 30  # seconds
 
 
 def _calc_benefice(date_from, date_to=None):
@@ -61,14 +60,26 @@ def _calc_benefice(date_from, date_to=None):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
-    cached = cache.get(_DASH_CACHE_KEY)
-    if cached is not None:
-        return Response(cached)
-
     today       = timezone.now().date()
     month_start = today.replace(day=1)
 
-    # ── Products ───────────────────────────────────────────────
+    # ── Optional date filter params (used by Statistiques page) ──
+    try:
+        date_from = date_type.fromisoformat(request.GET.get('date_from', str(month_start)))
+    except ValueError:
+        date_from = month_start
+    try:
+        date_to = date_type.fromisoformat(request.GET.get('date_to', str(today)))
+    except ValueError:
+        date_to = today
+
+    # Cache key includes the date range so each period is cached independently
+    cache_key = f'dashboard_stats_v8_{date_from}_{date_to}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return Response(cached)
+
+    # ── Products (always current — not date-filtered) ──────────
     produits_qs = Produit.objects.filter(actif=True).only(
         'stock_actuel', 'prix_achat', 'cartons_par_palette'
     )
@@ -86,9 +97,10 @@ def dashboard_stats(request):
         actif=True, stock_actuel__lte=F('stock_minimum')
     ).count()
 
-    # ── Sales (month) ──────────────────────────────────────────
+    # ── Sales — filtered by date_from / date_to ────────────────
     ventes_mois = Vente.objects.filter(
-        created_at__date__gte=month_start
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
     ).exclude(statut__in=['annulee', 'brouillon']).aggregate(
         count=Count('id'),
         total=Sum('montant_total'),
@@ -96,9 +108,10 @@ def dashboard_stats(request):
         detail_total=Sum('montant_total', filter=Q(type_vente='detail')),
         gros_total=Sum('montant_total', filter=Q(type_vente='gros')),
     )
-    
+
     cmds_mois = Commande.objects.filter(
-        created_at__date__gte=month_start
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
     ).exclude(statut='annulee').aggregate(
         count=Count('id'),
         total=Sum('montant_total'),
@@ -107,16 +120,16 @@ def dashboard_stats(request):
         gros_total=Sum('montant_total', filter=Q(type_commande='gros')),
     )
 
-    t_count = (ventes_mois['count'] or 0) + (cmds_mois['count'] or 0)
-    t_total = (ventes_mois['total'] or Decimal('0')) + (cmds_mois['total'] or Decimal('0'))
-    t_paye = (ventes_mois['paye'] or Decimal('0')) + (cmds_mois['paye'] or Decimal('0'))
+    t_count  = (ventes_mois['count'] or 0) + (cmds_mois['count'] or 0)
+    t_total  = (ventes_mois['total'] or Decimal('0')) + (cmds_mois['total'] or Decimal('0'))
+    t_paye   = (ventes_mois['paye'] or Decimal('0')) + (cmds_mois['paye'] or Decimal('0'))
     t_detail = (ventes_mois['detail_total'] or Decimal('0')) + (cmds_mois['detail_total'] or Decimal('0'))
-    t_gros = (ventes_mois['gros_total'] or Decimal('0')) + (cmds_mois['gros_total'] or Decimal('0'))
+    t_gros   = (ventes_mois['gros_total'] or Decimal('0')) + (cmds_mois['gros_total'] or Decimal('0'))
 
-    # ── Bénéfice du mois ───────────────────────────────────────
-    _, _, benefice_mois = _calc_benefice(month_start)
+    # ── Bénéfice sur la période ────────────────────────────────
+    _, _, benefice_mois = _calc_benefice(date_from, date_to)
 
-    # ── Orders — combine Commande + Vente ──────────────────────
+    # ── Orders status — always all (current state) ──────────────
     cmd_agg = Commande.objects.aggregate(
         en_attente=Count('id', filter=Q(statut='en_attente')),
         en_livraison=Count('id', filter=Q(statut='en_livraison')),
@@ -130,17 +143,17 @@ def dashboard_stats(request):
     total_clients      = Client.objects.count()
     total_fournisseurs = Fournisseur.objects.count()
 
-    # ── 7-day sales chart ──────────────────────────────────────
+    # ── 7-day sales chart (always last 7 days) ─────────────────
     seven_days_ago = today - timedelta(days=6)
-    
+
     daily_v = Vente.objects.filter(
         created_at__date__gte=seven_days_ago
     ).exclude(statut__in=['annulee', 'brouillon']).values('created_at__date').annotate(total=Sum('montant_total'))
-    
+
     daily_c = Commande.objects.filter(
         created_at__date__gte=seven_days_ago
     ).exclude(statut='annulee').values('created_at__date').annotate(total=Sum('montant_total'))
-    
+
     daily_map = {}
     for row in daily_v:
         d = row['created_at__date']
@@ -180,7 +193,7 @@ def dashboard_stats(request):
         'benefice_mois': benefice_mois,
     }
 
-    cache.set(_DASH_CACHE_KEY, data, _DASH_CACHE_TTL)
+    cache.set(cache_key, data, _DASH_CACHE_TTL)
     return Response(data)
 
 
