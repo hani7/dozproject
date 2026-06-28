@@ -37,19 +37,22 @@ class LigneCommandeInputSerializer(serializers.ModelSerializer):
 # ── Lightweight list serializer (NO N+1 queries) ─────────────────
 class CommandeListSerializer(serializers.ModelSerializer):
     """Fast serializer for list view — no extra SQL per row."""
-    lignes         = LigneCommandeListSerializer(many=True, read_only=True)
-    client_nom     = serializers.CharField(source='client.nom', read_only=True)
-    client_phone   = serializers.CharField(source='client.phone', read_only=True)
-    client_adresse = serializers.CharField(source='client.adresse', read_only=True)
-    prevendeur_nom = serializers.SerializerMethodField()
-    livreur_nom    = serializers.SerializerMethodField()
-    reste_a_payer  = serializers.ReadOnlyField()
+    lignes           = LigneCommandeListSerializer(many=True, read_only=True)
+    client_nom       = serializers.CharField(source='client.nom', read_only=True)
+    client_phone     = serializers.CharField(source='client.phone', read_only=True)
+    client_adresse   = serializers.CharField(source='client.adresse', read_only=True)
+    client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
+    client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
+    prevendeur_nom   = serializers.SerializerMethodField()
+    livreur_nom      = serializers.SerializerMethodField()
+    reste_a_payer    = serializers.ReadOnlyField()
 
     class Meta:
         model = Commande
         fields = [
             'id', 'reference', 'type_commande', 'statut', 'created_at',
             'client', 'client_nom', 'client_phone', 'client_adresse',
+            'client_latitude', 'client_longitude',
             'prevendeur', 'prevendeur_nom', 'livreur', 'livreur_nom',
             'montant_total', 'montant_paye', 'reste_a_payer',
             'notes', 'lignes',

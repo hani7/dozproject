@@ -32,18 +32,21 @@ class LigneVenteSerializer(serializers.ModelSerializer):
 # ── Lightweight list serializer (NO N+1 queries) ─────────────────
 class VenteListSerializer(serializers.ModelSerializer):
     """Used for list — avoids the expensive retours/non_conformes queries per row."""
-    lignes        = LigneVenteListSerializer(many=True, read_only=True)
-    client_nom    = serializers.CharField(source='client.nom', read_only=True)
-    client_phone  = serializers.CharField(source='client.phone', read_only=True)
-    client_adresse = serializers.CharField(source='client.adresse', read_only=True)
-    cree_par_nom  = serializers.CharField(source='cree_par.get_full_name', read_only=True)
-    reste_a_payer = serializers.ReadOnlyField()
+    lignes         = LigneVenteListSerializer(many=True, read_only=True)
+    client_nom     = serializers.CharField(source='client.nom', read_only=True)
+    client_phone   = serializers.CharField(source='client.phone', read_only=True)
+    client_adresse  = serializers.CharField(source='client.adresse', read_only=True)
+    client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
+    client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
+    cree_par_nom   = serializers.CharField(source='cree_par.get_full_name', read_only=True)
+    reste_a_payer  = serializers.ReadOnlyField()
 
     class Meta:
         model = Vente
         fields = [
             'id', 'reference', 'type_vente', 'statut', 'date', 'created_at',
             'client', 'client_nom', 'client_phone', 'client_adresse',
+            'client_latitude', 'client_longitude',
             'cree_par_nom', 'livreur',
             'mode_paiement', 'montant_total', 'montant_paye', 'reste_a_payer', 'remise',
             'notes', 'lignes',
