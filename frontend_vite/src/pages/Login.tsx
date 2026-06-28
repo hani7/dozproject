@@ -82,7 +82,7 @@ export default function LoginPage() {
         </div>
         <div style={{ padding: '12px 32px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            © 2025{new Date().getFullYear() > 2025 ? ` - ${new Date().getFullYear()}` : ''} ForCli · Powered by <a href="https://wa.me/213783773657" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
+            © 2019 - {new Date().getFullYear()} ForCli · Powered by <a href="https://wa.me/213783773657" onClick={(e) => { e.preventDefault(); window.open('https://wa.me/213783773657', '_blank'); }} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600, cursor: 'pointer' }}>Baitul Tech</a>
           </span>
           <button onClick={() => setLang(fr ? 'ar' : 'fr')} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             {fr ? 'العربية' : 'Français'}
@@ -181,7 +181,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div style={{ padding: '16px 28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-              © 2025{new Date().getFullYear() > 2025 ? ` - ${new Date().getFullYear()}` : ''} ForCli · <a href="https://wa.me/213783773657" target="_blank" rel="noopener noreferrer" style={{ color: '#d8b4fe', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
+              © 2019 - {new Date().getFullYear()} ForCli · <a href="https://wa.me/213783773657" onClick={(e) => { e.preventDefault(); window.open('https://wa.me/213783773657', '_blank'); }} style={{ color: '#d8b4fe', textDecoration: 'none', fontWeight: 600, cursor: 'pointer' }}>Baitul Tech</a>
             </span>
             <button onClick={() => setLang(fr ? 'ar' : 'fr')} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.8)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               {fr ? 'العربية' : 'Français'}

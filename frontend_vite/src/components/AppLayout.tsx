@@ -176,7 +176,7 @@ export default function AppLayout({ children, allowedRoles }: Props) {
             background: 'var(--bg-surface)',
             marginTop: 'auto'
           }}>
-            © 2025{new Date().getFullYear() > 2025 ? ` - ${new Date().getFullYear()}` : ''} ForCli · Powered by <a href="https://wa.me/213783773657" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>Baitul Tech</a>
+            © 2019 - {new Date().getFullYear()} ForCli · Powered by <a href="https://wa.me/213783773657" onClick={(e) => { e.preventDefault(); window.open('https://wa.me/213783773657', '_blank'); }} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600, cursor: 'pointer' }}>Baitul Tech</a>
           </footer>
         )}
       </div>
