@@ -100,21 +100,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       }}
     >
       {/* Logo + Toggle */}
-      <div className="sidebar-logo" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', padding: collapsed ? '20px 0' : '24px 20px 20px', textAlign: collapsed ? 'center' : undefined }}>
+      <div className="sidebar-logo" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', padding: collapsed ? '18px 0' : '20px 20px 18px', textAlign: 'center' }}>
         {collapsed ? (
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>FC</div>
+          <img src="/icon.svg" alt="ForCli" style={{ width: 36, height: 36, filter: 'brightness(0) invert(1)' }} />
         ) : (
-          <>
-            <h1 style={{
-              background: 'linear-gradient(135deg, #ffffff, #d8b4fe)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontSize: '22px',
-              letterSpacing: '-0.5px',
-            }}>ForCli</h1>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Distribution & Commerce</p>
-          </>
+          <img src="/logo.png" alt="ForCli" style={{ height: 44, width: 'auto', display: 'block', filter: 'brightness(0) invert(1)' }} />
         )}
       </div>
 
