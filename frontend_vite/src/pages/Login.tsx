@@ -36,13 +36,8 @@ export default function LoginPage() {
       }} className="login-desktop-panel">
         <div style={{ flex: 1, overflowY: 'auto', padding: '32px 32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0 }}>
           <div style={{ marginBottom: '28px' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '8px',
-              background: 'linear-gradient(135deg, #5629b8, #7132ca)',
-              borderRadius: '12px', padding: '8px 16px', marginBottom: '22px',
-            }}>
-              <span style={{ fontSize: '18px' }}>🚚</span>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: '18px', letterSpacing: '-0.5px' }}>ForCli</span>
+            <div style={{ marginBottom: '22px' }}>
+              <img src="/logo.svg" alt="ForCli" style={{ height: '48px', width: 'auto', display: 'block' }} />
             </div>
             <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '6px' }}>
               {fr ? 'Bienvenue 👋' : 'مرحباً بك 👋'}
@@ -141,9 +136,8 @@ export default function LoginPage() {
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
           {/* Top brand */}
           <div style={{ padding: '52px 28px 0', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #5629b8, #7132ca)', borderRadius: '14px', padding: '10px 20px', marginBottom: '14px', boxShadow: '0 4px 20px rgba(113,50,202,0.4)' }}>
-              <span style={{ fontSize: '20px' }}>🚚</span>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px' }}>ForCli</span>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+              <img src="/logo.svg" alt="ForCli" style={{ height: '52px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
             </div>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', borderRadius: '20px', padding: '4px 14px', border: '1px solid rgba(255,255,255,0.2)' }}>
               <span style={{ color: '#d8b4fe', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>

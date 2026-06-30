@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6b4bc7"/>
+      <stop offset="100%" stop-color="#3d2a7a"/>
+    </linearGradient>
+    <clipPath id="rounded">
+      <rect width="512" height="512" rx="90" ry="90"/>
+    </clipPath>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="90" ry="90" fill="url(#bg)"/>
+  <!-- Stylized fc logo: vertical bar of f -->
+  <rect x="222" y="110" width="52" height="310" rx="26" fill="white"/>
+  <!-- Crossbar of f -->
+  <rect x="180" y="195" width="145" height="46" rx="23" fill="white"/>
+  <!-- C shape arc -->
+  <path d="M 305 260
+             A 120 115 0 1 1 305 260.1
+             Z"
+        fill="none"
+        stroke="white"
+        stroke-width="52"
+        stroke-linecap="round"
+        clip-path="url(#rounded)"
+        stroke-dasharray="470 800"/>
+  <!-- Refined C: open circle arc -->
+  <path d="M 310 175 A 110 105 0 0 0 310 348"
+        fill="none"
+        stroke="white"
+        stroke-width="52"
+        stroke-linecap="round"/>
+</svg>
