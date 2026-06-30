@@ -47,6 +47,7 @@ export default function AchatsPage() {
           produit: Number(l.produit),
           quantite: Number(l.quantite),
           quantite_offerte: Number(l.quantite_offerte || 0),
+          produit_offert: Number(l.produit_offert || l.produit),  // offered product (defaults to same product)
           prix_unitaire: Number(l.prix_unitaire),
           sous_total: Number(l.quantite) * Number(l.prix_unitaire)
         }))
@@ -359,29 +360,50 @@ export default function AchatsPage() {
                         )}
                       </div>
 
-                      {/* If Oui — qty input */}
-                      {hasOffert && (
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-                              {lang === 'fr' ? 'Nb. palettes offertes' : 'عدد الباليت المجانية'}
-                            </label>
-                            <input
-                              className="form-control"
-                              type="number"
-                              min="1"
-                              value={l.quantite_offerte}
-                              onChange={e => updateLigne(i, 'quantite_offerte', e.target.value)}
-                              style={{ borderColor: '#10b981', boxShadow: '0 0 0 2px rgba(16,185,129,0.15)' }}
-                            />
-                          </div>
-                          {produitInfo && l.quantite_offerte && (
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', paddingTop: '18px' }}>
-                              📦 +<strong style={{ color: '#10b981' }}>{Number(l.quantite_offerte) * produitInfo.cartons_par_palette}</strong> cartons offerts
+                      {/* If Oui — product dropdown + qty input */}
+                      {hasOffert && (() => {
+                        const offertProduitId = l.produit_offert || l.produit;
+                        const offertProduitInfo = products.find((p: any) => String(p.id) === offertProduitId);
+                        return (
+                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                            {/* Product dropdown */}
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                                🎁 {lang === 'fr' ? 'Produit offert' : 'المنتج المجاني'}
+                              </label>
+                              <select
+                                className="form-control"
+                                value={offertProduitId}
+                                onChange={e => updateLigne(i, 'produit_offert', e.target.value)}
+                                style={{ borderColor: '#10b981', boxShadow: '0 0 0 2px rgba(16,185,129,0.15)' }}
+                              >
+                                {products.map((p: any) => (
+                                  <option key={p.id} value={String(p.id)}>{p.nom}</option>
+                                ))}
+                              </select>
+                              {offertProduitInfo && l.quantite_offerte && (
+                                <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', fontWeight: 700 }}>
+                                  📦 +{Number(l.quantite_offerte) * offertProduitInfo.cartons_par_palette} cartons offerts
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      )}
+                            {/* Qty input */}
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                                {lang === 'fr' ? 'Nb. palettes offertes' : 'عدد الباليت المجانية'}
+                              </label>
+                              <input
+                                className="form-control"
+                                type="number"
+                                min="1"
+                                value={l.quantite_offerte}
+                                onChange={e => updateLigne(i, 'quantite_offerte', e.target.value)}
+                                style={{ borderColor: '#10b981', boxShadow: '0 0 0 2px rgba(16,185,129,0.15)' }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );

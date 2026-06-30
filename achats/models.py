@@ -49,6 +49,7 @@ class LigneAchat(models.Model):
     produit = models.ForeignKey(Produit, on_delete=models.PROTECT)
     quantite = models.DecimalField(max_digits=10, decimal_places=2)
     quantite_offerte = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # palettes offertes
+    produit_offert = models.ForeignKey(Produit, on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_offert')  # produit des palettes offertes
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)
     sous_total = models.DecimalField(max_digits=12, decimal_places=2)
 

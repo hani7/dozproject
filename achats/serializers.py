@@ -6,6 +6,7 @@ from .models import BonAchat, LigneAchat
 # ── Read serializer (for responses) ────────────────────────────
 class LigneAchatSerializer(serializers.ModelSerializer):
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
+    produit_offert_nom = serializers.CharField(source='produit_offert.nom', read_only=True, default=None)
 
     class Meta:
         model = LigneAchat
@@ -17,7 +18,7 @@ class LigneAchatSerializer(serializers.ModelSerializer):
 class LigneAchatInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = LigneAchat
-        fields = ['produit', 'quantite', 'quantite_offerte', 'prix_unitaire']
+        fields = ['produit', 'quantite', 'quantite_offerte', 'produit_offert', 'prix_unitaire']
 
 
 class BonAchatSerializer(serializers.ModelSerializer):
