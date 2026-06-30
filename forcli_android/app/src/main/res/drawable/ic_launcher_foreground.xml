@@ -4,10 +4,28 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#4F46E5"
-        android:pathData="M0,0h108v108h-108z"/>
+
+    <!-- Vertical bar of f -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M32,28h44v12h-32v12h28v12h-28v16h-12z"/>
+        android:pathData="M44,16 Q44,12 48,12 L52,12 Q56,12 56,16 L56,92 Q56,96 52,96 L48,96 Q44,96 44,92 Z"/>
+
+    <!-- Crossbar of f -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,42 Q38,38 42,38 L72,38 Q76,38 76,42 L76,46 Q76,50 72,50 L42,50 Q38,50 38,46 Z"/>
+
+    <!-- Top hook of f curving right -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,16 Q56,10 62,10 L68,10 Q74,10 74,16 L74,20 Q74,26 68,26 L62,26 Q56,26 56,20 Z"/>
+
+    <!-- C arc (open circle on the right side) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:pathData="M70,35 A28,28 0 1 0 70,73"/>
+
 </vector>
