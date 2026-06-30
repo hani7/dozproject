@@ -104,7 +104,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {collapsed ? (
           <img src="/icon.svg" alt="ForCli" style={{ width: 36, height: 36, filter: 'brightness(0) invert(1)' }} />
         ) : (
-          <img src="/logo.png" alt="ForCli" style={{ height: 44, width: 'auto', display: 'block', filter: 'brightness(0) invert(1)' }} />
+          <img src="/logo_white.png" alt="ForCli" style={{ height: 44, width: 'auto', display: 'block' }} />
         )}
       </div>
 
