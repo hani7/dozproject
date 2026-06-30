@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/baitimti/forcli2
+    - /bin/bash $DEPLOYPATH/deploy.sh
