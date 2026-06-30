@@ -40,7 +40,9 @@ class BonAchatViewSet(viewsets.ModelViewSet):
             for ligne in bon.lignes.all():
                 produit = ligne.produit
                 # ligne.quantite = number of palettes bought
-                cartons_recus = ligne.quantite * produit.cartons_par_palette
+                # ligne.quantite_offerte = number of bonus palettes
+                total_palettes = ligne.quantite + (ligne.quantite_offerte or 0)
+                cartons_recus = total_palettes * produit.cartons_par_palette
                 stock_avant = produit.stock_actuel
                 stock_apres = stock_avant + cartons_recus
                 Produit.objects.filter(pk=produit.pk).update(
@@ -55,7 +57,7 @@ class BonAchatViewSet(viewsets.ModelViewSet):
                     stock_avant=stock_avant,
                     stock_apres=stock_apres,
                     reference=bon.reference,
-                    notes=f"{ligne.quantite} palette(s) × {produit.cartons_par_palette} cartons",
+                    notes=f"{ligne.quantite} pal + {ligne.quantite_offerte or 0} offert = {total_palettes} total palettes × {produit.cartons_par_palette} cartons",
                     cree_par=request.user,
                 )
             bon.statut = 'recu'

@@ -18,7 +18,7 @@ export default function AchatsPage() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
   const [viewModal, setViewModal] = useState<any | null>(null);
-  const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '' }]);
+  const [lignes, setLignes] = useState([{ produit: '', quantite: '', prix_unitaire: '', quantite_offerte: '0', produit_offert: '' }]);
   const [form, setForm] = useState({ reference: '', fournisseur: '', date: '', mode_paiement: 'especes', notes: '' });
   const [editModal, setEditModal] = useState<any | null>(null); // achat being edited
   const [editRef, setEditRef] = useState('');                   // N° facture value
@@ -34,7 +34,7 @@ export default function AchatsPage() {
     api.get('/products/').then(r => setProducts(r.data.results || r.data));
   }, []);
 
-  const addLigne = () => setLignes(l => [...l, { produit: '', quantite: '', prix_unitaire: '' }]);
+  const addLigne = () => setLignes(l => [...l, { produit: '', quantite: '', prix_unitaire: '', quantite_offerte: '0', produit_offert: '' }]);
   const removeLigne = (i: number) => setLignes(l => l.filter((_, j) => j !== i));
   const updateLigne = (i: number, field: string, val: string) => setLignes(l => l.map((li, j) => j === i ? { ...li, [field]: val } : li));
 
@@ -46,6 +46,7 @@ export default function AchatsPage() {
         lignes: lignes.map(l => ({
           produit: Number(l.produit),
           quantite: Number(l.quantite),
+          quantite_offerte: Number(l.quantite_offerte || 0),
           prix_unitaire: Number(l.prix_unitaire),
           sous_total: Number(l.quantite) * Number(l.prix_unitaire)
         }))
@@ -135,7 +136,7 @@ export default function AchatsPage() {
         <button className="btn btn-primary" onClick={() => {
           const autoFournisseur = fournisseurs.length === 1 ? String(fournisseurs[0].id) : '';
           setForm({ reference: `BA-${Date.now()}`, fournisseur: autoFournisseur, date: new Date().toISOString().split('T')[0], mode_paiement: 'especes', notes: '' });
-          setLignes([{ produit: '', quantite: '', prix_unitaire: '' }]);
+          setLignes([{ produit: '', quantite: '', prix_unitaire: '', quantite_offerte: '0', produit_offert: '' }]);
           setFactureFile(null);
           setModal(true);
         }}>
@@ -289,8 +290,10 @@ export default function AchatsPage() {
               </div>
               {lignes.map((l, i) => {
                 const produitInfo = products.find((p: any) => String(p.id) === l.produit);
+                const hasOffert = Number(l.quantite_offerte) > 0;
                 return (
-                  <div key={i} style={{ marginBottom: '10px' }}>
+                  <div key={i} style={{ marginBottom: '14px', background: 'var(--bg-elevated)', borderRadius: '10px', padding: '10px 12px', border: '1px solid var(--border)' }}>
+                    {/* Main ligne */}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
                       <select className="form-control" value={l.produit} onChange={e => {
                         const p = products.find((p: any) => String(p.id) === e.target.value);
@@ -314,6 +317,72 @@ export default function AchatsPage() {
                         {l.quantite && l.prix_unitaire && <span>💰 {lang === 'fr' ? 'Sous-total:' : 'المجموع الفرعي:'} <strong>{(Number(l.quantite) * Number(l.prix_unitaire)).toLocaleString('fr-DZ')} DA</strong></span>}
                       </div>
                     )}
+
+                    {/* ── Palette offerte block ── */}
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: hasOffert ? '8px' : 0 }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                          🎁 {lang === 'fr' ? 'Palette offerte ?' : 'باليت مجانية؟'}
+                        </span>
+                        {/* Toggle buttons */}
+                        <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                          <button
+                            type="button"
+                            onClick={() => updateLigne(i, 'quantite_offerte', '0')}
+                            style={{
+                              padding: '4px 14px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                              background: !hasOffert ? '#ef4444' : 'var(--bg-elevated)',
+                              color: !hasOffert ? '#fff' : 'var(--text-muted)',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {lang === 'fr' ? 'Non' : 'لا'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { if (!hasOffert) updateLigne(i, 'quantite_offerte', '1'); }}
+                            style={{
+                              padding: '4px 14px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                              background: hasOffert ? '#10b981' : 'var(--bg-elevated)',
+                              color: hasOffert ? '#fff' : 'var(--text-muted)',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {lang === 'fr' ? 'Oui' : 'نعم'}
+                          </button>
+                        </div>
+                        {/* summary badge */}
+                        {l.quantite && hasOffert && (
+                          <span style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 800, background: 'rgba(16,185,129,0.12)', color: '#10b981', borderRadius: '6px', padding: '3px 10px' }}>
+                            {l.quantite} pal + {l.quantite_offerte} offert = {Number(l.quantite) + Number(l.quantite_offerte)} total
+                          </span>
+                        )}
+                      </div>
+
+                      {/* If Oui — qty input */}
+                      {hasOffert && (
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                              {lang === 'fr' ? 'Nb. palettes offertes' : 'عدد الباليت المجانية'}
+                            </label>
+                            <input
+                              className="form-control"
+                              type="number"
+                              min="1"
+                              value={l.quantite_offerte}
+                              onChange={e => updateLigne(i, 'quantite_offerte', e.target.value)}
+                              style={{ borderColor: '#10b981', boxShadow: '0 0 0 2px rgba(16,185,129,0.15)' }}
+                            />
+                          </div>
+                          {produitInfo && l.quantite_offerte && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', paddingTop: '18px' }}>
+                              📦 +<strong style={{ color: '#10b981' }}>{Number(l.quantite_offerte) * produitInfo.cartons_par_palette}</strong> cartons offerts
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -333,10 +402,23 @@ export default function AchatsPage() {
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-title">{lang === 'fr' ? 'Détails:' : 'التفاصيل:'} {viewModal.reference}</div>
             <table style={{ width: '100%', marginBottom: '16px' }}>
-              <thead><tr><th>{lang === 'fr' ? 'Produit' : 'المنتج'}</th><th>{lang === 'fr' ? 'Qté' : 'الكمية'}</th><th>{lang === 'fr' ? 'P.U' : 'السعر'}</th><th>{lang === 'fr' ? 'Sous-total' : 'المجموع الفرعي'}</th></tr></thead>
+              <thead><tr><th>{lang === 'fr' ? 'Produit' : 'المنتج'}</th><th>{lang === 'fr' ? 'Qté' : 'الكمية'}</th><th>{lang === 'fr' ? 'Offert' : 'مجاني'}</th><th>{lang === 'fr' ? 'Total pal.' : 'الإجمالي'}</th><th>{lang === 'fr' ? 'P.U' : 'السعر'}</th><th>{lang === 'fr' ? 'Sous-total' : 'المجموع الفرعي'}</th></tr></thead>
               <tbody>
                 {viewModal.lignes?.map((l: any) => (
-                  <tr key={l.id}><td>{l.produit_nom}</td><td>{l.quantite}</td><td>{l.prix_unitaire?.toLocaleString()} DA</td><td style={{ fontWeight: 600 }}>{l.sous_total?.toLocaleString()} DA</td></tr>
+                  <tr key={l.id}>
+                    <td>{l.produit_nom}</td>
+                    <td>{l.quantite} pal</td>
+                    <td>
+                      {Number(l.quantite_offerte) > 0 ? (
+                        <span style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderRadius: '6px', padding: '2px 8px', fontWeight: 700, fontSize: '11px' }}>
+                          🎁 +{l.quantite_offerte} offert
+                        </span>
+                      ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td style={{ fontWeight: 700 }}>{Number(l.quantite) + Number(l.quantite_offerte || 0)} pal</td>
+                    <td>{l.prix_unitaire?.toLocaleString()} DA</td>
+                    <td style={{ fontWeight: 600 }}>{l.sous_total?.toLocaleString()} DA</td>
+                  </tr>
                 ))}
               </tbody>
             </table>

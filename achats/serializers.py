@@ -17,7 +17,7 @@ class LigneAchatSerializer(serializers.ModelSerializer):
 class LigneAchatInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = LigneAchat
-        fields = ['produit', 'quantite', 'prix_unitaire']
+        fields = ['produit', 'quantite', 'quantite_offerte', 'prix_unitaire']
 
 
 class BonAchatSerializer(serializers.ModelSerializer):

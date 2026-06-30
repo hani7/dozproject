@@ -48,6 +48,7 @@ class LigneAchat(models.Model):
     bon_achat = models.ForeignKey(BonAchat, on_delete=models.CASCADE, related_name='lignes')
     produit = models.ForeignKey(Produit, on_delete=models.PROTECT)
     quantite = models.DecimalField(max_digits=10, decimal_places=2)
+    quantite_offerte = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # palettes offertes
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)
     sous_total = models.DecimalField(max_digits=12, decimal_places=2)
 
@@ -56,4 +57,4 @@ class LigneAchat(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.produit.nom} x{self.quantite}"
+        return f"{self.produit.nom} x{self.quantite} (+{self.quantite_offerte} offert)"
