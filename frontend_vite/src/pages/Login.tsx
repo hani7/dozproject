@@ -137,7 +137,7 @@ export default function LoginPage() {
           {/* Top brand */}
           <div style={{ padding: '52px 28px 0', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
-              <img src="/logo.png" alt="ForCli" style={{ height: '52px', width: 'auto' }} />
+              <img src="/logo.png" alt="ForCli" style={{ width: '100%', maxWidth: '200px', height: 'auto' }} />
             </div>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', borderRadius: '20px', padding: '4px 14px', border: '1px solid rgba(255,255,255,0.2)' }}>
               <span style={{ color: '#d8b4fe', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Distribution & Commerce</span>

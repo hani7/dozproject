@@ -121,8 +121,8 @@ export default function PaiementsPage() {
     setVersForm(f => ({ ...f, [planId]: { ...vf(planId), ...patch } }));
 
   const totals = useMemo(() => ({
-    total: plans.reduce((s, p) => s + p.montant_total, 0),
-    paye:  plans.reduce((s, p) => s + p.montant_paye, 0),
+    total: plans.reduce((s, p) => s + (Number(p.montant_total) || 0), 0),
+    paye:  plans.reduce((s, p) => s + (Number(p.montant_paye) || 0), 0),
     en_cours: plans.filter(p => p.statut === 'en_cours').length,
     termine:  plans.filter(p => p.statut === 'termine').length,
   }), [plans]);

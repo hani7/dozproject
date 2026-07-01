@@ -86,7 +86,7 @@ export default function DashboardPage() {
       icon: '⚠️', color: (stats?.produits.stock_faible ?? 0) > 0 ? '#ef4444' : '#10b981',
     },
     {
-      label: lang === 'fr' ? 'Bénéfice du mois' : 'ربح الشهر',
+      label: lang === 'fr' ? 'Bénéfice brut du mois' : 'إجمالي ربح الشهر',
       value: fmt(stats?.benefice_mois ?? 0),
       sub: lang === 'fr' ? 'CA − coût d\'achat' : 'الإيرادات − التكلفة',
       icon: (stats?.benefice_mois ?? 0) >= 0 ? '📈' : '📉',
