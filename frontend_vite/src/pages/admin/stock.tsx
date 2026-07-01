@@ -142,7 +142,7 @@ export default function StockPage() {
       doc.setFontSize(12);
       doc.text(`Date : ${new Date(m.created_at).toLocaleString()}`, 20, 40);
       doc.text(`Reference : ${m.reference || '-'}`, 20, 50);
-      doc.text(`Client : ${m.client_nom || '-'}`, 20, 60);
+      doc.text(`Client : ${m.client_nom || m.reference || '-'}`, 20, 60);
       
       autoTable(doc, {
         startY: 70,
