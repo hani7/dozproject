@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, Trash2, Edit2, TrendingDown, X } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, TrendingDown, X, Printer } from 'lucide-react';
 import Pagination, { usePagination } from '@/components/Pagination';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const TYPE_CHOICES = [
   { value: 'carburant',   label: '⛽ Carburant' },
@@ -137,6 +139,78 @@ export default function ChargesPage() {
     load();
   };
 
+  const printCharge = (c: Charge) => {
+    const doc = new jsPDF();
+    const color = TYPE_COLORS[c.type_charge] || '#000000';
+    
+    doc.setFontSize(22);
+    doc.setTextColor(color);
+    doc.text('Reçu de Charge', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setTextColor('#000000');
+    doc.text(`Référence : CHG-${c.id}`, 20, 40);
+    doc.text(`Date : ${new Date(c.date).toLocaleDateString('fr-FR')}`, 20, 50);
+    doc.text(`Type : ${c.type_charge_label || c.type_charge}`, 20, 60);
+    doc.text(`Ajouté par : ${c.cree_par_nom || '—'}`, 20, 70);
+    
+    doc.setFontSize(18);
+    doc.text(`Montant : ${fmt(c.montant)}`, 20, 90);
+    
+    if (c.description) {
+      doc.setFontSize(12);
+      doc.text('Description :', 20, 110);
+      const splitDesc = doc.splitTextToSize(c.description, 170);
+      doc.text(splitDesc, 20, 120);
+    }
+    
+    doc.setFontSize(10);
+    doc.setTextColor('#6b7280');
+    doc.text('Généré par ForCli ERP', 105, 280, { align: 'center' });
+    
+    doc.save(`Charge_CHG-${c.id}.pdf`);
+  };
+
+  const printReport = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Rapport des Charges', 14, 20);
+    
+    let subtitle = '';
+    if (filterFrom && filterTo) subtitle = `Période: du ${new Date(filterFrom).toLocaleDateString('fr-FR')} au ${new Date(filterTo).toLocaleDateString('fr-FR')}`;
+    else if (filterFrom) subtitle = `Depuis le ${new Date(filterFrom).toLocaleDateString('fr-FR')}`;
+    else if (filterTo) subtitle = `Jusqu'au ${new Date(filterTo).toLocaleDateString('fr-FR')}`;
+    
+    if (filterType) {
+      const tc = TYPE_CHOICES.find(t => t.value === filterType);
+      subtitle += subtitle ? ` | Type: ${tc?.label}` : `Type: ${tc?.label}`;
+    }
+    
+    if (subtitle) {
+      doc.setFontSize(11);
+      doc.setTextColor('#666666');
+      doc.text(subtitle, 14, 28);
+    }
+    
+    autoTable(doc, {
+      startY: subtitle ? 35 : 30,
+      head: [['Date', 'Type', 'Description', 'Montant', 'Ajouté par']],
+      body: filtered.map(c => [
+        new Date(c.date).toLocaleDateString('fr-FR'),
+        c.type_charge_label || c.type_charge,
+        c.description || '-',
+        fmt(c.montant),
+        c.cree_par_nom || '-'
+      ]),
+      foot: [['', '', 'TOTAL', fmt(totalFiltered), '']],
+      theme: 'grid',
+      headStyles: { fillColor: '#5629b8' },
+      footStyles: { fillColor: '#f8fafc', textColor: '#ef4444', fontStyle: 'bold' }
+    });
+    
+    doc.save('Rapport_Charges.pdf');
+  };
+
   const fmt = (n: number) => Number(n).toLocaleString('fr-DZ', { minimumFractionDigits: 2 }) + ' DA';
 
   return (
@@ -146,9 +220,14 @@ export default function ChargesPage() {
           <h1>🚛 Charges</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Suivi des dépenses et frais</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          <Plus size={15} /> Nouvelle charge
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn" style={{ background: '#f8fafc', border: '1px solid var(--border)', color: 'var(--text-secondary)' }} onClick={printReport}>
+            <Printer size={15} /> Imprimer le rapport
+          </button>
+          <button className="btn btn-primary" onClick={openCreate}>
+            <Plus size={15} /> Nouvelle charge
+          </button>
+        </div>
       </div>
 
       {/* ── Stats Cards ── */}
@@ -240,6 +319,10 @@ export default function ChargesPage() {
                   <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.cree_par_nom || '—'}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => printCharge(c)} title="Imprimer"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8b5cf6', padding: 4 }}>
+                        <Printer size={15} />
+                      </button>
                       <button onClick={() => openEdit(c)} title="Modifier"
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', padding: 4 }}>
                         <Edit2 size={15} />
