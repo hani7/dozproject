@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout offlineLayout;
     private LinearLayout splashLayout;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private static final String APP_URL = "https://doz.baitul.tech/login";
+    private static final String APP_URL = "http://10.243.188.71:5173/login";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
