@@ -15,6 +15,7 @@ const TYPE_CHOICES = [
   { value: 'assurance',   label: '🛡️ Assurance' },
   { value: 'amende',      label: '⚠️ Amende' },
   { value: 'peage',       label: '🛣️ Péage' },
+  { value: 'location_camion', label: '🚚 Location camion' },
   { value: 'autre',       label: '📦 Autre' },
 ];
 
@@ -29,6 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
   amende: '#dc2626',
   salaire_chauffeur: '#14b8a6',
   peage: '#84cc16',
+  location_camion: '#d946ef',
   autre: '#6b7280',
 };
 

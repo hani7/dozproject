@@ -13,6 +13,7 @@ class Charge(models.Model):
         ('assurance', 'Assurance'),
         ('amende', 'Amende'),
         ('peage', 'Péage'),
+        ('location_camion', 'Location camion'),
         ('autre', 'Autre'),
     ]
 
