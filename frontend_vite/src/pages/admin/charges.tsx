@@ -78,7 +78,7 @@ export default function ChargesPage() {
 
   const filtered = useMemo(() => charges.filter(c => {
     const q = search.toLowerCase();
-    const matchSearch = !q || c.type_charge_label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
+    const matchSearch = !q || c.type_charge_label?.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q);
     const matchType = !filterType || c.type_charge === filterType;
     const matchFrom = !filterFrom || c.date >= filterFrom;
     const matchTo = !filterTo || c.date <= filterTo;

@@ -14,9 +14,8 @@ class ChargeViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         'type_charge': ['exact'],
         'date': ['gte', 'lte', 'exact'],
-        'camion': ['exact', 'icontains'],
     }
-    search_fields = ['camion', 'description', 'type_charge']
+    search_fields = ['description', 'type_charge']
     ordering_fields = ['date', 'montant', 'created_at']
 
     def perform_create(self, serializer):
