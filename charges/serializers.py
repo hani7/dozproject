@@ -10,7 +10,7 @@ class ChargeSerializer(serializers.ModelSerializer):
         model = Charge
         fields = [
             'id', 'type_charge', 'type_charge_label',
-            'montant', 'date', 'camion', 'description',
+            'montant', 'date', 'description',
             'cree_par', 'cree_par_nom', 'created_at',
         ]
         read_only_fields = ['id', 'cree_par', 'created_at']

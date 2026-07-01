@@ -2,21 +2,20 @@ import { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Search, Trash2, Edit2, TrendingDown, Truck, X } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, TrendingDown, X } from 'lucide-react';
 import Pagination, { usePagination } from '@/components/Pagination';
 
 const TYPE_CHOICES = [
-  { value: 'carburant',        label: '⛽ Carburant' },
-  { value: 'vidange',          label: '🔧 Vidange' },
-  { value: 'reparation',       label: '🛠️ Réparation' },
-  { value: 'pneumatique',      label: '🛞 Pneumatique (Pneu)' },
-  { value: 'lavage',           label: '🚿 Lavage' },
-  { value: 'vignette',         label: '📋 Vignette' },
-  { value: 'assurance',        label: '🛡️ Assurance' },
-  { value: 'amende',           label: '⚠️ Amende' },
-  { value: 'salaire_chauffeur',label: '👤 Salaire chauffeur' },
-  { value: 'peage',            label: '🛣️ Péage' },
-  { value: 'autre',            label: '📦 Autre' },
+  { value: 'carburant',   label: '⛽ Carburant' },
+  { value: 'vidange',     label: '🔧 Vidange' },
+  { value: 'reparation',  label: '🛠️ Réparation' },
+  { value: 'pneumatique', label: '🛞 Pneumatique (Pneu)' },
+  { value: 'lavage',      label: '🚿 Lavage' },
+  { value: 'vignette',    label: '📋 Vignette' },
+  { value: 'assurance',   label: '🛡️ Assurance' },
+  { value: 'amende',      label: '⚠️ Amende' },
+  { value: 'peage',       label: '🛣️ Péage' },
+  { value: 'autre',       label: '📦 Autre' },
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -49,7 +48,6 @@ const EMPTY_FORM = {
   type_charge: 'carburant',
   montant: '',
   date: new Date().toISOString().split('T')[0],
-  camion: '',
   description: '',
 };
 
@@ -78,7 +76,7 @@ export default function ChargesPage() {
 
   const filtered = useMemo(() => charges.filter(c => {
     const q = search.toLowerCase();
-    const matchSearch = !q || c.type_charge_label.toLowerCase().includes(q) || c.camion.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
+    const matchSearch = !q || c.type_charge_label.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
     const matchType = !filterType || c.type_charge === filterType;
     const matchFrom = !filterFrom || c.date >= filterFrom;
     const matchTo = !filterTo || c.date <= filterTo;
@@ -101,7 +99,6 @@ export default function ChargesPage() {
       type_charge: c.type_charge,
       montant: String(c.montant),
       date: c.date,
-      camion: c.camion || '',
       description: c.description || '',
     });
     setModal(true);
@@ -181,7 +178,7 @@ export default function ChargesPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 140 }}>
           <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input className="form-control" style={{ paddingLeft: 28, fontSize: '13px' }} placeholder="Camion, description..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="form-control" style={{ paddingLeft: 28, fontSize: '13px' }} placeholder="Description..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="form-control" style={{ fontSize: 13, flex: '0 0 180px' }} value={filterType} onChange={e => setFilterType(e.target.value)}>
           <option value="">Tous les types</option>
@@ -210,7 +207,6 @@ export default function ChargesPage() {
             <tr>
               <th>Date</th>
               <th>Type de charge</th>
-              <th>Camion</th>
               <th>Description</th>
               <th style={{ textAlign: 'right' }}>Montant</th>
               <th>Ajouté par</th>
@@ -219,7 +215,7 @@ export default function ChargesPage() {
           </thead>
           <tbody>
             {paginated.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>Aucune charge enregistrée</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>Aucune charge enregistrée</td></tr>
             ) : paginated.map(c => {
               const color = TYPE_COLORS[c.type_charge] || '#6b7280';
               const tc = TYPE_CHOICES.find(t => t.value === c.type_charge);
@@ -233,14 +229,7 @@ export default function ChargesPage() {
                       {tc?.label || c.type_charge_label}
                     </span>
                   </td>
-                  <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {c.camion ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Truck size={13} style={{ color: 'var(--text-muted)' }} /> {c.camion}
-                      </span>
-                    ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 200 }}>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 220 }}>
                     {c.description || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 14, color: '#ef4444' }}>
@@ -301,11 +290,6 @@ export default function ChargesPage() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Camion (immatriculation ou nom)</label>
-              <input className="form-control" placeholder="Ex: 16 A 1234 ou Camion 1"
-                value={form.camion} onChange={e => setForm(f => ({ ...f, camion: e.target.value }))} />
-            </div>
 
             <div className="form-group">
               <label className="form-label">Description / Notes</label>

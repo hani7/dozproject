@@ -110,7 +110,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               src="/logo.png"
               alt="ForCli"
               style={{
-                height: 64,
+                height: 38,
                 width: 'auto',
                 display: 'block',
                 filter: 'brightness(0) invert(1)',

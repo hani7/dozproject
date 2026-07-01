@@ -12,7 +12,6 @@ class Charge(models.Model):
         ('vignette', 'Vignette'),
         ('assurance', 'Assurance'),
         ('amende', 'Amende'),
-        ('salaire_chauffeur', 'Salaire chauffeur'),
         ('peage', 'Péage'),
         ('autre', 'Autre'),
     ]
@@ -20,7 +19,6 @@ class Charge(models.Model):
     type_charge = models.CharField(max_length=50, choices=TYPE_CHOICES)
     montant = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField()
-    camion = models.CharField(max_length=100, blank=True, help_text='Immatriculation ou nom du camion')
     description = models.TextField(blank=True)
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
