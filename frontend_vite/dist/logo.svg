@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160">
+  <defs>
+    <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7132ca"/>
+      <stop offset="100%" stop-color="#3b21a0"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b3fe8"/>
+      <stop offset="100%" stop-color="#4a28c0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── fc Symbol ── -->
+  <!-- Vertical bar of f -->
+  <rect x="28" y="18" width="22" height="124" rx="11" fill="url(#grad1)"/>
+  <!-- Top-right curve of f (hook) -->
+  <path d="M 50 38 Q 50 18 72 18 L 82 18 Q 84 18 84 20 L 84 30 Q 84 32 82 32 L 72 32 Q 62 32 62 42 L 62 52 L 84 52 Q 86 52 86 54 L 86 64 Q 86 66 84 66 L 62 66" fill="none" stroke="url(#grad1)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Crossbar of f -->
+  <rect x="28" y="60" width="58" height="20" rx="10" fill="url(#grad1)"/>
+
+  <!-- C arc -->
+  <path d="M 128 38 Q 96 38 88 80 Q 80 122 116 134 L 130 138"
+        fill="none" stroke="url(#grad2)" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- ── ForCli Text ── -->
+  <text x="165" y="118" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="88" font-weight="900" letter-spacing="-2" fill="url(#grad1)">ForCli</text>
+</svg>
