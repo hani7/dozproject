@@ -27,7 +27,7 @@ const adminNav = [
   { label: 'nav.payments', href: '/admin/paiements', icon: CreditCard },
   { label: 'nav.comptes', href: '/admin/comptes', icon: KeyRound },
   { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
-  { label: 'Charges Camions', href: '/admin/charges', icon: TrendingDown },
+  { label: 'Charges', href: '/admin/charges', icon: TrendingDown },
   { label: 'nav.fournisseurs', href: '/admin/fournisseurs', icon: Building2 },
 ];
 

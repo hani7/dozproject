@@ -253,7 +253,7 @@ export default function StatistiquesPage() {
 
               {/* Charges */}
               <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: '16px 18px' }}>
-                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>🚛 {fr ? 'Charges camions' : 'تكاليف الشاحنات'}</div>
+                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>🚛 {fr ? 'Charges' : 'تكاليف'}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>− {fmtDA(charges)}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{fr ? 'Carburant, réparations...' : 'وقود، إصلاحات...'}</div>
               </div>

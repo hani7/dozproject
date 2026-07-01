@@ -141,8 +141,8 @@ export default function ChargesPage() {
     <AppLayout allowedRoles={['admin']}>
       <div className="page-header">
         <div>
-          <h1>🚛 Charges Camions</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Suivi des dépenses et frais de transport</p>
+          <h1>🚛 Charges</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Suivi des dépenses et frais</p>
         </div>
         <button className="btn btn-primary" onClick={openCreate}>
           <Plus size={15} /> Nouvelle charge
@@ -262,7 +262,7 @@ export default function ChargesPage() {
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div className="modal-title" style={{ margin: 0 }}>
-                {editItem ? '✏️ Modifier la charge' : '➕ Nouvelle charge camion'}
+                {editItem ? '✏️ Modifier la charge' : '➕ Nouvelle charge'}
               </div>
               <button onClick={() => setModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                 <X size={20} />
