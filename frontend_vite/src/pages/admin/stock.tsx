@@ -289,9 +289,27 @@ export default function StockPage() {
                   )}
                 </td>
                 <td style={{ fontWeight: 700 }}>
-                  <span style={{ color: m.type_mouvement === 'entree' ? '#10b981' : m.type_mouvement === 'sortie' ? '#ef4444' : '#f59e0b' }}>
-                    {m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : ''}{m.quantite}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ color: m.type_mouvement === 'entree' ? '#10b981' : m.type_mouvement === 'sortie' ? '#ef4444' : '#f59e0b' }}>
+                      {m.type_mouvement === 'entree' ? '+' : m.type_mouvement === 'sortie' ? '-' : ''}{m.quantite}
+                    </span>
+                    {m.notes?.includes('🎁') && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: '#fff',
+                        background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                        borderRadius: 5,
+                        padding: '1px 6px',
+                        width: 'fit-content',
+                      }}>
+                        🎁 Offert
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{m.stock_avant} <span style={{ fontSize: '10px' }}>ctn</span></td>
                 <td style={{ fontWeight: 800, fontSize: '14px' }}>
