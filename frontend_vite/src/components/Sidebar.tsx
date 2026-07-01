@@ -104,7 +104,31 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {collapsed ? (
           <img src="/icon.svg" alt="ForCli" style={{ width: 36, height: 36, filter: 'brightness(0) invert(1)' }} />
         ) : (
-          <img src="/logo_white.png" alt="ForCli" style={{ height: 44, width: 'auto', display: 'block' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <img
+              src="/logo.png"
+              alt="ForCli"
+              style={{
+                height: 64,
+                width: 'auto',
+                display: 'block',
+                filter: 'brightness(0) invert(1)',
+                objectFit: 'contain',
+              }}
+            />
+            <span style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.75)',
+              letterSpacing: '0.6px',
+              textTransform: 'uppercase',
+              lineHeight: 1.3,
+              textAlign: 'center',
+              maxWidth: 180,
+            }}>
+              Gestion de Commerce<br />et Distribution
+            </span>
+          </div>
         )}
       </div>
 
