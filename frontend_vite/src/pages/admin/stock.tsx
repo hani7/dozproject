@@ -44,7 +44,11 @@ export default function StockPage() {
   const filteredMovements = useMemo(() => movements.filter(m => {
     const q = search.toLowerCase();
     const matchSearch = !q || m.produit_nom.toLowerCase().includes(q) || m.reference?.toLowerCase().includes(q);
-    const matchType = !typeFilter || m.type_mouvement === typeFilter;
+    const matchType = !typeFilter 
+      ? true 
+      : typeFilter === 'offert' 
+        ? m.notes?.includes('🎁') 
+        : m.type_mouvement === typeFilter;
     const mDate = new Date(m.created_at).toISOString().split('T')[0];
     const matchFrom = !dateFrom || mDate >= dateFrom;
     const matchTo   = !dateTo   || mDate <= dateTo;
@@ -218,9 +222,14 @@ export default function StockPage() {
         </div>
         {/* Type filter */}
         <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-          {[{ v: '', label: lang === 'fr' ? 'Tous' : 'الكل' }, { v: 'entree', label: lang === 'fr' ? '↑ Entrée' : '↑ دخول' }, { v: 'sortie', label: lang === 'fr' ? '↓ Sortie' : '↓ خروج' }].map(({ v, label }) => (
+          {[
+            { v: '', label: lang === 'fr' ? 'Tous' : 'الكل' }, 
+            { v: 'entree', label: lang === 'fr' ? '↑ Entrée' : '↑ دخول' }, 
+            { v: 'sortie', label: lang === 'fr' ? '↓ Sortie' : '↓ خروج' },
+            { v: 'offert', label: lang === 'fr' ? '🎁 Offert' : '🎁 مجاني' }
+          ].map(({ v, label }) => (
             <button key={v} onClick={() => setTypeFilter(v)}
-              style={{ padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: typeFilter === v ? 'none' : '1px solid var(--border)', background: typeFilter === v ? (v === 'entree' ? '#10b981' : v === 'sortie' ? '#ef4444' : 'var(--brand-primary)') : 'var(--bg-elevated)', color: typeFilter === v ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
+              style={{ padding: '7px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: typeFilter === v ? 'none' : '1px solid var(--border)', background: typeFilter === v ? (v === 'entree' ? '#10b981' : v === 'sortie' ? '#ef4444' : v === 'offert' ? '#f59e0b' : 'var(--brand-primary)') : 'var(--bg-elevated)', color: typeFilter === v ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
               {label}
             </button>
           ))}

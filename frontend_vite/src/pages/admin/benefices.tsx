@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, DollarSign, ShoppingCart,
-  Package, Users, Warehouse, AlertTriangle
+  Package, Users, Warehouse, AlertTriangle, Minus, CheckCircle
 } from 'lucide-react';
 
 type BenRow = { period: string; label: string; ca: number; cout: number; benefice: number };
@@ -52,6 +52,8 @@ export default function StatistiquesPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [clients,  setClients]  = useState<any[]>([]);
   const [ventes,   setVentes]   = useState<any[]>([]);
+  const [charges,  setCharges]  = useState<number>(0);
+  const [salaires, setSalaires] = useState<number>(0);
   const [loading,  setLoading]  = useState(false);
 
   const load = useCallback(async () => {
@@ -67,25 +69,35 @@ export default function StatistiquesPage() {
       return all;
     };
 
-    const [ben, dash, prods, cls, vts] = await Promise.allSettled([
+    const [ben, dash, prods, cls, vts, chg, hr] = await Promise.allSettled([
       api.get('/dashboard/benefices/', { params: { date_from: dateFrom, date_to: dateTo, group_by: groupBy } }),
       api.get('/dashboard/stats/', { params: { date_from: dateFrom, date_to: dateTo } }),
       api.get('/products/', { params: { page_size: 100 } }),
       fetchAllClients(),
       api.get('/ventes/', { params: { page_size: 200, ordering: '-created_at' } }),
+      api.get('/charges/stats/'),
+      api.get('/hr/employes/', { params: { page_size: 100 } }),
     ]);
     if (ben.status === 'fulfilled') setBenData(ben.value.data);
     if (dash.status === 'fulfilled') setDashData(dash.value.data);
     if (prods.status === 'fulfilled') setProducts(prods.value.data.results || prods.value.data);
     if (cls.status === 'fulfilled') setClients(cls.value);
     if (vts.status === 'fulfilled') setVentes(vts.value.data.results || vts.value.data);
+    if (chg.status === 'fulfilled') setCharges(Number(chg.value.data.total_global || 0));
+    if (hr.status === 'fulfilled') {
+      const employes = hr.value.data.results || hr.value.data;
+      const totalSal = employes.reduce((s: number, e: any) => s + Number(e.salaire_base || 0), 0);
+      setSalaires(totalSal);
+    }
     setLoading(false);
   }, [dateFrom, dateTo, groupBy]);
 
   useEffect(() => { load(); }, [load]);
 
-  const benefice = benData?.total_benefice ?? 0;
-  const isPositive = benefice >= 0;
+  const benefice    = benData?.total_benefice ?? 0;
+  const beneficeNet = benefice - charges - salaires;
+  const isPositive    = benefice >= 0;
+  const isNetPositive = beneficeNet >= 0;
 
   // ── Derived stats ──────────────────────────────────────────────
   // Top 5 products by stock value
@@ -225,6 +237,65 @@ export default function StatistiquesPage() {
             <KpiCard label={fr ? "Valeur du stock" : "قيمة المخزون"} value={fmtDA(dashData?.produits?.valeur_stock ?? 0)} icon={<Warehouse size={16}/>} color="#06b6d4" />
             <KpiCard label={fr ? "Stock faible" : "مخزون منخفض"} value={String(dashData?.produits?.stock_faible ?? lowStock.length)} icon={<AlertTriangle size={16}/>} color={lowStock.length > 0 ? '#ef4444' : '#10b981'} sub={fr ? 'Produits sous seuil' : 'منتجات تحت الحد'} />
             <KpiCard label={fr ? "Ventes ce mois" : "مبيعات الشهر"} value={fmtDA(dashData?.ventes?.ce_mois_total ?? 0)} icon={<DollarSign size={16}/>} color="#ec4899" sub={`${dashData?.ventes?.ce_mois_count ?? 0} ${fr ? 'factures' : 'فاتورة'}`} />
+          </div>
+
+          {/* ── Bénéfice Net ── */}
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: '16px', padding: '20px 24px', marginBottom: '24px', border: `2px solid ${isNetPositive ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}` }}>
+            {sectionTitle('💰', fr ? 'Bénéfice Net (après déductions)' : 'الربح الصافي بعد الخصومات')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
+
+              {/* Bénéfice brut */}
+              <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 11, color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>📈 {fr ? 'Bénéfice brut' : 'الربح الإجمالي'}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#6366f1' }}>{fmtDA(benefice)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{fr ? "CA − Coût d'achat" : 'الإيرادات − التكلفة'}</div>
+              </div>
+
+              {/* Charges */}
+              <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>🚛 {fr ? 'Charges camions' : 'تكاليف الشاحنات'}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>− {fmtDA(charges)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{fr ? 'Carburant, réparations...' : 'وقود، إصلاحات...'}</div>
+              </div>
+
+              {/* Salaires */}
+              <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 11, color: '#8b5cf6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>👥 {fr ? 'Salaires employés' : 'رواتب الموظفين'}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#8b5cf6' }}>− {fmtDA(salaires)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{fr ? 'Total masse salariale' : 'إجمالي الرواتب'}</div>
+              </div>
+
+              {/* Bénéfice net FINAL */}
+              <div style={{ background: isNetPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `2px solid ${isNetPositive ? '#10b981' : '#ef4444'}`, borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontSize: 11, color: isNetPositive ? '#10b981' : '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                  {isNetPositive ? '✅' : '❌'} {fr ? 'BÉNÉFICE NET' : 'الربح الصافي'}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: isNetPositive ? '#10b981' : '#ef4444' }}>
+                  {isNetPositive ? '+' : ''}{fmtDA(beneficeNet)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {benData?.total_ca ? ((beneficeNet / benData.total_ca) * 100).toFixed(1) + (fr ? '% du CA' : '% من الإيرادات') : '—'}
+                </div>
+              </div>
+            </div>
+
+            {/* Formule */}
+            <div style={{ padding: '10px 16px', background: 'var(--bg-base)', borderRadius: 8, fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--text-muted)' }}>{fr ? 'Formule :' : 'المعادلة:'}</span>
+              <span style={{ fontWeight: 700, color: '#6366f1' }}>{fmtDA(benefice)}</span>
+              <Minus size={11} />
+              <span style={{ fontWeight: 700, color: '#f59e0b' }}>{fmtDA(charges)}</span>
+              <Minus size={11} />
+              <span style={{ fontWeight: 700, color: '#8b5cf6' }}>{fmtDA(salaires)}</span>
+              <span>=</span>
+              <span style={{ fontWeight: 900, fontSize: 14, color: isNetPositive ? '#10b981' : '#ef4444' }}>
+                {isNetPositive ? '+' : ''}{fmtDA(beneficeNet)}
+              </span>
+              {isNetPositive
+                ? <CheckCircle size={14} style={{ color: '#10b981' }} />
+                : <AlertTriangle size={14} style={{ color: '#ef4444' }} />
+              }
+            </div>
           </div>
 
           {/* ── Bénéfices Chart ── */}
