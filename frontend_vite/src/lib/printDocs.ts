@@ -268,9 +268,9 @@ export function printBonLivraison(order: Order) {
 
   <div class="livreur-box">
     <div class="livreur-label">🚛 Livreur Assigné</div>
+    ${order.livreur_matricule ? `<div style="font-size:13px; color:#b45309; font-weight:700; margin-bottom:4px">Matricule : ${order.livreur_matricule}</div>` : ''}
     <div class="livreur-name">
       ${order.livreur_nom || '— Non assigné —'}
-      ${order.livreur_matricule ? `<span style="font-size:12px; color:#b45309; margin-left:8px">(Matricule : ${order.livreur_matricule})</span>` : ''}
     </div>
   </div>
 
