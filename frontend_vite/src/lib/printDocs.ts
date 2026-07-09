@@ -253,16 +253,14 @@ export function printBonLivraison(order: Order) {
     <div class="info-box">
       <div class="info-label">Client Destinataire</div>
       <div class="info-value">${order.client_nom}</div>
-      <div class="info-sub">
-        ${order.client_phone ? `📞 ${order.client_phone}` : ''}
-        ${order.client_adresse ? `<br/>📍 ${order.client_adresse}` : ''}
-      </div>
+      ${(order as any).client_phone ? `<div style="font-size:14px; font-weight:800; color:#0369a1; margin-top:5px">📞 ${(order as any).client_phone}</div>` : '<div style="font-size:12px;color:#aaa;margin-top:4px">📞 —</div>'}
+      ${(order as any).client_adresse ? `<div class="info-sub" style="margin-top:3px">📍 ${(order as any).client_adresse}</div>` : ''}
     </div>
     <div class="info-box">
       <div class="info-label">Détails Commande</div>
-      <div class="info-value">${order.type_commande === 'gros' ? '🏭 Palette (Gros)' : '📦 Carton (Détail)'}</div>
-      <div class="info-sub">Prévendeur : ${order.prevendeur_nom || '—'}${order.prevendeur_matricule ? ` (Matricule : ${order.prevendeur_matricule})` : ''}</div>
-      ${order.date_livraison_souhaitee ? `<div class="info-sub" style="color:#dc2626;font-weight:700">📅 Livraison souhaitée : ${order.date_livraison_souhaitee}</div>` : ''}
+      <div class="info-value">${((order as any).type_commande || (order as any).type_vente) === 'gros' ? '🏭 Palette (Gros)' : '📦 Carton (Détail)'}</div>
+      <div class="info-sub">Prévendeur : ${(order as any).prevendeur_nom || (order as any).cree_par_nom || '—'}${(order as any).prevendeur_matricule || (order as any).cree_par_matricule ? ` (Mat: ${(order as any).prevendeur_matricule || (order as any).cree_par_matricule})` : ''}</div>
+      ${(order as any).date_livraison_souhaitee ? `<div class="info-sub" style="color:#dc2626;font-weight:700">📅 Livraison souhaitée : ${(order as any).date_livraison_souhaitee}</div>` : ''}
     </div>
   </div>
 
