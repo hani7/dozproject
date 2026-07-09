@@ -25,7 +25,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'specialite', 'phone', 'avatar', 'is_active', 'latitude', 'longitude', 'last_location_update']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'specialite', 'phone', 'matricule', 'avatar', 'is_active', 'latitude', 'longitude', 'last_location_update']
         read_only_fields = ['id']
 
 
@@ -34,7 +34,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'specialite', 'phone', 'password', 'is_active']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'specialite', 'phone', 'matricule', 'password', 'is_active']
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

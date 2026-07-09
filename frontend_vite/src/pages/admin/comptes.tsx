@@ -14,6 +14,7 @@ interface User {
   phone: string;
   role: 'admin' | 'prevendeur' | 'livreur';
   specialite: 'detail' | 'gros' | 'les_deux';
+  matricule?: string;
   is_active: boolean;
 }
 
@@ -33,7 +34,7 @@ const EMPTY_FORM = {
   username: '', first_name: '', last_name: '', email: '',
   phone: '', role: 'prevendeur' as User['role'],
   specialite: 'detail' as User['specialite'],
-  password: '', is_active: true,
+  matricule: '', password: '', is_active: true,
 };
 
 export default function ComptesPage() {
@@ -67,7 +68,7 @@ export default function ComptesPage() {
     setForm({
       username: u.username, first_name: u.first_name, last_name: u.last_name,
       email: u.email || '', phone: u.phone || '',
-      role: u.role, specialite: u.specialite, password: '', is_active: u.is_active,
+      role: u.role, specialite: u.specialite, matricule: u.matricule || '', password: '', is_active: u.is_active,
     });
     setModal(true);
   };
@@ -80,7 +81,7 @@ export default function ComptesPage() {
       const data: any = {
         username: form.username, first_name: form.first_name, last_name: form.last_name,
         email: form.email, phone: form.phone, role: form.role,
-        specialite: form.specialite, is_active: form.is_active,
+        specialite: form.specialite, matricule: form.matricule, is_active: form.is_active,
       };
       if (form.password) data.password = form.password;
 
@@ -269,6 +270,7 @@ export default function ComptesPage() {
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '12px' }}>
                             {u.phone && <span>📞 {u.phone}</span>}
                             {u.email && <span>✉️ {u.email}</span>}
+                            {u.matricule && <span>🆔 {u.matricule}</span>}
                           </div>
 
                           {/* Status */}
@@ -356,6 +358,14 @@ export default function ComptesPage() {
                 <input className="form-control" value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
+              {/* Matricule */}
+              {(form.role === 'livreur' || form.role === 'prevendeur') && (
+                <div className="form-group">
+                  <label className="form-label">{lang === 'fr' ? 'Matricule' : 'رقم التسجيل'}</label>
+                  <input className="form-control" value={form.matricule}
+                    onChange={e => setForm(f => ({ ...f, matricule: e.target.value }))} />
+                </div>
+              )}
               {/* Mot de passe */}
               <div className="form-group">
                 <label className="form-label">

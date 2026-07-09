@@ -19,6 +19,7 @@ class CustomUser(AbstractUser):
         help_text='Prévendeur: type de commandes autorisées. Livreur: type de livraisons assignées.'
     )
     phone = models.CharField(max_length=20, blank=True)
+    matricule = models.CharField(max_length=50, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     latitude = models.FloatField(null=True, blank=True)
