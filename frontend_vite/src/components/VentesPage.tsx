@@ -306,7 +306,13 @@ function VentesPageContent({ type }: Props) {
   // Client-side filtering
   const filtered = ventes.filter(v => {
     const q = search.toLowerCase();
-    if (q && !v.reference?.toLowerCase().includes(q) && !v.client_nom?.toLowerCase().includes(q)) return false;
+    if (q) {
+      const matchSearch = [
+        v.reference, v.client_nom, v.prevendeur_nom, v.cree_par_nom, v.livreur_nom, 
+        v.statut, v.mode_paiement, String(v.montant_total)
+      ].some(val => String(val || '').toLowerCase().includes(q));
+      if (!matchSearch) return false;
+    }
     if (statusFilter && v.statut !== statusFilter) return false;
     if (retourFilter === 'avec' && !v.has_retour) return false;
     if (retourFilter === 'sans' && v.has_retour) return false;
@@ -856,11 +862,13 @@ function VentesPageContent({ type }: Props) {
               </div>
               <CloseBtn onClick={() => setViewModal(null)} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '20px' }}>
               {[
                 { icon: '👤', label: fr ? 'Client' : 'العميل', value: viewModal.client_nom },
                 { icon: '📅', label: fr ? 'Date' : 'التاريخ', value: viewModal.date },
                 { icon: '💳', label: fr ? 'Paiement' : 'الدفع', value: viewModal.mode_paiement },
+                { icon: '🧑‍💼', label: fr ? 'Vendeur' : 'البائع', value: viewModal.prevendeur_nom || viewModal.cree_par_nom },
+                { icon: '🚚', label: fr ? 'Livreur' : 'الموصل', value: viewModal.livreur_nom },
               ].map((item, i) => (
                 <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '12px' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{item.icon} {item.label}</div>

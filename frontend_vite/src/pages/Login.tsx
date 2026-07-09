@@ -12,6 +12,10 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
   const fr = lang === 'fr';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,20 +59,31 @@ export default function LoginPage() {
             )}
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                {fr ? "Nom d'utilisateur" : 'اسم المستخدم'}
+                {fr ? "Nom d'utilisateur ou Email" : 'اسم المستخدم أو البريد الإلكتروني'}
               </label>
-              <input className="form-control" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" autoComplete="username" required />
+              <input className="form-control" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={fr ? 'admin ou email@exemple.com' : 'admin أو email@exemple.com'} autoComplete="username" required />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                {fr ? 'Mot de passe' : 'كلمة المرور'}
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)' }}>
+                  {fr ? 'Mot de passe' : 'كلمة المرور'}
+                </label>
+                <button type="button" onClick={() => { setShowForgot(true); setForgotSent(false); setForgotEmail(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', fontSize: '11px', fontWeight: 600, padding: 0, fontFamily: 'inherit' }}>
+                  {fr ? 'Mot de passe oublié ?' : 'نسيت كلمة المرور؟'}
+                </button>
+              </div>
               <div style={{ position: 'relative' }}>
                 <input className="form-control" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" required style={{ paddingRight: '42px' }} />
                 <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center' }}>
                   {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input id="remember-me-desktop" type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} style={{ width: 15, height: 15, accentColor: '#5629b8', cursor: 'pointer', flexShrink: 0 }} />
+              <label htmlFor="remember-me-desktop" style={{ fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+                {fr ? 'Se souvenir de moi' : 'تذكرني'}
+              </label>
             </div>
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: 'none', background: loading ? 'rgba(86,41,184,0.5)' : 'linear-gradient(135deg, #5629b8, #7132ca)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 14px rgba(86,41,184,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s' }}>
               {loading ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> {fr ? 'Connexion...' : 'جاري...'}</> : (fr ? '→ Se connecter' : '→ دخول')}
@@ -154,17 +169,28 @@ export default function LoginPage() {
                 <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '10px', padding: '10px 14px', color: '#fca5a5', fontSize: '13px' }}>⚠️ {error}</div>
               )}
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>{fr ? "Nom d'utilisateur" : 'اسم المستخدم'}</label>
-                <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" autoComplete="username" required style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>{fr ? "Nom d'utilisateur ou Email" : 'اسم المستخدم أو البريد الإلكتروني'}</label>
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={fr ? 'admin ou email@exemple.com' : 'admin أو email@exemple.com'} autoComplete="username" required style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>{fr ? 'Mot de passe' : 'كلمة المرور'}</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'rgba(255,255,255,0.6)' }}>{fr ? 'Mot de passe' : 'كلمة المرور'}</label>
+                  <button type="button" onClick={() => { setShowForgot(true); setForgotSent(false); setForgotEmail(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d8b4fe', fontSize: '11px', fontWeight: 600, padding: 0, fontFamily: 'inherit' }}>
+                    {fr ? 'Mot de passe oublié ?' : 'نسيت كلمة المرور؟'}
+                  </button>
+                </div>
                 <div style={{ position: 'relative' }}>
                   <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" required style={{ width: '100%', padding: '12px 42px 12px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                   <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', padding: 0, display: 'flex', alignItems: 'center' }}>
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input id="remember-me-mobile" type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#7132ca', cursor: 'pointer', flexShrink: 0 }} />
+                <label htmlFor="remember-me-mobile" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', cursor: 'pointer', userSelect: 'none' }}>
+                  {fr ? 'Se souvenir de moi' : 'تذكرني'}
+                </label>
               </div>
               <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: loading ? 'rgba(86,41,184,0.5)' : 'linear-gradient(135deg, #5629b8, #7132ca)', color: '#fff', fontWeight: 700, fontSize: '15px', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 20px rgba(113,50,202,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit', transition: 'all 0.2s', marginTop: '4px' }}>
                 {loading ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> {fr ? 'Connexion...' : 'جاري...'}</> : (fr ? '→ Se connecter' : '→ دخول')}
@@ -183,6 +209,37 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Forgot Password Modal ───────────────────────── */}
+      {showForgot && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowForgot(false)}>
+          <div style={{ background: 'var(--bg-surface, #fff)', borderRadius: '20px', padding: '32px 28px', maxWidth: 380, width: '100%', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', border: '1px solid var(--border, #e5e7eb)' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary, #111)', marginBottom: '6px' }}>
+              {fr ? '🔑 Mot de passe oublié' : '🔑 نسيت كلمة المرور'}
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted, #6b7280)', marginBottom: '20px', lineHeight: 1.6 }}>
+              {fr ? 'Entrez votre email. Un lien de réinitialisation vous sera envoyé.' : 'أدخل بريدك الإلكتروني. سيتم إرسال رابط إعادة التعيين إليك.'}
+            </p>
+            {forgotSent ? (
+              <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '10px', padding: '12px 16px', color: '#16a34a', fontSize: '13px', textAlign: 'center' }}>
+                ✅ {fr ? 'Email envoyé ! Vérifiez votre boîte mail.' : 'تم الإرسال! تحقق من بريدك الإلكتروني.'}
+              </div>
+            ) : (
+              <>
+                <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder={fr ? 'votre@email.com' : 'بريدك@الالكتروني.com'} style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border, #d1d5db)', background: 'var(--bg-elevated, #f9fafb)', color: 'var(--text-primary, #111)', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: '14px' }} />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => setShowForgot(false)} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border, #d1d5db)', background: 'transparent', color: 'var(--text-secondary, #374151)', fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {fr ? 'Annuler' : 'إلغاء'}
+                  </button>
+                  <button type="button" onClick={() => { if (forgotEmail) setForgotSent(true); }} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #5629b8, #7132ca)', color: '#fff', fontWeight: 700, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {fr ? 'Envoyer' : 'إرسال'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
