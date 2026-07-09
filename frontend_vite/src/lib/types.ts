@@ -78,8 +78,10 @@ export interface Order {
   client_adresse: string;
   prevendeur: number;
   prevendeur_nom: string;
+  prevendeur_matricule?: string;
   livreur?: number;
   livreur_nom?: string;
+  livreur_matricule?: string;
   statut: 'en_attente' | 'confirmee' | 'en_livraison' | 'livree' | 'annulee';
   montant_total: number;
   montant_paye?: number;

@@ -261,14 +261,17 @@ export function printBonLivraison(order: Order) {
     <div class="info-box">
       <div class="info-label">Détails Commande</div>
       <div class="info-value">${order.type_commande === 'gros' ? '🏭 Palette (Gros)' : '📦 Carton (Détail)'}</div>
-      <div class="info-sub">Prévendeur : ${order.prevendeur_nom || '—'}</div>
+      <div class="info-sub">Prévendeur : ${order.prevendeur_nom || '—'}${order.prevendeur_matricule ? ` (Matricule : ${order.prevendeur_matricule})` : ''}</div>
       ${order.date_livraison_souhaitee ? `<div class="info-sub" style="color:#dc2626;font-weight:700">📅 Livraison souhaitée : ${order.date_livraison_souhaitee}</div>` : ''}
     </div>
   </div>
 
   <div class="livreur-box">
     <div class="livreur-label">🚛 Livreur Assigné</div>
-    <div class="livreur-name">${order.livreur_nom || '— Non assigné —'}</div>
+    <div class="livreur-name">
+      ${order.livreur_nom || '— Non assigné —'}
+      ${order.livreur_matricule ? `<span style="font-size:12px; color:#b45309; margin-left:8px">(Matricule : ${order.livreur_matricule})</span>` : ''}
+    </div>
   </div>
 
   <table>

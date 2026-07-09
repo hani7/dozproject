@@ -44,7 +44,9 @@ class CommandeListSerializer(serializers.ModelSerializer):
     client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
     client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
     prevendeur_nom   = serializers.SerializerMethodField()
+    prevendeur_matricule = serializers.SerializerMethodField()
     livreur_nom      = serializers.SerializerMethodField()
+    livreur_matricule = serializers.SerializerMethodField()
     reste_a_payer    = serializers.ReadOnlyField()
 
     class Meta:
@@ -53,7 +55,7 @@ class CommandeListSerializer(serializers.ModelSerializer):
             'id', 'reference', 'type_commande', 'statut', 'created_at',
             'client', 'client_nom', 'client_phone', 'client_adresse',
             'client_latitude', 'client_longitude',
-            'prevendeur', 'prevendeur_nom', 'livreur', 'livreur_nom',
+            'prevendeur', 'prevendeur_nom', 'prevendeur_matricule', 'livreur', 'livreur_nom', 'livreur_matricule',
             'montant_total', 'montant_paye', 'reste_a_payer',
             'notes', 'lignes',
         ]
@@ -61,8 +63,14 @@ class CommandeListSerializer(serializers.ModelSerializer):
     def get_prevendeur_nom(self, obj):
         return obj.prevendeur.get_full_name() if obj.prevendeur else ''
 
+    def get_prevendeur_matricule(self, obj):
+        return obj.prevendeur.matricule if obj.prevendeur else ''
+
     def get_livreur_nom(self, obj):
         return obj.livreur.get_full_name() if obj.livreur else ''
+
+    def get_livreur_matricule(self, obj):
+        return obj.livreur.matricule if obj.livreur else ''
 
 
 class CommandeSerializer(serializers.ModelSerializer):
@@ -73,7 +81,9 @@ class CommandeSerializer(serializers.ModelSerializer):
     client_latitude = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True)
     client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True)
     prevendeur_nom = serializers.SerializerMethodField()
+    prevendeur_matricule = serializers.SerializerMethodField()
     livreur_nom = serializers.SerializerMethodField()
+    livreur_matricule = serializers.SerializerMethodField()
     has_retour       = serializers.SerializerMethodField()
     retours          = serializers.SerializerMethodField()
     has_non_conforme = serializers.SerializerMethodField()
@@ -86,8 +96,14 @@ class CommandeSerializer(serializers.ModelSerializer):
     def get_prevendeur_nom(self, obj):
         return obj.prevendeur.get_full_name() if obj.prevendeur else ''
 
+    def get_prevendeur_matricule(self, obj):
+        return obj.prevendeur.matricule if obj.prevendeur else ''
+
     def get_livreur_nom(self, obj):
         return obj.livreur.get_full_name() if obj.livreur else ''
+
+    def get_livreur_matricule(self, obj):
+        return obj.livreur.matricule if obj.livreur else ''
 
     def get_has_retour(self, obj):
         from stock.models import MouvementStock

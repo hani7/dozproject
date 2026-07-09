@@ -39,7 +39,9 @@ class VenteListSerializer(serializers.ModelSerializer):
     client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
     client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True, allow_null=True)
     cree_par_nom     = serializers.CharField(source='cree_par.get_full_name', read_only=True)
+    cree_par_matricule = serializers.CharField(source='cree_par.matricule', read_only=True)
     livreur_nom      = serializers.CharField(source='livreur.get_full_name', read_only=True)
+    livreur_matricule = serializers.CharField(source='livreur.matricule', read_only=True)
     reste_a_payer    = serializers.ReadOnlyField()
 
     class Meta:
@@ -48,7 +50,7 @@ class VenteListSerializer(serializers.ModelSerializer):
             'id', 'reference', 'type_vente', 'statut', 'date', 'created_at',
             'client', 'client_nom', 'client_phone', 'client_adresse',
             'client_latitude', 'client_longitude',
-            'cree_par_nom', 'livreur', 'livreur_nom',
+            'cree_par_nom', 'cree_par_matricule', 'livreur', 'livreur_nom', 'livreur_matricule',
             'mode_paiement', 'montant_total', 'montant_paye', 'reste_a_payer', 'remise',
             'notes', 'lignes',
         ]
@@ -63,7 +65,9 @@ class VenteSerializer(serializers.ModelSerializer):
     client_latitude  = serializers.DecimalField(source='client.latitude', max_digits=9, decimal_places=6, read_only=True)
     client_longitude = serializers.DecimalField(source='client.longitude', max_digits=9, decimal_places=6, read_only=True)
     cree_par_nom     = serializers.CharField(source='cree_par.get_full_name', read_only=True)
+    cree_par_matricule = serializers.CharField(source='cree_par.matricule', read_only=True)
     livreur_nom      = serializers.CharField(source='livreur.get_full_name', read_only=True)
+    livreur_matricule = serializers.CharField(source='livreur.matricule', read_only=True)
     reste_a_payer    = serializers.ReadOnlyField()
     has_retour       = serializers.SerializerMethodField()
     retours          = serializers.SerializerMethodField()
