@@ -34,18 +34,31 @@ export default function HistoriqueCommandesPage() {
 
   useEffect(() => {
     setLoading(true);
-    api.get('/commandes/', {
-      params: { ordering: '-created_at', page_size: 200, statut: statusFilter || undefined }
-    }).then(r => {
-      const data: Order[] = r.data.results || r.data;
-      setOrders(data);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    const fetchAll = async () => {
+      try {
+        let all: Order[] = [];
+        let nextUrl: string | null = `/commandes/?ordering=-created_at&page_size=500${statusFilter ? '&statut=' + statusFilter : ''}`;
+        while (nextUrl) {
+          const r = await api.get(nextUrl);
+          const data = r.data.results || r.data;
+          all = [...all, ...data];
+          nextUrl = r.data.next || null;
+        }
+        setOrders(all);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
   }, [statusFilter]);
 
   const filtered = orders.filter(o => {
     const q = search.toLowerCase();
-    const matchSearch = !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q);
+    const matchSearch = !q || [
+      o.reference, o.client_nom, o.prevendeur_nom, o.livreur_nom, o.statut, String(o.montant_total)
+    ].some(val => String(val || '').toLowerCase().includes(q));
     const matchType = !typeFilter || o.type_commande === typeFilter;
     const orderDate = o.created_at.split('T')[0];
     const matchDateFrom = !dateFrom || orderDate >= dateFrom;

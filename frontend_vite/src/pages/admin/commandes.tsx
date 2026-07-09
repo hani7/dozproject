@@ -41,8 +41,8 @@ export default function CommandesLivePage() {
   const load = useCallback(async () => {
     try {
       const [resCmd, resVente] = await Promise.all([
-        api.get('/commandes/', { params: { ordering: '-created_at', page_size: 50 } }),
-        api.get('/ventes/', { params: { ordering: '-created_at', page_size: 50 } })
+        api.get('/commandes/', { params: { ordering: '-created_at', page_size: 500 } }),
+        api.get('/ventes/', { params: { ordering: '-created_at', page_size: 500 } })
       ]);
       const cmds = (resCmd.data.results || resCmd.data).map((c: any) => ({ ...c, is_vente: false }));
       const vts = (resVente.data.results || resVente.data).map((v: any) => ({ ...v, is_vente: true }));
@@ -141,7 +141,9 @@ export default function CommandesLivePage() {
 
   const filteredOrders = orders.filter(o => {
     const q = search.toLowerCase();
-    return !q || o.reference?.toLowerCase().includes(q) || o.client_nom?.toLowerCase().includes(q);
+    return !q || [
+      o.reference, o.client_nom, o.prevendeur_nom, o.livreur_nom, o.statut, String(o.montant_total)
+    ].some(val => String(val || '').toLowerCase().includes(q));
   });
 
   const pending = orders.filter(o => o.statut === 'en_attente').length;
