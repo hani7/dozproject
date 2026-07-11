@@ -63,8 +63,8 @@ export default function StockPage() {
 
   const load = () => {
     const params: Record<string, string> = { page_size: '5000' };
-    if (dateFrom) params['created_at__date__gte'] = dateFrom;
-    if (dateTo)   params['created_at__date__lte'] = dateTo;
+    if (dateFrom) params['date_from'] = dateFrom;
+    if (dateTo)   params['date_to']   = dateTo;
     return api.get('/stock/', { params }).then(r => setMovements(r.data.results || r.data));
   };
 
