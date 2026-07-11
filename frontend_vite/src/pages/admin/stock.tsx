@@ -42,6 +42,9 @@ export default function StockPage() {
     }, {} as Record<string, { entree: number; sortie: number }>);
   }, [movements]);
 
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   const filteredMovements = useMemo(() => movements.filter(m => {
     const q = search.toLowerCase();
     const matchSearch = !q || m.produit_nom.toLowerCase().includes(q) || m.reference?.toLowerCase().includes(q);
@@ -58,8 +61,6 @@ export default function StockPage() {
 
   const { page, pageSize, paginated: pagedMovements, total, setPage, setPageSize } = usePagination(filteredMovements, 25);
 
-  const toLocalDateStr = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const load = () => {
     const params: Record<string, string> = { page_size: '5000' };
