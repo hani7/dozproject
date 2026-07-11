@@ -31,7 +31,8 @@ export default function StockPage() {
     
     return movements.reduce((acc, m) => {
       // Check if created_at starts with today's YYYY-MM-DD
-      const mDate = new Date(m.created_at).toISOString().split('T')[0];
+      const d = new Date(m.created_at);
+      const mDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (mDate === todayStr) {
         if (!acc[m.produit_nom]) acc[m.produit_nom] = { entree: 0, sortie: 0 };
         if (m.type_mouvement === 'entree') acc[m.produit_nom].entree += Number(m.quantite);
@@ -49,7 +50,7 @@ export default function StockPage() {
       : typeFilter === 'offert' 
         ? m.notes?.includes('🎁') 
         : m.type_mouvement === typeFilter;
-    const mDate = new Date(m.created_at).toISOString().split('T')[0];
+    const mDate = toLocalDateStr(new Date(m.created_at));
     const matchFrom = !dateFrom || mDate >= dateFrom;
     const matchTo   = !dateTo   || mDate <= dateTo;
     return matchSearch && matchType && matchFrom && matchTo;
@@ -57,11 +58,20 @@ export default function StockPage() {
 
   const { page, pageSize, paginated: pagedMovements, total, setPage, setPageSize } = usePagination(filteredMovements, 25);
 
-  const load = () => api.get('/stock/').then(r => setMovements(r.data.results || r.data));
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const load = () => {
+    const params: Record<string, string> = { page_size: '5000' };
+    if (dateFrom) params['created_at__date__gte'] = dateFrom;
+    if (dateTo)   params['created_at__date__lte'] = dateTo;
+    return api.get('/stock/', { params }).then(r => setMovements(r.data.results || r.data));
+  };
+
   useEffect(() => {
     load();
-    api.get('/products/').then(r => setProducts(r.data.results || r.data));
-  }, []);
+    api.get('/products/', { params: { page_size: '1000' } }).then(r => setProducts(r.data.results || r.data));
+  }, [dateFrom, dateTo]);
 
   const save = async () => {
     try {
