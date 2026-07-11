@@ -62,17 +62,14 @@ export default function StockPage() {
   const { page, pageSize, paginated: pagedMovements, total, setPage, setPageSize } = usePagination(filteredMovements, 25);
 
 
-  const load = () => {
-    const params: Record<string, string> = { page_size: '5000' };
-    if (dateFrom) params['date_from'] = dateFrom;
-    if (dateTo)   params['date_to']   = dateTo;
-    return api.get('/stock/', { params }).then(r => setMovements(r.data.results || r.data));
-  };
+  const load = () =>
+    api.get('/stock/', { params: { page_size: '5000' } })
+       .then(r => setMovements(r.data.results || r.data));
 
   useEffect(() => {
     load();
     api.get('/products/', { params: { page_size: '1000' } }).then(r => setProducts(r.data.results || r.data));
-  }, [dateFrom, dateTo]);
+  }, []);
 
   const save = async () => {
     try {
