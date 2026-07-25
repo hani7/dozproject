@@ -20,8 +20,13 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all().order_by('username')
 
     def get_permissions(self):
-        # Allow any authenticated user to list/retrieve (for livreur picker, etc.)
-        # Also allow them to update their own location
+        # Respect action-level permission_classes (e.g. force_migrate has [])
+        action_perms = getattr(self, self.action, None)
+        if action_perms is not None:
+            action_kwargs = getattr(action_perms, 'kwargs', {})
+            if 'permission_classes' in action_kwargs:
+                return [p() for p in action_kwargs['permission_classes']]
+        # Default rules
         if self.action in ['list', 'retrieve', 'update_location']:
             return [permissions.IsAuthenticated()]
         return [IsAdmin()]
