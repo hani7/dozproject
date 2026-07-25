@@ -6,16 +6,23 @@ import type { AuthUser, UserRole } from '@/lib/types';
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   isRole: (...roles: UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Check localStorage (remember me) first, then sessionStorage (session only)
+function getStorage(): Storage {
+  return localStorage.getItem('auth_user') ? localStorage : sessionStorage;
+}
+
 function readStoredUser(): AuthUser | null {
   try {
-    const stored = localStorage.getItem('auth_user');
+    const stored =
+      localStorage.getItem('auth_user') ??
+      sessionStorage.getItem('auth_user');
     return stored ? (JSON.parse(stored) as AuthUser) : null;
   } catch {
     return null;
@@ -27,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const login = useCallback(async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string, rememberMe = false) => {
     setLoading(true);
     try {
       const res = await api.post('/auth/login/', { username, password });
@@ -35,19 +42,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...res.data,
         specialite: res.data.specialite || 'les_deux',
       };
-      localStorage.setItem('access_token', userData.access);
-      localStorage.setItem('refresh_token', userData.refresh);
-      localStorage.setItem('auth_user', JSON.stringify(userData));
+      // Use localStorage for persistent sessions, sessionStorage for tab-only sessions
+      const store = rememberMe ? localStorage : sessionStorage;
+      store.setItem('access_token', userData.access);
+      store.setItem('refresh_token', userData.refresh);
+      store.setItem('auth_user', JSON.stringify(userData));
       setUser(userData);
 
       if (userData.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (userData.role === 'prevendeur') {
-        navigate(
-          userData.specialite === 'gros'
-            ? '/prevendeur/commande-gros'
-            : '/prevendeur/commande-detail'
-        );
+        if (userData.specialite === 'gros') {
+          navigate('/prevendeur/commande-gros');
+        } else if (userData.specialite === 'detail') {
+          navigate('/prevendeur/commande-detail');
+        } else {
+          // les_deux: land on a neutral overview page
+          navigate('/prevendeur/mes-commandes');
+        }
       } else if (userData.role === 'livreur') {
         navigate('/livreur/livraisons');
       }
@@ -58,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.clear();
+    sessionStorage.clear();
     setUser(null);
     navigate('/login');
   }, [navigate]);

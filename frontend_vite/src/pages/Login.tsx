@@ -21,7 +21,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError('');
-    try { await login(username, password); }
+    try { await login(username, password, rememberMe); }
     catch { setError(fr ? 'Identifiants incorrects.' : 'بيانات غير صحيحة.'); }
     finally { setLoading(false); }
   };
