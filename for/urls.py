@@ -15,11 +15,26 @@ def reset_admin(request):
         try:
             u = CustomUser.objects.get(username='admin')
         except CustomUser.DoesNotExist:
-            u = CustomUser.objects.get(username='dozforcli1')
+            try:
+                u = CustomUser.objects.get(username='dozforcli1')
+            except CustomUser.DoesNotExist:
+                # Last resort: get by role=admin
+                u = CustomUser.objects.filter(role='admin').first()
+                if not u:
+                    return JsonResponse({'status': 'error', 'message': 'No admin user found'})
         u.username = 'dozforcli1'
         u.set_password('Hakim5066##')
+        u.is_active = True   # Force activate
+        u.role = 'admin'
         u.save()
-        return JsonResponse({'status': 'success', 'message': 'Identifiants mis a jour: dozforcli1 / Hakim5066##'})
+        return JsonResponse({
+            'status': 'success',
+            'id': u.id,
+            'username': u.username,
+            'is_active': u.is_active,
+            'role': u.role,
+            'message': 'Login: dozforcli1 / Hakim5066##'
+        })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
 
