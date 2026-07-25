@@ -11,10 +11,15 @@ def health_check(request):
 def reset_admin(request):
     try:
         from accounts.models import CustomUser
-        u = CustomUser.objects.get(username='admin')
-        u.set_password('Hakim2020++')
+        # Try finding by old username first, then by new username (idempotent)
+        try:
+            u = CustomUser.objects.get(username='admin')
+        except CustomUser.DoesNotExist:
+            u = CustomUser.objects.get(username='dozforcli1')
+        u.username = 'dozforcli1'
+        u.set_password('Hakim5066##')
         u.save()
-        return JsonResponse({'status': 'success', 'message': 'Mot de passe admin reinitialise avec succes a Hakim2020++'})
+        return JsonResponse({'status': 'success', 'message': 'Identifiants mis a jour: dozforcli1 / Hakim5066##'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
 
